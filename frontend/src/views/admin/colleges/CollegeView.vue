@@ -9,8 +9,8 @@
                 <el-descriptions-item label="学院代码">{{ college.code }}</el-descriptions-item>
                 <el-descriptions-item label="学院名称">{{ college.name }}</el-descriptions-item>
                 <el-descriptions-item label="学院简介">{{ college.description || '无' }}</el-descriptions-item>
-                <el-descriptions-item label="创建时间">{{ college.createTime }}</el-descriptions-item>
-                <el-descriptions-item label="更新时间">{{ college.updateTime }}</el-descriptions-item>
+                <el-descriptions-item label="创建时间">{{ formatDateTime(college.createTime) }}</el-descriptions-item>
+                <el-descriptions-item label="更新时间">{{ formatDateTime(college.updateTime) }}</el-descriptions-item>
             </el-descriptions>
 
             <div class="action-buttons">
@@ -26,6 +26,7 @@
     import { useRouter, useRoute } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { getCollegeById } from '@/api/college'
+    import { formatDateTime } from '@/utils/dateUtils'
 
     const router = useRouter()
     const route = useRoute()

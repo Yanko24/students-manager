@@ -61,8 +61,8 @@
                         </div>
                     </template>
                     <div class="card-content">
-                        <div class="number">{{ stats.attendance }}</div>
-                        <div class="label">待处理考勤</div>
+                        <div class="number">{{ stats.attendance ?? '—' }}</div>
+                        <div class="label">今日考勤记录</div>
                     </div>
                 </el-card>
             </el-col>
@@ -113,7 +113,7 @@
 </template>
 
 <script setup>
-    import { ref } from 'vue'
+    import { ref, onMounted } from 'vue'
     import { useRouter } from 'vue-router'
     import {
         Reading,
@@ -121,6 +121,8 @@
         Document,
         Calendar
     } from '@element-plus/icons-vue'
+    import { ElMessage } from 'element-plus'
+    import { getTeacherAttendance } from '@/api/attendance'
 
     const router = useRouter()
 
@@ -129,7 +131,7 @@
         courses: 4,
         students: 120,
         homework: 8,
-        attendance: 3
+        attendance: null
     })
 
     // 课程表数据
@@ -182,6 +184,21 @@
             }
         })
     }
+
+    const fetchTodayAttendance = async () => {
+        const today = new Date()
+        const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+        try {
+            const response = await getTeacherAttendance({ date, page: 1, size: 1 })
+            if (response?.code !== 200) throw new Error(response?.message || '获取今日考勤失败')
+            stats.value.attendance = response.data?.total || 0
+        } catch (error) {
+            console.error('获取今日考勤失败：', error)
+            ElMessage.error(error?.message || '获取今日考勤失败')
+        }
+    }
+
+    onMounted(fetchTodayAttendance)
 </script>
 
 <style lang="scss" scoped>

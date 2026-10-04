@@ -13,14 +13,11 @@
                 <el-form-item label="课程名称">
                     <el-input v-model="filterForm.name" placeholder="请输入课程名称" clearable />
                 </el-form-item>
-                <el-form-item label="学院">
-                    <el-input v-model="filterForm.college" placeholder="请输入学院" clearable />
+                <el-form-item label="院系">
+                    <el-input v-model="filterForm.department" placeholder="请输入院系" clearable />
                 </el-form-item>
                 <el-form-item label="学期">
-                    <el-select v-model="filterForm.semester" placeholder="请选择学期" clearable>
-                        <el-option label="2023-2024-1" value="2023-2024-1" />
-                        <el-option label="2023-2024-2" value="2023-2024-2" />
-                    </el-select>
+                    <el-input v-model="filterForm.semester" placeholder="请输入学期" clearable />
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">搜索</el-button>
@@ -30,23 +27,31 @@
         </el-card>
 
         <el-card class="table-card">
-            <el-table :data="courseList" v-loading="loading" border style="width: 100%">
-                <el-table-column prop="code" label="课程代码" min-width="120" align="center" />
-                <el-table-column prop="name" label="课程名称" min-width="150" align="center" />
-                <el-table-column prop="college" label="所属学院" min-width="150" align="center" />
-                <el-table-column prop="credit" label="学分" min-width="80" align="center" />
-                <el-table-column prop="hours" label="学时" min-width="80" align="center" />
-                <el-table-column prop="type" label="课程类型" min-width="100" align="center" />
-                <el-table-column prop="teacher" label="授课教师" min-width="100" align="center" />
-                <el-table-column prop="semester" label="学期" min-width="120" align="center" />
-                <el-table-column prop="status" label="状态" min-width="80" align="center">
+            <el-table ref="tableRef" :data="courseList" v-loading="loading" border
+                :style="{ width: tableWidth + 'px' }">
+                <el-table-column prop="code" label="课程代码" :width="columnWidth.code" align="center" />
+                <el-table-column prop="name" label="课程名称" :width="columnWidth.name" align="center"
+                    show-overflow-tooltip />
+                <el-table-column prop="college" label="所属学院" :width="columnWidth.college" align="center"
+                    show-overflow-tooltip>
                     <template #default="{ row }">
-                        <el-tag :type="row.status === '正常' ? 'success' : 'danger'" size="small">
-                            {{ row.status }}
+                        <span class="single-line-cell" :title="row.college || ''">{{ row.college || '—' }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="credit" label="学分" :width="columnWidth.credit" align="center" />
+                <el-table-column prop="hours" label="学时" :width="columnWidth.hours" align="center" />
+                <el-table-column prop="type" label="课程类型" :width="columnWidth.type" align="center" />
+                <el-table-column prop="teacher" label="授课教师" :width="columnWidth.teacher" align="center"
+                    show-overflow-tooltip />
+                <el-table-column prop="semester" label="学期" :width="columnWidth.semester" align="center" />
+                <el-table-column prop="statusText" label="状态" :width="columnWidth.status" align="center">
+                    <template #default="{ row }">
+                        <el-tag :type="row.status === 0 ? 'info' : row.status === 1 ? 'success' : 'warning'" size="small">
+                            {{ row.statusText }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" min-width="180" fixed="right" align="center">
+                <el-table-column label="操作" :width="columnWidth.operation" fixed="right" align="center">
                     <template #default="{ row }">
                         <el-button type="primary" link @click="router.push(`/admin/courses/${row.id}`)">
                             查看
@@ -67,21 +72,36 @@
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref } from 'vue'
     import { useRouter } from 'vue-router'
-    import { ElMessage } from 'element-plus'
+    import { ElMessage, ElMessageBox } from 'element-plus'
     import { getCourseList, deleteCourse } from '@/api/course'
     import SmartPagination from '@/components/common/SmartPagination.vue'
+    import { useTableWidth } from '@/composables/useTableWidth'
 
     const router = useRouter()
     const loading = ref(false)
     const courseList = ref([])
     const total = ref(0)
 
+    const minColumnWidths = {
+        code: 120,
+        name: 180,
+        college: 280,
+        credit: 80,
+        hours: 80,
+        type: 110,
+        teacher: 120,
+        semester: 140,
+        status: 100,
+        operation: 180
+    }
+    const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths)
+
     const filterForm = ref({
         code: '',
         name: '',
-        college: '',
+        department: '',
         semester: ''
     })
 
@@ -101,9 +121,13 @@
             })
 
             console.log('获取课程列表响应：', response)
-            if (response && response.data) {
+            if (response?.code === 200 && response.data) {
                 courseList.value = response.data.records || []
                 total.value = response.data.total || 0
+            } else {
+                courseList.value = []
+                total.value = 0
+                ElMessage.error(response?.message || '获取课程列表失败')
             }
         } catch (error) {
             console.error('获取课程列表失败：', error)
@@ -121,7 +145,7 @@
         filterForm.value = {
             code: '',
             name: '',
-            college: '',
+            department: '',
             semester: ''
         }
         handleSearch()
@@ -129,13 +153,17 @@
 
     const handleDelete = async (id) => {
         try {
-            console.log('开始删除课程，ID：', id)
+            await ElMessageBox.confirm('删除后无法恢复，确定删除这门课程吗？', '删除课程', {
+                confirmButtonText: '删除',
+                cancelButtonText: '取消',
+                type: 'warning',
+                confirmButtonClass: 'el-button--danger'
+            })
             await deleteCourse(id)
-            console.log('删除课程成功')
             ElMessage.success('删除成功')
             handleSearch()
         } catch (error) {
-            console.error('删除课程失败：', error)
+            if (error === 'cancel' || error === 'close') return
             ElMessage.error('删除失败')
         }
     }
@@ -144,9 +172,6 @@
         fetchCourses(page, size)
     }
 
-    onMounted(() => {
-        handleSearch()
-    })
 </script>
 
 <style scoped>
@@ -196,6 +221,7 @@
     .table-card {
         margin-bottom: 20px;
         overflow-x: auto;
+        padding: 20px;
     }
 
     .table-card :deep(.el-table) {
@@ -211,6 +237,36 @@
 
     .table-card :deep(.el-table td) {
         padding: 8px 0;
+    }
+
+    .table-card :deep(.el-table .cell) {
+        white-space: nowrap !important;
+        word-break: keep-all;
+        overflow-wrap: normal;
+    }
+
+    .single-line-cell {
+        display: inline-block;
+        max-width: 100%;
+        white-space: nowrap !important;
+        word-break: keep-all;
+        overflow-wrap: normal;
+    }
+
+    .table-card :deep(.el-table__fixed-right) {
+        height: 100% !important;
+        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .table-card :deep(.el-table__fixed-right::before) {
+        content: '';
+        position: absolute;
+        left: -1px;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background-color: #EBEEF5;
+        z-index: 1;
     }
 
     :deep(.el-button--link) {

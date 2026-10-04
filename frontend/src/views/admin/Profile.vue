@@ -37,10 +37,10 @@
                             <el-tag type="success">{{ profile.role }}</el-tag>
                         </el-form-item>
                         <el-form-item label="创建时间">
-                            <span>{{ profile.createTime }}</span>
+                            <span>{{ formatDateTime(profile.createTime) }}</span>
                         </el-form-item>
                         <el-form-item label="最后登录">
-                            <span>{{ profile.lastLoginTime }}</span>
+                            <span>{{ formatDateTime(profile.lastLoginTime) }}</span>
                         </el-form-item>
                     </el-form>
 
@@ -79,6 +79,7 @@
     import { ref, reactive } from 'vue'
     import { ElMessage } from 'element-plus'
     import { Plus } from '@element-plus/icons-vue'
+    import { formatDateTime } from '@/utils/dateUtils'
 
     const profile = reactive({
         username: 'admin',

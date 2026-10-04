@@ -44,3 +44,10 @@ export function getCurrentUser() {
 		method: "get",
 	});
 }
+
+export function validateSession() {
+	return request({
+		url: "/auth/session",
+		method: "get",
+	});
+}

@@ -5,7 +5,7 @@
                 <img src="@/assets/images/logo.png" alt="Logo" class="logo" />
                 <h2>学生管理系统</h2>
             </div>
-            <el-form :model="loginForm" :rules="rules" ref="loginFormRef" label-width="0">
+            <el-form ref="loginFormRef" :model="loginForm" :rules="rules" label-width="0" @submit.prevent="handleLogin">
                 <el-form-item prop="username">
                     <el-input v-model="loginForm.username" placeholder="用户名">
                         <template #prefix>
@@ -25,7 +25,7 @@
                     </el-input>
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="primary" class="login-button" @click="handleLogin" :loading="loading">
+                    <el-button type="primary" native-type="submit" class="login-button" :loading="loading">
                         登录
                     </el-button>
                 </el-form-item>
@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-    import { ref, reactive } from 'vue'
+    import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
     import { useRouter } from 'vue-router'
     import { useUserStore } from '@/stores/user'
     import { ElMessage } from 'element-plus'
@@ -46,6 +46,23 @@
     const userStore = useUserStore()
     const loginFormRef = ref(null)
     const loading = ref(false)
+
+    const handleLoginKeydown = (event) => {
+        if (event.key !== 'Enter' || event.isComposing) return
+        event.preventDefault()
+        event.stopPropagation()
+        handleLogin()
+    }
+
+    let loginFormElement
+    onMounted(() => {
+        loginFormElement = loginFormRef.value?.$el
+        loginFormElement?.addEventListener('keydown', handleLoginKeydown, true)
+    })
+
+    onBeforeUnmount(() => {
+        loginFormElement?.removeEventListener('keydown', handleLoginKeydown, true)
+    })
 
     const loginForm = reactive({
         username: '',
@@ -99,6 +116,8 @@
     }
 
     const handleLogin = () => {
+        if (loading.value) return
+
         loginFormRef.value.validate(async (valid) => {
             if (!valid) return
 
@@ -126,31 +145,46 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        background-color: #f0f2f5;
+        padding: 24px;
+        background:
+            radial-gradient(ellipse at 16% 12%, rgba(96, 156, 235, .20), transparent 32%),
+            radial-gradient(ellipse at 86% 84%, rgba(67, 111, 177, .14), transparent 34%),
+            #f3f6fb;
 
         .login-card {
-            width: 400px;
-            padding: 20px;
+            width: min(420px, 100%);
+            padding: 26px 24px;
+            border: 1px solid rgba(224, 231, 241, .9);
+            border-radius: 16px;
+            box-shadow: 0 20px 55px rgba(30, 56, 94, .12);
 
             .login-header {
                 text-align: center;
-                margin-bottom: 30px;
+                margin-bottom: 34px;
 
                 .logo {
-                    width: 64px;
-                    height: 64px;
+                    width: 60px;
+                    height: 60px;
                     margin-bottom: 16px;
                 }
 
                 h2 {
                     margin: 0;
-                    font-size: 24px;
-                    color: #303133;
+                    font-size: 23px;
+                    color: #23334b;
+                    letter-spacing: .4px;
                 }
             }
 
             .login-button {
                 width: 100%;
+                height: 44px;
+                font-size: 15px;
+            }
+
+            :deep(.el-input__wrapper) {
+                min-height: 44px;
+                padding: 0 13px;
             }
         }
     }

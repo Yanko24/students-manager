@@ -31,11 +31,6 @@ public class College {
     private String description;
     
     /**
-     * 院长ID
-     */
-    private Long deanId;
-    
-    /**
      * 状态（0-正常，1-停用）
      */
     private Integer status;
@@ -65,4 +60,4 @@ public class College {
      * 更新人
      */
     private String updateBy;
-} 
+}

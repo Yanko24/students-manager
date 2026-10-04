@@ -77,24 +77,6 @@ export function updateTeacherPassword(data) {
 	});
 }
 
-// 获取教师考勤统计
-export function getTeacherAttendanceStats(params) {
-	return request({
-		url: "/teachers/attendance/stats",
-		method: "get",
-		params,
-	});
-}
-
-// 获取教师课程考勤详情
-export function getTeacherCourseAttendance(courseId, params) {
-	return request({
-		url: `/teachers/courses/${courseId}/attendance`,
-		method: "get",
-		params,
-	});
-}
-
 // 获取状态对应的标签类型
 export const getStatusType = (status) => {
 	switch (status) {

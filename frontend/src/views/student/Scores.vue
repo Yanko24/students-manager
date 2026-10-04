@@ -38,7 +38,9 @@
                                 <el-tag :type="getGradeTagType(row.grade)">{{ row.grade }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="examTime" label="考试时间" width="180" />
+                        <el-table-column prop="examTime" label="考试时间" width="180">
+                            <template #default="{ row }">{{ formatDateTime(row.examTime) }}</template>
+                        </el-table-column>
                         <el-table-column prop="teacher" label="授课教师" width="120" />
                     </el-table>
 
@@ -101,6 +103,7 @@
     import { ref, computed } from 'vue'
     import { Download } from '@element-plus/icons-vue'
     import { ElMessage } from 'element-plus'
+    import { formatDateTime } from '@/utils/dateUtils'
 
     const currentSemester = ref('2023-2')
     const loading = ref(false)

@@ -44,6 +44,12 @@ public class AuthController {
         }
     }
 
+    /** Authenticated lightweight endpoint used by the frontend to detect backend restarts. */
+    @GetMapping("/session")
+    public Result<Void> validateSession() {
+        return Result.success();
+    }
+
     @PostMapping("/change-password")
     public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request,
                                        Authentication authentication) {

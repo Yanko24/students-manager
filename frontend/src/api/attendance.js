@@ -9,6 +9,15 @@ export function getAttendanceList(params) {
 	});
 }
 
+// 管理员按学号、姓名、课程、班级、日期、状态和学期筛选，并分页读取
+export function getAttendanceStatistics(period = "week") {
+	return request({ url: "/attendance/statistics", method: "get", params: { period } });
+}
+
+export function getAttendanceTrend(period = "week") {
+	return request({ url: "/attendance/trend", method: "get", params: { period } });
+}
+
 // 获取考勤详情
 export function getAttendanceById(id) {
 	return request({
@@ -59,4 +68,8 @@ export function getStudentAttendance(params) {
 		method: "get",
 		params,
 	});
+}
+
+export function getStudentAttendanceStatistics(params = {}) {
+	return request({ url: "/attendance/student/statistics", method: "get", params });
 }

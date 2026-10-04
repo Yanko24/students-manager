@@ -3,7 +3,10 @@ package com.example.studentsmanager.controller;
 import com.example.studentsmanager.constant.ResultCode;
 import com.example.studentsmanager.constant.ResultMessage;
 import com.example.studentsmanager.core.response.Result;
+import com.example.studentsmanager.model.dto.teacher.TeacherQueryDTO;
 import com.example.studentsmanager.model.entity.Teacher;
+import com.example.studentsmanager.model.vo.teacher.TeacherListVO;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.studentsmanager.service.TeacherService;
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -29,11 +31,11 @@ public class TeacherController {
     @ApiResponses({
         @ApiResponse(code = 200, message = "成功获取教师列表")
     })
-    public Result<List<Teacher>> getAllTeachers() {
-        log.info("获取所有教师");
+    public Result<Page<TeacherListVO>> getAllTeachers(TeacherQueryDTO queryDTO) {
+        log.info("分页查询教师列表，查询条件：{}", queryDTO);
         try {
-            List<Teacher> teachers = teacherService.list();
-            log.info("成功获取教师列表，共{}条记录", teachers.size());
+            Page<TeacherListVO> teachers = teacherService.getTeacherPage(queryDTO);
+            log.info("成功获取教师列表，共{}条记录", teachers.getTotal());
             return Result.success(teachers);
         } catch (Exception e) {
             log.error("获取教师列表失败", e);
@@ -132,4 +134,4 @@ public class TeacherController {
             return Result.error(ResultMessage.ERROR);
         }
     }
-} 
+}

@@ -1,5 +1,7 @@
 package com.example.studentsmanager.security.filter;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import com.example.studentsmanager.security.config.JwtConfig;
 import com.example.studentsmanager.security.service.JwtService;
 import com.example.studentsmanager.security.service.UserDetailsServiceImpl;
@@ -88,14 +90,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     
                     // 更新 SecurityContext
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    writeUnauthorized(response, "后端已重启或登录凭证失效，请重新登录");
+                    return;
                 }
             }
-        } catch (Exception e) {
-            // token 无效或过期，不设置认证信息
-            logger.error("Could not set user authentication in security context", e);
+        } catch (ExpiredJwtException e) {
+            writeUnauthorized(response, "登录已过期，请重新登录");
+            return;
+        } catch (JwtException | IllegalArgumentException e) {
+            writeUnauthorized(response, "登录凭证无效，请重新登录");
+            return;
         }
 
         // 继续过滤器链
         filterChain.doFilter(request, response);
+    }
+
+    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"code\":401,\"message\":\"" + message + "\"}");
     }
 } 

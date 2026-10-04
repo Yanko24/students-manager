@@ -13,14 +13,8 @@
             </div>
           </template>
           <div class="card-body">
-            <div class="number">{{ mockData.statistics.studentCount }}</div>
-            <div class="trend"
-              :class="{ 'up': mockData.statistics.studentGrowth > 0, 'down': mockData.statistics.studentGrowth < 0 }">
-              较上月{{ Math.abs(mockData.statistics.studentGrowth) }}%
-              <el-icon>
-                <component :is="mockData.statistics.studentGrowth > 0 ? 'ArrowUp' : 'ArrowDown'" />
-              </el-icon>
-            </div>
+            <div class="number">{{ dashboardData.statistics.studentCount ?? '—' }}</div>
+            <div class="trend">当前系统记录</div>
           </div>
         </el-card>
       </el-col>
@@ -35,14 +29,8 @@
             </div>
           </template>
           <div class="card-body">
-            <div class="number">{{ mockData.statistics.teacherCount }}</div>
-            <div class="trend"
-              :class="{ 'up': mockData.statistics.teacherGrowth > 0, 'down': mockData.statistics.teacherGrowth < 0 }">
-              较上月{{ Math.abs(mockData.statistics.teacherGrowth) }}%
-              <el-icon>
-                <component :is="mockData.statistics.teacherGrowth > 0 ? 'ArrowUp' : 'ArrowDown'" />
-              </el-icon>
-            </div>
+            <div class="number">{{ dashboardData.statistics.teacherCount ?? '—' }}</div>
+            <div class="trend">当前系统记录</div>
           </div>
         </el-card>
       </el-col>
@@ -57,14 +45,8 @@
             </div>
           </template>
           <div class="card-body">
-            <div class="number">{{ mockData.statistics.courseCount }}</div>
-            <div class="trend"
-              :class="{ 'up': mockData.statistics.courseGrowth > 0, 'down': mockData.statistics.courseGrowth < 0 }">
-              较上月{{ Math.abs(mockData.statistics.courseGrowth) }}%
-              <el-icon>
-                <component :is="mockData.statistics.courseGrowth > 0 ? 'ArrowUp' : 'ArrowDown'" />
-              </el-icon>
-            </div>
+            <div class="number">{{ dashboardData.statistics.courseCount ?? '—' }}</div>
+            <div class="trend">当前系统记录</div>
           </div>
         </el-card>
       </el-col>
@@ -79,14 +61,8 @@
             </div>
           </template>
           <div class="card-body">
-            <div class="number">{{ mockData.statistics.attendanceRate }}%</div>
-            <div class="trend"
-              :class="{ 'up': mockData.statistics.attendanceGrowth > 0, 'down': mockData.statistics.attendanceGrowth < 0 }">
-              较上月{{ Math.abs(mockData.statistics.attendanceGrowth) }}%
-              <el-icon>
-                <component :is="mockData.statistics.attendanceGrowth > 0 ? 'ArrowUp' : 'ArrowDown'" />
-              </el-icon>
-            </div>
+            <div class="number">{{ attendanceStats.totalCount ? `${attendanceStats.attendanceRate}%` : '—' }}</div>
+            <div class="trend">{{ attendanceStats.totalCount ? `近7天有效出勤率 · ${attendanceStats.totalCount} 条记录` : '近7天暂无考勤记录' }}</div>
           </div>
         </el-card>
       </el-col>
@@ -100,13 +76,19 @@
             <div class="card-header">
               <span>成绩分布</span>
               <el-radio-group v-model="scoreChartType" size="small">
-                <el-radio-button :value="'semester'">本学期</el-radio-button>
-                <el-radio-button :value="'year'">本学年</el-radio-button>
+                <el-radio-button :value="'semester'">最新学期</el-radio-button>
+                <el-radio-button :value="'year'">对应学年</el-radio-button>
               </el-radio-group>
             </div>
           </template>
-          <div class="chart-container">
-            <v-chart :option="scoreDistributionOption" autoresize />
+          <div v-loading="scoreDistributionLoading" class="chart-container">
+            <div v-if="!scoreDistributionLoading && !hasScoreDistribution" class="empty-chart">
+              <el-empty description="暂无成绩数据" />
+            </div>
+            <template v-else>
+              <div class="chart-period">统计范围：{{ scoreDistributionPeriod || '加载中' }}</div>
+              <v-chart :option="scoreDistributionOption" autoresize />
+            </template>
           </div>
         </el-card>
       </el-col>
@@ -116,13 +98,16 @@
             <div class="card-header">
               <span>考勤趋势</span>
               <el-radio-group v-model="attendanceChartType" size="small">
-                <el-radio-button :value="'week'">本周</el-radio-button>
-                <el-radio-button :value="'month'">本月</el-radio-button>
+                <el-radio-button value="week">近7天</el-radio-button>
+                <el-radio-button value="month">近30天</el-radio-button>
               </el-radio-group>
             </div>
           </template>
-          <div class="chart-container">
-            <v-chart :option="attendanceTrendOption" autoresize />
+          <div v-loading="attendanceTrendLoading" class="chart-container">
+            <div v-if="!attendanceTrendLoading && !hasAttendanceTrend" class="empty-chart">
+            <el-empty description="当前没有可用的考勤统计数据" />
+            </div>
+            <v-chart v-else :option="attendanceTrendOption" autoresize />
           </div>
         </el-card>
       </el-col>
@@ -135,15 +120,9 @@
           <template #header>
             <div class="card-header">
               <span>最新动态</span>
-              <el-button link type="primary" @click="loadMoreActivities">查看更多</el-button>
             </div>
           </template>
-          <el-timeline>
-            <el-timeline-item v-for="activity in mockData.activities" :key="activity.id" :timestamp="activity.time"
-              :type="activity.type">
-              {{ activity.content }}
-            </el-timeline-item>
-          </el-timeline>
+          <el-empty description="当前没有可用的操作动态数据" />
         </el-card>
       </el-col>
       <el-col :xs="24" :lg="8">
@@ -151,15 +130,9 @@
           <template #header>
             <div class="card-header">
               <span>待办事项</span>
-              <el-button link type="primary" @click="addTodo">添加</el-button>
             </div>
           </template>
-          <el-checkbox-group v-model="checkedTodos">
-            <div v-for="todo in mockData.todos" :key="todo.id" class="todo-item">
-              <el-checkbox :value="todo.id">{{ todo.content }}</el-checkbox>
-              <span class="todo-time">{{ todo.deadline }}</span>
-            </div>
-          </el-checkbox-group>
+          <el-empty description="待办事项功能尚未接入" />
         </el-card>
       </el-col>
     </el-row>
@@ -167,94 +140,54 @@
 </template>
 
 <script setup>
-  import { ref, reactive, onMounted, watch } from 'vue'
+  import { ref, reactive, computed, onMounted, watch } from 'vue'
   import * as echarts from 'echarts/core'
   import { CanvasRenderer } from 'echarts/renderers'
   import { PieChart, LineChart } from 'echarts/charts'
   import {
-    TitleComponent,
     TooltipComponent,
     LegendComponent,
     GridComponent
   } from 'echarts/components'
-  import VChart, { THEME_KEY } from 'vue-echarts'
+  import VChart from 'vue-echarts'
   import {
     User,
     UserFilled,
     Reading,
-    Calendar,
-    ArrowUp,
-    ArrowDown
+    Calendar
   } from '@element-plus/icons-vue'
-  import { ElMessage } from 'element-plus'
+  import { getStudentList } from '@/api/student'
+  import { getTeacherList } from '@/api/teacher'
+  import { getCourseList } from '@/api/course'
+  import { getScoreDistribution } from '@/api/score'
+  import { getAttendanceStatistics, getAttendanceTrend } from '@/api/attendance'
 
   // 注册 ECharts 组件
   echarts.use([
     CanvasRenderer,
     PieChart,
     LineChart,
-    TitleComponent,
     TooltipComponent,
     LegendComponent,
     GridComponent
   ])
 
-  // 模拟数据
-  const mockData = reactive({
+  // 首页实体数量和成绩分布均来自后端数据库。
+  const dashboardData = reactive({
     statistics: {
-      studentCount: 1258,
-      studentGrowth: 5.2,
-      teacherCount: 86,
-      teacherGrowth: -1.5,
-      courseCount: 45,
-      courseGrowth: 2.8,
-      attendanceRate: 95.5,
-      attendanceGrowth: 0.8
-    },
-    scoreDistribution: {
-      semester: [
-        { value: 156, name: '优秀(90-100)' },
-        { value: 285, name: '良好(80-89)' },
-        { value: 420, name: '中等(70-79)' },
-        { value: 280, name: '及格(60-69)' },
-        { value: 117, name: '不及格(<60)' }
-      ],
-      year: [
-        { value: 320, name: '优秀(90-100)' },
-        { value: 580, name: '良好(80-89)' },
-        { value: 750, name: '中等(70-79)' },
-        { value: 450, name: '及格(60-69)' },
-        { value: 158, name: '不及格(<60)' }
-      ]
-    },
-    attendanceTrend: {
-      week: {
-        dates: ['周一', '周二', '周三', '周四', '周五'],
-        rates: [96.5, 95.8, 97.2, 94.8, 95.5]
-      },
-      month: {
-        dates: ['第1周', '第2周', '第3周', '第4周'],
-        rates: [95.5, 96.2, 94.8, 95.7]
-      }
-    },
-    activities: [
-      { id: 1, type: 'success', content: '新增学生张三入学信息', time: '2024-03-20 10:00' },
-      { id: 2, type: 'warning', content: '更新教师李四课程安排', time: '2024-03-20 09:30' },
-      { id: 3, type: 'primary', content: '系统完成每日数据备份', time: '2024-03-20 09:00' },
-      { id: 4, type: 'danger', content: '发现异常登录尝试，已阻止', time: '2024-03-20 08:45' },
-      { id: 5, type: 'success', content: '完成本月教师考核统计', time: '2024-03-20 08:30' }
-    ],
-    todos: [
-      { id: 1, content: '审核新生入学申请', deadline: '2024-03-21 12:00', completed: false },
-      { id: 2, content: '准备期中考试安排', deadline: '2024-03-22 18:00', completed: false },
-      { id: 3, content: '教师资格证年审', deadline: '2024-03-23 15:00', completed: false },
-      { id: 4, content: '更新教学大纲', deadline: '2024-03-24 17:00', completed: false }
-    ]
+      studentCount: null,
+      teacherCount: null,
+      courseCount: null
+    }
   })
 
   const scoreChartType = ref('semester')
   const attendanceChartType = ref('week')
-  const checkedTodos = ref([])
+  const scoreDistributionLoading = ref(false)
+  const scoreDistributionPeriod = ref('')
+  const attendanceTrendLoading = ref(false)
+  const attendanceRows = ref([])
+  const attendanceStats = reactive({ attendanceRate: null, totalCount: 0 })
 
   // 成绩分布图配置
   const scoreDistributionOption = ref({
@@ -292,69 +225,83 @@
       labelLine: {
         show: false
       },
-      data: mockData.scoreDistribution.semester
+      data: []
     }]
   })
+  const hasScoreDistribution = computed(() => scoreDistributionOption.value.series[0].data.some(item => Number(item.value) > 0))
+  const hasAttendanceTrend = computed(() => attendanceRows.value.some(item => Number(item.totalCount) > 0))
+  const attendanceTrendOption = computed(() => ({
+    tooltip: { trigger: 'axis', formatter: (items) => `${items[0]?.axisValue || ''}<br/>有效出勤率：${items[0]?.value ?? 0}%` },
+    grid: { left: 48, right: 24, top: 24, bottom: 36 },
+    xAxis: { type: 'category', boundaryGap: false, data: attendanceRows.value.map(item => item.date?.slice(5)) },
+    yAxis: { type: 'value', min: 0, max: 100, axisLabel: { formatter: '{value}%' } },
+    series: [{ name: '有效出勤率', type: 'line', smooth: true, data: attendanceRows.value.map(item => Number(item.attendanceRate)), areaStyle: { opacity: 0.16 } }]
+  }))
 
-  // 考勤趋势图配置
-  const attendanceTrendOption = ref({
-    title: {
-      text: '考勤趋势',
-      left: 'center'
-    },
-    tooltip: {
-      trigger: 'axis'
-    },
-    xAxis: {
-      type: 'category',
-      data: mockData.attendanceTrend.week.dates
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: {
-        formatter: '{value}%'
-      },
-      min: 90
-    },
-    series: [{
-      data: mockData.attendanceTrend.week.rates,
-      type: 'line',
-      smooth: true,
-      areaStyle: {
-        opacity: 0.3
-      },
-      lineStyle: {
-        width: 3
-      },
-      itemStyle: {
-        borderWidth: 2
-      }
-    }]
-  })
-
-  // 监听图表类型变化
-  watch(scoreChartType, (newType) => {
-    scoreDistributionOption.value.series[0].data = mockData.scoreDistribution[newType]
-  })
-
-  watch(attendanceChartType, (newType) => {
-    attendanceTrendOption.value.xAxis.data = mockData.attendanceTrend[newType].dates
-    attendanceTrendOption.value.series[0].data = mockData.attendanceTrend[newType].rates
-  })
-
-  // 加载更多活动
-  const loadMoreActivities = () => {
-    ElMessage.success('加载更多活动')
+  const fetchScoreDistribution = async () => {
+    scoreDistributionLoading.value = true
+    try {
+      const response = await getScoreDistribution(scoreChartType.value)
+      if (response?.code !== 200 || !response.data) throw new Error(response?.message || '获取成绩统计失败')
+      scoreDistributionOption.value.series[0].data = response.data.distribution || []
+      scoreDistributionPeriod.value = response.data.periodLabel || ''
+    } catch (error) {
+      console.error('获取成绩分布失败:', error)
+      scoreDistributionOption.value.series[0].data = []
+      scoreDistributionPeriod.value = ''
+    } finally {
+      scoreDistributionLoading.value = false
+    }
   }
 
-  // 添加待办事项
-  const addTodo = () => {
-    ElMessage.success('添加待办事项')
+  const fetchAttendanceStats = async () => {
+    try {
+      const response = await getAttendanceStatistics('week')
+      if (response?.code === 200 && response.data) Object.assign(attendanceStats, response.data)
+    } catch (error) {
+      console.error('获取考勤统计失败:', error)
+    }
+  }
+
+  const fetchAttendanceTrend = async () => {
+    attendanceTrendLoading.value = true
+    try {
+      const response = await getAttendanceTrend(attendanceChartType.value)
+      if (response?.code !== 200) throw new Error(response?.message || '获取考勤趋势失败')
+      attendanceRows.value = response.data || []
+    } catch (error) {
+      console.error('获取考勤趋势失败:', error)
+      attendanceRows.value = []
+    } finally {
+      attendanceTrendLoading.value = false
+    }
+  }
+
+  watch(scoreChartType, fetchScoreDistribution)
+  watch(attendanceChartType, fetchAttendanceTrend)
+
+  const fetchEntityCounts = async () => {
+    const requests = [
+      ['studentCount', getStudentList({ page: 1, size: 1 })],
+      ['teacherCount', getTeacherList({ page: 1, size: 1 })],
+      ['courseCount', getCourseList({ page: 1, size: 1 })]
+    ]
+    const results = await Promise.allSettled(requests.map(([, request]) => request))
+    results.forEach((result, index) => {
+      if (result.status !== 'fulfilled') return
+      const [key] = requests[index]
+      const total = result.value?.data?.total
+      if (result.value?.code === 200 && Number.isFinite(Number(total))) {
+        dashboardData.statistics[key] = Number(total)
+      }
+    })
   }
 
   onMounted(() => {
-    // 在实际项目中，这里会调用API获取真实数据
-    console.log('Dashboard mounted')
+    fetchEntityCounts()
+    fetchScoreDistribution()
+    fetchAttendanceStats()
+    fetchAttendanceTrend()
   })
 </script>
 

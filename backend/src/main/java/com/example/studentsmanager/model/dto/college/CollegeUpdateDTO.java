@@ -25,9 +25,6 @@ public class CollegeUpdateDTO {
     @Size(max = 500, message = "学院描述长度不能超过500个字符")
     private String description;
     
-    @ApiModelProperty(value = "院长ID")
-    private Long deanId;
-    
     @ApiModelProperty(value = "状态（0-正常，1-停用）")
     private Integer status;
-} 
+}

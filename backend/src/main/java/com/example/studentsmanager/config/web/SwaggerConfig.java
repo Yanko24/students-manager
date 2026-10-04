@@ -32,15 +32,15 @@ public class SwaggerConfig {
 
     private ApiInfo apiInfo() {
         return new ApiInfoBuilder()
-                .title("学生管理系统 API 文档")
-                .description("提供学生、教师、课程等管理功能的接口文档")
-                .contact(new Contact("开发团队", "http://example.com", "team@example.com"))
-                .version("1.0")
+                .title("学生管理系统接口文档")
+                .description("学生管理系统后端接口说明，包含认证、学生、教师、课程、成绩及考勤等功能。")
+                .contact(new Contact("学生管理系统", null, null))
+                .version("1.0.0")
                 .build();
     }
 
     private ApiKey apiKey() {
-        return new ApiKey("JWT", "Authorization", "header");
+        return new ApiKey("JWT认证", "Authorization", "header");
     }
 
     private SecurityContext securityContext() {
@@ -51,9 +51,9 @@ public class SwaggerConfig {
     }
 
     private List<SecurityReference> defaultAuth() {
-        AuthorizationScope authorizationScope = new AuthorizationScope("global", "accessEverything");
+        AuthorizationScope authorizationScope = new AuthorizationScope("global", "访问受保护接口");
         AuthorizationScope[] authorizationScopes = new AuthorizationScope[1];
         authorizationScopes[0] = authorizationScope;
-        return Collections.singletonList(new SecurityReference("JWT", authorizationScopes));
+        return Collections.singletonList(new SecurityReference("JWT认证", authorizationScopes));
     }
-} 
+}

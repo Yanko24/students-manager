@@ -5,7 +5,7 @@
 ## 目录结构
 
 ```text
-students/
+students-manager/
 ├── backend/       # Spring Boot 后端、本地环境变量示例及开发数据库初始化脚本
 │   └── db/init.sql
 ├── frontend/      # Vue 3 + Vite 前端
@@ -31,7 +31,7 @@ docker compose up -d --build
 
 ## 数据库与初始账号
 
-本地开发初始化脚本为 [`backend/db/init.sql`](backend/db/init.sql)，包含建表结构和教师、学生等演示数据。生产 Docker 使用 [`docker/db/init.sql`](docker/db/init.sql)，创建数据库表并初始化唯一管理员账号，不导入演示学生等业务数据。MySQL 官方镜像只会在数据目录为空时执行生产初始化脚本；已有 Docker 数据卷会保留原数据，不会自动重置或升级。当前尚未维护数据库升级迁移脚本。
+本地开发唯一初始化脚本为 [`backend/db/init.sql`](backend/db/init.sql)，包含表结构及管理员、教师、学生、课程、少量成绩和最近两周考勤演示数据。生产 Docker 使用 [`docker/db/init.sql`](docker/db/init.sql)，创建数据库表并初始化唯一管理员账号，不导入演示学生等业务数据。两个初始化脚本仅用于新数据库；现有数据库不会自动重置或升级。
 
 首次管理员账号为 `admin`，初始密码为 `xiaoer`，首次登录必须修改密码。密码使用带盐 PBKDF2-HMAC-SM3 哈希存储。管理员登录后可在学生管理页下载 CSV 模板并批量导入学生；导入前需先创建对应学院、专业和班级。手机号和邮箱使用 SM4-GCM 加密存储。其他个人信息字段、数据库文件和数据库网络连接目前没有额外加密。
 

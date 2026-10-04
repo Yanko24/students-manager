@@ -4,7 +4,7 @@
             <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="课程编号" prop="code">
-                        <el-input v-model="formData.code" placeholder="请输入课程编号" />
+                        <el-input v-model="formData.code" placeholder="请输入课程编号" :disabled="props.isEdit" />
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
@@ -26,10 +26,7 @@
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="开课学期" prop="semester">
-                        <el-select v-model="formData.semester" placeholder="请选择学期" style="width: 100%">
-                            <el-option label="2023-2024-2" value="2023-2024-2" />
-                            <el-option label="2023-2024-1" value="2023-2024-1" />
-                        </el-select>
+                        <el-input v-model="formData.semester" placeholder="例如：2026-2027-1" />
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -37,7 +34,7 @@
             <el-row :gutter="20">
                 <el-col :span="12">
                     <el-form-item label="学分" prop="credit">
-                        <el-input-number v-model="formData.credit" :min="0.5" :max="10" :step="0.5"
+                        <el-input-number v-model="formData.credit" :min="1" :max="10" :step="1"
                             style="width: 100%" />
                     </el-form-item>
                 </el-col>
@@ -50,20 +47,18 @@
 
             <el-row :gutter="20">
                 <el-col :span="12">
-                    <el-form-item label="授课教师" prop="teacher">
-                        <el-select v-model="formData.teacher" placeholder="请选择教师" style="width: 100%">
-                            <el-option label="张三" value="张三" />
-                            <el-option label="李四" value="李四" />
-                            <el-option label="王五" value="王五" />
+                    <el-form-item label="授课教师" prop="teacherId">
+                        <el-select v-model="formData.teacherId" placeholder="请选择教师" filterable style="width: 100%">
+                            <el-option v-for="teacher in teachers" :key="teacher.id" :label="`${teacher.realName} (${teacher.teacherNo})`" :value="teacher.id" />
                         </el-select>
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="状态" prop="status">
                         <el-select v-model="formData.status" placeholder="请选择状态" style="width: 100%">
-                            <el-option label="未开课" value="未开课" />
-                            <el-option label="已开课" value="已开课" />
-                            <el-option label="已结课" value="已结课" />
+                            <el-option label="未开课" :value="0" />
+                            <el-option label="已开课" :value="1" />
+                            <el-option label="已结课" :value="2" />
                         </el-select>
                     </el-form-item>
                 </el-col>
@@ -86,9 +81,10 @@
 </template>
 
 <script setup>
-    import { ref, computed, onMounted, reactive } from 'vue'
-    import { useRoute, useRouter } from 'vue-router'
+    import { ref, onMounted, reactive } from 'vue'
     import { ElMessage } from 'element-plus'
+    import { getTeacherList } from '@/api/teacher'
+    import { getCourseById } from '@/api/course'
 
     const props = defineProps({
         id: {
@@ -103,9 +99,8 @@
 
     const emit = defineEmits(['submit', 'cancel'])
 
-    const route = useRoute()
-    const router = useRouter()
     const formRef = ref(null)
+    const teachers = ref([])
 
     // 表单数据
     const formData = reactive({
@@ -115,8 +110,8 @@
         semester: '',
         credit: 3,
         hours: 48,
-        teacher: '',
-        status: '未开课',
+        teacherId: null,
+        status: 0,
         description: '',
         objectives: ''
     })
@@ -143,7 +138,7 @@
         hours: [
             { required: true, message: '请输入学时', trigger: 'blur' }
         ],
-        teacher: [
+        teacherId: [
             { required: true, message: '请选择授课教师', trigger: 'change' }
         ],
         status: [
@@ -171,23 +166,18 @@
 
     // 加载课程数据
     const loadCourseData = async (id) => {
-        // TODO: 调用获取课程详情接口
-        // 模拟数据
-        formData.code = 'CS101'
-        formData.name = '计算机导论'
-        formData.type = '必修课'
-        formData.semester = '2023-2024-2'
-        formData.credit = 3
-        formData.hours = 48
-        formData.teacher = '张三'
-        formData.status = '已开课'
-        formData.description = '本课程是计算机专业的入门课程，主要介绍计算机科学的基本概念和发展历史。'
-        formData.objectives = '1. 了解计算机的基本组成\n2. 掌握计算机的工作原理\n3. 理解计算机科学的发展趋势'
+        const response = await getCourseById(id)
+        if (response?.code !== 200 || !response.data) throw new Error(response?.message || '获取课程信息失败')
+        Object.assign(formData, response.data)
     }
 
-    onMounted(() => {
-        if (props.isEdit) {
-            loadCourseData(props.id)
+    onMounted(async () => {
+        try {
+            const response = await getTeacherList({ page: 1, size: 100 })
+            if (response?.code === 200) teachers.value = response.data?.records || []
+            if (props.isEdit) await loadCourseData(props.id)
+        } catch (error) {
+            ElMessage.error(error.message || '加载课程信息失败')
         }
     })
 </script>

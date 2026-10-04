@@ -14,15 +14,15 @@
                 <el-descriptions-item label="成绩">{{ score.score }}</el-descriptions-item>
                 <el-descriptions-item label="绩点">{{ score.gradePoint }}</el-descriptions-item>
                 <el-descriptions-item label="学期">{{ score.semester }}</el-descriptions-item>
-                <el-descriptions-item label="考试时间">{{ score.examTime }}</el-descriptions-item>
+                <el-descriptions-item label="考试时间">{{ formatDateTime(score.examTime) }}</el-descriptions-item>
                 <el-descriptions-item label="状态">
-                    <el-tag :type="score.status === '正常' ? 'success' : 'danger'">
+                    <el-tag :type="score.status === '合格' ? 'success' : 'danger'">
                         {{ score.status }}
                     </el-tag>
                 </el-descriptions-item>
-                <el-descriptions-item label="备注">{{ score.remark || '无' }}</el-descriptions-item>
-                <el-descriptions-item label="创建时间">{{ score.createTime }}</el-descriptions-item>
-                <el-descriptions-item label="更新时间">{{ score.updateTime }}</el-descriptions-item>
+                <el-descriptions-item label="备注">{{ score.comment || score.remark || '无' }}</el-descriptions-item>
+                <el-descriptions-item label="创建时间">{{ formatDateTime(score.createTime) }}</el-descriptions-item>
+                <el-descriptions-item label="更新时间">{{ formatDateTime(score.updateTime) }}</el-descriptions-item>
             </el-descriptions>
 
             <div class="action-buttons">
@@ -38,6 +38,7 @@
     import { useRouter, useRoute } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { getScoreById } from '@/api/score'
+    import { formatDateTime } from '@/utils/dateUtils'
 
     const router = useRouter()
     const route = useRoute()

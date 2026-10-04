@@ -3,11 +3,12 @@
         <div class="page-header">
             <h2>成绩管理</h2>
             <div class="header-actions">
-                <el-upload class="upload-demo" action="/api/scores/import"
+                <el-upload class="upload-demo" action="/api/scores/import" accept=".csv"
                     :headers="{ Authorization: `Bearer ${token}` }" :on-success="handleUploadSuccess"
                     :on-error="handleUploadError" :show-file-list="false">
                     <el-button type="primary">导入成绩</el-button>
                 </el-upload>
+                <a class="template-link" href="/templates/score-import-template.csv" download>下载导入模板</a>
                 <el-button type="success" @click="handleExport">导出成绩</el-button>
                 <el-button type="primary" @click="router.push('/admin/scores/add')">录入成绩</el-button>
             </div>
@@ -25,10 +26,7 @@
                     <el-input v-model="filterForm.courseName" placeholder="请输入课程" clearable />
                 </el-form-item>
                 <el-form-item label="学期">
-                    <el-select v-model="filterForm.semester" placeholder="请选择学期" clearable>
-                        <el-option label="2023-2024-1" value="2023-2024-1" />
-                        <el-option label="2023-2024-2" value="2023-2024-2" />
-                    </el-select>
+                    <el-input v-model="filterForm.semester" placeholder="请输入学期" clearable />
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">搜索</el-button>
@@ -51,10 +49,12 @@
                 </el-table-column>
                 <el-table-column prop="gradePoint" label="绩点" min-width="80" align="center" />
                 <el-table-column prop="semester" label="学期" min-width="120" align="center" />
-                <el-table-column prop="examTime" label="考试时间" min-width="180" align="center" />
+                <el-table-column prop="examTime" label="考试时间" min-width="180" align="center">
+                    <template #default="{ row }">{{ formatDateTime(row.examTime) }}</template>
+                </el-table-column>
                 <el-table-column prop="status" label="状态" min-width="80" align="center">
                     <template #default="{ row }">
-                        <el-tag :type="row.status === '正常' ? 'success' : 'danger'" size="small">
+                        <el-tag :type="row.status === '合格' ? 'success' : 'danger'" size="small">
                             {{ row.status }}
                         </el-tag>
                     </template>
@@ -74,24 +74,27 @@
                 </el-table-column>
             </el-table>
 
-            <smart-pagination :total="total" :on-page-change="handlePageChange" />
+            <smart-pagination ref="paginationRef" :total="total" :on-page-change="handlePageChange" />
         </el-card>
     </div>
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref } from 'vue'
     import { useRouter } from 'vue-router'
     import { useUserStore } from '@/stores/user'
-    import { ElMessage } from 'element-plus'
+    import { ElMessage, ElMessageBox } from 'element-plus'
     import { getScoreList, deleteScore, exportScores } from '@/api/score'
     import SmartPagination from '@/components/common/SmartPagination.vue'
+    import { formatDateTime } from '@/utils/dateUtils'
 
     const router = useRouter()
     const userStore = useUserStore()
     const loading = ref(false)
     const scoreList = ref([])
     const total = ref(0)
+    const paginationRef = ref(null)
+    const pageSize = ref(10)
     const token = userStore.token
 
     const filterForm = ref({
@@ -124,9 +127,13 @@
             });
 
             console.log('获取成绩列表响应：', response);
-            if (response && response.data) {
+            if (response?.code === 200 && response.data) {
                 scoreList.value = response.data.records || [];
                 total.value = response.data.total || 0;
+            } else {
+                scoreList.value = [];
+                total.value = 0;
+                ElMessage.error(response?.message || '获取成绩列表失败');
             }
         } catch (error) {
             console.error('获取成绩列表失败：', error);
@@ -137,7 +144,11 @@
     };
 
     const handleSearch = () => {
-        handlePageChange({ page: 1, size: 20 });
+        if (paginationRef.value) {
+            paginationRef.value.resetToFirstPage()
+        } else {
+            handlePageChange({ page: 1, size: pageSize.value })
+        }
     };
 
     const resetFilter = () => {
@@ -152,18 +163,26 @@
 
     const handleDelete = async (id) => {
         try {
-            console.log('开始删除成绩，ID：', id);
+            await ElMessageBox.confirm('删除后无法恢复，确定删除这条成绩记录吗？', '删除成绩', {
+                confirmButtonText: '删除',
+                cancelButtonText: '取消',
+                type: 'warning',
+                confirmButtonClass: 'el-button--danger'
+            });
             await deleteScore(id);
-            console.log('删除成绩成功');
             ElMessage.success('删除成功');
             handleSearch();
         } catch (error) {
-            console.error('删除成绩失败：', error);
+            if (error === 'cancel' || error === 'close') return;
             ElMessage.error('删除失败');
         }
     };
 
-    const handleUploadSuccess = () => {
+    const handleUploadSuccess = (response) => {
+        if (response?.code !== 200) {
+            ElMessage.error(response?.message || '导入失败');
+            return;
+        }
         ElMessage.success('导入成功');
         handleSearch();
     };
@@ -179,7 +198,7 @@
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', '成绩表.xlsx');
+            link.setAttribute('download', '成绩表.csv');
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -191,12 +210,10 @@
     };
 
     const handlePageChange = ({ page, size }) => {
+        pageSize.value = size
         fetchScores(page, size);
     };
 
-    onMounted(() => {
-        handleSearch();
-    });
 </script>
 
 <style scoped>
@@ -222,10 +239,16 @@
         color: #303133;
     }
 
-    .header-actions {
-        display: flex;
-        gap: 10px;
-    }
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.template-link {
+    align-self: center;
+    color: var(--el-color-primary);
+    font-size: 14px;
+}
 
     .filter-card {
         margin-bottom: 20px;

@@ -3,7 +3,7 @@ WORKDIR /app
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
-RUN npm run build
+RUN npm run build -- --outDir dist
 
 FROM nginx:1.25.4-alpine
 COPY --from=build /app/dist /usr/share/nginx/html

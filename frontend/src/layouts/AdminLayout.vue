@@ -79,15 +79,6 @@
                             </el-breadcrumb>
                         </div>
                         <div class="header-right">
-                            <!-- 消息通知 -->
-                            <el-tooltip content="消息通知" placement="bottom">
-                                <el-badge :value="unreadCount" :max="99" class="notice-badge" type="danger">
-                                    <el-icon class="header-icon" @click="handleMessage">
-                                        <Bell />
-                                    </el-icon>
-                                </el-badge>
-                            </el-tooltip>
-
                             <!-- 全屏切换 -->
                             <el-tooltip :content="isFullscreen ? '退出全屏' : '全屏'" placement="bottom">
                                 <el-icon class="header-icon" @click="toggleFullScreen">
@@ -156,7 +147,6 @@
         OfficeBuilding,
         Calendar,
         Setting,
-        Bell,
         FullScreen,
         Aim,
         SwitchButton,
@@ -168,7 +158,6 @@
     const route = useRoute()
     const userStore = useUserStore()
     const isFullscreen = ref(false)
-    const unreadCount = ref(5) // 模拟未读消息数量
 
     const activeMenu = computed(() => route.path)
 
@@ -189,11 +178,6 @@
             document.exitFullscreen()
             isFullscreen.value = false
         }
-    }
-
-    // 处理消息通知点击
-    const handleMessage = () => {
-        ElMessage.info('消息中心功能开发中...')
     }
 
     // 处理下拉菜单命令
@@ -230,7 +214,7 @@
     }
 
     .sidebar {
-        background-color: #304156;
+		background: linear-gradient(180deg, #24344d 0%, #1f2d43 100%);
         color: #fff;
         height: 100vh;
         overflow-y: auto;
@@ -258,7 +242,8 @@
         display: flex;
         align-items: center;
         padding: 0 20px;
-        background-color: #2b2f3a;
+		background-color: rgba(9, 18, 32, .22);
+		border-bottom: 1px solid rgba(255, 255, 255, .07);
     }
 
     .logo img {
@@ -283,20 +268,22 @@
 
     .sidebar-menu :deep(.el-menu-item) {
         color: #bfcbd9;
-        height: 50px;
-        line-height: 50px;
+		height: 46px;
+		line-height: 46px;
+		margin: 4px 10px;
+		border-radius: 8px;
         padding: 0 20px;
         display: flex;
         align-items: center;
     }
 
     .sidebar-menu :deep(.el-menu-item.is-active) {
-        background-color: #263445;
-        color: #409EFF;
+		background: rgba(83, 145, 232, .18);
+		color: #9bc2ff;
     }
 
     .sidebar-menu :deep(.el-menu-item:hover) {
-        background-color: #263445;
+		background-color: rgba(255, 255, 255, .07);
     }
 
     .sidebar-menu :deep(.el-icon) {
@@ -306,8 +293,9 @@
 
     .el-header {
         background-color: #fff;
-        border-bottom: 1px solid #e6e6e6;
-        padding: 0 20px;
+		border-bottom: 1px solid #e9edf3;
+		padding: 0 28px;
+		box-shadow: 0 2px 10px rgba(24, 39, 75, .025);
         height: 60px;
         display: flex;
         align-items: center;
@@ -387,8 +375,8 @@
     .el-main {
         margin-top: 60px;
         margin-left: 220px;
-        padding: 20px;
-        background-color: #f0f2f5;
+		padding: 28px;
+		background-color: #f3f5f8;
         min-height: calc(100vh - 60px);
     }
 

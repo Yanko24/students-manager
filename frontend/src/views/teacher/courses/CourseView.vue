@@ -19,8 +19,8 @@
                             {{ course.status === 'active' ? '进行中' : '已结束' }}
                         </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="创建时间">{{ course.createTime }}</el-descriptions-item>
-                    <el-descriptions-item label="更新时间">{{ course.updateTime }}</el-descriptions-item>
+                    <el-descriptions-item label="创建时间">{{ formatDateTime(course.createTime) }}</el-descriptions-item>
+                    <el-descriptions-item label="更新时间">{{ formatDateTime(course.updateTime) }}</el-descriptions-item>
                 </el-descriptions>
 
                 <div class="section-title">学生列表</div>
@@ -45,6 +45,7 @@
     import { ref, onMounted } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { getCourseById } from '@/api/course'
+    import { formatDateTime } from '@/utils/dateUtils'
 
     const route = useRoute()
     const router = useRouter()

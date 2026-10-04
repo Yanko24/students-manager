@@ -1,5 +1,6 @@
 package com.example.studentsmanager.utils.security;
 
+import com.example.studentsmanager.security.service.JwtSessionContext;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -21,16 +22,19 @@ public class JwtUtil {
     private final long expirationTime;
     private final String header;
     private final String prefix;
+    private final JwtSessionContext jwtSessionContext;
 
     public JwtUtil(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration}") long expirationTime,
             @Value("${jwt.header}") String header,
-            @Value("${jwt.prefix}") String prefix) {
+            @Value("${jwt.prefix}") String prefix,
+            JwtSessionContext jwtSessionContext) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationTime = expirationTime;
         this.header = header;
         this.prefix = prefix;
+        this.jwtSessionContext = jwtSessionContext;
     }
 
     public String extractUsername(String token) {
@@ -68,6 +72,7 @@ public class JwtUtil {
     }
 
     private String createToken(Map<String, Object> claims, String subject) {
+        claims.put(JwtSessionContext.CLAIM_NAME, jwtSessionContext.getCurrentSessionId());
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
@@ -80,7 +85,11 @@ public class JwtUtil {
     public Boolean validateToken(String token, UserDetails userDetails) {
         try {
             final String username = extractUsername(token);
-            return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+            String sessionId = extractClaim(token,
+                    claims -> claims.get(JwtSessionContext.CLAIM_NAME, String.class));
+            return username.equals(userDetails.getUsername())
+                    && jwtSessionContext.getCurrentSessionId().equals(sessionId)
+                    && !isTokenExpired(token);
         } catch (Exception e) {
             return false;
         }
@@ -93,4 +102,4 @@ public class JwtUtil {
     public String getPrefix() {
         return prefix;
     }
-} 
+}

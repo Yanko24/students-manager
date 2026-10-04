@@ -1,5 +1,6 @@
 import request from "@/utils/request";
 import { handleApiError } from "@/utils/errorHandler";
+import { formatDateTime } from "@/utils/dateUtils";
 
 /**
  * 获取学生列表（分页查询）
@@ -161,12 +162,5 @@ export const getStatusText = (status) => {
 
 // 格式化日期
 export const formatDate = (date) => {
-	if (!date) return "";
-	const d = new Date(date);
-	const year = d.getFullYear();
-	const month = String(d.getMonth() + 1).padStart(2, "0");
-	const day = String(d.getDate()).padStart(2, "0");
-	const hour = String(d.getHours()).padStart(2, "0");
-	const minute = String(d.getMinutes()).padStart(2, "0");
-	return `${year}-${month}-${day} ${hour}:${minute}`;
+	return formatDateTime(date);
 };

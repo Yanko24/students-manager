@@ -55,13 +55,13 @@
                 </el-table-column>
             </el-table>
 
-            <smart-pagination :total="total" :on-page-change="handlePageChange" />
+            <smart-pagination ref="paginationRef" :total="total" :on-page-change="handlePageChange" />
         </el-card>
     </div>
 </template>
 
 <script setup>
-    import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue'
+    import { ref, computed, nextTick, onUnmounted } from 'vue'
     import { useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { getAllMajors, deleteMajor, getStatusType, getStatusText } from '@/api/major'
@@ -72,6 +72,8 @@
     const loading = ref(false)
     const majorList = ref([])
     const total = ref(0)
+    const paginationRef = ref(null)
+    const pageSize = ref(10)
 
     // 定义每列的最小宽度
     const minColumnWidths = {
@@ -126,7 +128,11 @@
     };
 
     const handleSearch = () => {
-        handlePageChange({ page: 1, size: 20 });
+        if (paginationRef.value) {
+            paginationRef.value.resetToFirstPage()
+        } else {
+            handlePageChange({ page: 1, size: pageSize.value })
+        }
     };
 
     const resetFilter = () => {
@@ -151,12 +157,10 @@
     };
 
     const handlePageChange = ({ page, size }) => {
+        pageSize.value = size
         fetchMajors(page, size);
     };
 
-    onMounted(() => {
-        handleSearch()
-    })
 </script>
 
 <style scoped>

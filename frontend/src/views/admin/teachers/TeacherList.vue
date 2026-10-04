@@ -13,8 +13,8 @@
                 <el-form-item label="姓名">
                     <el-input v-model="filterForm.realName" placeholder="请输入姓名" clearable />
                 </el-form-item>
-                <el-form-item label="学院">
-                    <el-input v-model="filterForm.collegeName" placeholder="请输入学院" clearable />
+                <el-form-item label="所属院系">
+                    <el-input v-model="filterForm.department" placeholder="请输入院系" clearable />
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">搜索</el-button>
@@ -24,26 +24,29 @@
         </el-card>
 
         <el-card class="table-card">
-            <el-table :data="teacherList" v-loading="loading" border style="width: 100%">
-                <el-table-column prop="teacherNo" label="工号" min-width="120" align="center" />
-                <el-table-column prop="realName" label="姓名" min-width="100" align="center" />
-                <el-table-column prop="gender" label="性别" min-width="80" align="center">
+            <el-table ref="tableRef" :data="teacherList" v-loading="loading" border
+                :style="{ width: tableWidth + 'px' }">
+                <el-table-column prop="teacherNo" label="工号" :width="columnWidth.teacherNo" align="center" />
+                <el-table-column prop="realName" label="姓名" :width="columnWidth.realName" align="center" />
+                <el-table-column prop="gender" label="性别" :width="columnWidth.gender" align="center">
                     <template #default="{ row }">
-                        {{ row.gender === 0 ? '男' : '女' }}
+                        {{ row.gender === 1 ? '男' : row.gender === 0 ? '女' : '—' }}
                     </template>
                 </el-table-column>
-                <el-table-column prop="phone" label="手机号" min-width="120" align="center" />
-                <el-table-column prop="email" label="邮箱" min-width="180" align="center" show-overflow-tooltip />
-                <el-table-column prop="collegeName" label="所属学院" min-width="150" align="center" show-overflow-tooltip />
-                <el-table-column prop="title" label="职称" min-width="100" align="center" />
-                <el-table-column prop="status" label="状态" min-width="80" align="center">
+                <el-table-column prop="phone" label="手机号" :width="columnWidth.phone" align="center" />
+                <el-table-column prop="email" label="邮箱" :width="columnWidth.email" align="center"
+                    show-overflow-tooltip />
+                <el-table-column prop="department" label="所属院系" :width="columnWidth.department" align="center"
+                    show-overflow-tooltip />
+                <el-table-column prop="title" label="职称" :width="columnWidth.title" align="center" />
+                <el-table-column prop="status" label="状态" :width="columnWidth.status" align="center">
                     <template #default="{ row }">
-                        <el-tag :type="getStatusType(row.status)" size="small">
+                        <span class="teacher-status-badge" :class="`status-${row.status}`">
                             {{ getStatusText(row.status) }}
-                        </el-tag>
+                        </span>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" min-width="180" fixed="right" align="center">
+                <el-table-column label="操作" :width="columnWidth.operation" align="center">
                     <template #default="{ row }">
                         <el-button type="primary" link @click="router.push(`/admin/teachers/${row.id}`)">
                             查看
@@ -64,21 +67,35 @@
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref } from 'vue'
     import { useRouter } from 'vue-router'
-    import { ElMessage } from 'element-plus'
-    import { getTeacherList, deleteTeacher, getStatusType, getStatusText } from '@/api/teacher'
+    import { ElMessage, ElMessageBox } from 'element-plus'
+    import { getTeacherList, deleteTeacher, getStatusText } from '@/api/teacher'
     import SmartPagination from '@/components/common/SmartPagination.vue'
+    import { useTableWidth } from '@/composables/useTableWidth'
 
     const router = useRouter()
     const loading = ref(false)
     const teacherList = ref([])
     const total = ref(0)
 
+    const minColumnWidths = {
+        teacherNo: 120,
+        realName: 100,
+        gender: 80,
+        phone: 120,
+        email: 180,
+        department: 150,
+        title: 100,
+        status: 120,
+        operation: 180
+    }
+    const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths)
+
     const filterForm = ref({
         teacherNo: '',
         realName: '',
-        collegeName: ''
+        department: ''
     })
 
     const fetchTeachers = async (page, size) => {
@@ -97,10 +114,14 @@
             });
 
             console.log('获取教师列表响应：', response);
-            if (response && response.data) {
-                teacherList.value = response.data.records || [];
-                total.value = response.data.total || 0;
+            if (response?.code !== 200 || !response.data) {
+                teacherList.value = [];
+                total.value = 0;
+                ElMessage.error(response?.message || '获取教师列表失败');
+                return;
             }
+            teacherList.value = response.data.records || [];
+            total.value = response.data.total || 0;
         } catch (error) {
             console.error('获取教师列表失败：', error);
             ElMessage.error('获取教师列表失败');
@@ -117,20 +138,24 @@
         filterForm.value = {
             teacherNo: '',
             realName: '',
-            collegeName: ''
+            department: ''
         };
         handleSearch();
     };
 
     const handleDelete = async (id) => {
         try {
-            console.log('开始删除教师，ID：', id);
+            await ElMessageBox.confirm('删除后无法恢复，确定删除这名教师吗？', '删除教师', {
+                confirmButtonText: '删除',
+                cancelButtonText: '取消',
+                type: 'warning',
+                confirmButtonClass: 'el-button--danger'
+            })
             await deleteTeacher(id);
-            console.log('删除教师成功');
             ElMessage.success('删除成功');
             handleSearch();
         } catch (error) {
-            console.error('删除教师失败：', error);
+            if (error === 'cancel' || error === 'close') return
             ElMessage.error('删除失败');
         }
     };
@@ -139,9 +164,6 @@
         fetchTeachers(page, size);
     };
 
-    onMounted(() => {
-        handleSearch();
-    });
 </script>
 
 <style scoped>
@@ -192,11 +214,11 @@
     .table-card {
         margin-bottom: 20px;
         overflow-x: auto;
+        padding: 20px;
     }
 
     .table-card :deep(.el-table) {
         font-size: 14px;
-        width: 100%;
     }
 
     .table-card :deep(.el-table th) {
@@ -213,8 +235,36 @@
         padding: 0 8px;
     }
 
-    :deep(.el-tag) {
-        min-width: 60px;
+    .teacher-status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        width: 72px;
+        height: 28px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        line-height: 1;
+    }
+
+    .teacher-status-badge.status-0 {
+        color: #67c23a;
+        background-color: #f0f9eb;
+        border-color: #e1f3d8;
+    }
+
+    .teacher-status-badge.status-1 {
+        color: #e6a23c;
+        background-color: #fdf6ec;
+        border-color: #faecd8;
+    }
+
+    .teacher-status-badge.status-2 {
+        color: #909399;
+        background-color: #f4f4f5;
+        border-color: #e9e9eb;
     }
 
     @media screen and (max-width: 768px) {

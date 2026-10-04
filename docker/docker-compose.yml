@@ -7,6 +7,7 @@ services:
     image: students-manager-backend:local
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-1800000}
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/students_manager?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
@@ -40,7 +41,7 @@ services:
       retries: 3
 
   nginx:
-    image: nginx:1.25.4-alpine
+    image: nginx:1.25.4
     ports:
       - "${HTTP_PORT:-80}:80"
     volumes:

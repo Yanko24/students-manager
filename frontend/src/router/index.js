@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import Login from "@/views/login/Login.vue";
-import AdminLayout from "../layouts/AdminLayout.vue";
-import StudentLayout from "../layouts/StudentLayout.vue";
+import AdminLayout from "@/layouts/AdminLayout.vue";
+import StudentLayout from "@/layouts/StudentLayout.vue";
 import TeacherLayout from "@/layouts/TeacherLayout.vue";
 import TeacherDashboard from "@/views/teacher/Dashboard.vue";
 import NotFound from "@/views/NotFound.vue";
@@ -141,8 +141,7 @@ const router = createRouter({
 				{
 					path: "attendance",
 					name: "AttendanceList",
-					component: () =>
-						import("../views/admin/attendance/AttendanceList.vue"),
+					component: () => import("@/views/admin/attendance/AttendanceList.vue"),
 					meta: { title: "考勤管理", requiresAuth: true, roles: ["admin"] },
 				},
 				{
@@ -196,13 +195,13 @@ const router = createRouter({
 				{
 					path: "profile",
 					name: "AdminProfile",
-					component: () => import("../views/admin/Profile.vue"),
+					component: () => import("@/views/admin/Profile.vue"),
 					meta: { title: "个人信息", requiresAuth: true, roles: ["admin"] },
 				},
 				{
 					path: "settings",
 					name: "Settings",
-					component: () => import("../views/admin/Settings.vue"),
+					component: () => import("@/views/admin/Settings.vue"),
 					meta: { title: "系统设置", requiresAuth: true, roles: ["admin"] },
 				},
 			],

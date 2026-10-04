@@ -133,8 +133,13 @@ CREATE TABLE IF NOT EXISTS courses
     course_name VARCHAR(100) NOT NULL COMMENT '课程名称',
     course_code VARCHAR(20)  NOT NULL UNIQUE COMMENT '课程代码',
     teacher_id  BIGINT COMMENT '授课教师ID',
-    credits     INT          NOT NULL COMMENT '学分',
+    credits     DECIMAL(4,1) NOT NULL COMMENT '学分',
+    course_type VARCHAR(30)  NOT NULL DEFAULT '必修课' COMMENT '课程类型',
+    semester    VARCHAR(20)  NOT NULL DEFAULT '2026-2027-1' COMMENT '开课学期',
+    hours       INT          NOT NULL DEFAULT 48 COMMENT '学时',
+    status      TINYINT      NOT NULL DEFAULT 0 COMMENT '状态：0-未开课，1-已开课，2-已结课',
     description TEXT COMMENT '课程描述',
+    objectives  TEXT COMMENT '教学目标',
     create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     create_by   VARCHAR(50)  DEFAULT NULL COMMENT '创建人',
@@ -163,6 +168,55 @@ CREATE TABLE IF NOT EXISTS course_selections
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='选课表';
+
+-- 创建成绩表
+CREATE TABLE IF NOT EXISTS scores
+(
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    student_id  BIGINT        NOT NULL COMMENT '学生ID',
+    course_id   BIGINT        NOT NULL COMMENT '课程ID',
+    score       DECIMAL(5,2)  NOT NULL COMMENT '百分制成绩',
+    grade       VARCHAR(5)    NOT NULL COMMENT '等级',
+    grade_point DECIMAL(4,2)  NOT NULL COMMENT '绩点',
+    semester    VARCHAR(20)   NOT NULL COMMENT '学期',
+    exam_time   DATETIME      NOT NULL COMMENT '考试时间',
+    remarks     TEXT COMMENT '评语',
+    create_time DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    create_by   VARCHAR(50) DEFAULT NULL COMMENT '创建人',
+    update_by   VARCHAR(50) DEFAULT NULL COMMENT '更新人',
+    is_deleted  TINYINT       NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+    UNIQUE KEY uk_score_student_course_semester (student_id, course_id, semester),
+    KEY idx_scores_exam_time (exam_time),
+    CONSTRAINT fk_scores_student FOREIGN KEY (student_id) REFERENCES students (id),
+    CONSTRAINT fk_scores_course FOREIGN KEY (course_id) REFERENCES courses (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='学生成绩表';
+
+-- 创建考勤记录表
+CREATE TABLE IF NOT EXISTS attendance_records
+(
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    student_id      BIGINT      NOT NULL COMMENT '学生ID',
+    course_id       BIGINT      NOT NULL COMMENT '课程ID',
+    attendance_date DATE        NOT NULL COMMENT '考勤日期',
+    class_period    VARCHAR(30) NOT NULL DEFAULT '未指定' COMMENT '上课节次',
+    status          VARCHAR(20) NOT NULL COMMENT '正常、迟到、早退、缺勤、请假',
+    remark          VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    create_time     DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time     DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    create_by       VARCHAR(50) DEFAULT NULL COMMENT '创建人',
+    update_by       VARCHAR(50) DEFAULT NULL COMMENT '更新人',
+    is_deleted      TINYINT     NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+    KEY idx_attendance_student_date (student_id, attendance_date),
+    KEY idx_attendance_course_date (course_id, attendance_date),
+    KEY idx_attendance_date_status (attendance_date, status),
+    CONSTRAINT fk_attendance_student FOREIGN KEY (student_id) REFERENCES students (id),
+    CONSTRAINT fk_attendance_course FOREIGN KEY (course_id) REFERENCES courses (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='学生考勤记录表';
 
 -- 首次登录管理员：默认密码 xiaoer，登录后必须立即修改。
 -- 口令为 PBKDF2-HMAC-SM3 哈希；联系方式留空，应用启动时会按 SM4-GCM 规则加密。

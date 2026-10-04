@@ -49,7 +49,7 @@
                         <div v-for="score in recentScores" :key="score.id" class="score-item">
                             <div class="score-info">
                                 <h4>{{ score.course }}</h4>
-                                <p>考试时间：{{ score.date }}</p>
+                                <p>考试时间：{{ formatDateTime(score.date) }}</p>
                             </div>
                             <div class="score-value" :class="score.score >= 60 ? 'pass' : 'fail'">
                                 {{ score.score }}
@@ -70,13 +70,14 @@
                     <div class="attendance-list">
                         <div v-for="record in attendanceRecords" :key="record.id" class="attendance-item">
                             <div class="attendance-info">
-                                <h4>{{ record.course }}</h4>
-                                <p>{{ record.date }}</p>
+                                <h4>{{ record.courseName }}</h4>
+                                <p>{{ formatDate(record.date) }} {{ record.classPeriod }}</p>
                             </div>
-                            <el-tag :type="record.status === '正常' ? 'success' : 'danger'">
+                            <el-tag :type="record.status === '正常' ? 'success' : record.status === '迟到' || record.status === '早退' ? 'warning' : record.status === '请假' ? 'info' : 'danger'">
                                 {{ record.status }}
                             </el-tag>
                         </div>
+                        <el-empty v-if="attendanceRecords.length === 0" description="暂无考勤记录" :image-size="70" />
                     </div>
                 </el-card>
             </el-col>
@@ -85,7 +86,10 @@
 </template>
 
 <script setup>
-    import { ref, computed } from 'vue'
+    import { ref, computed, onMounted } from 'vue'
+    import { ElMessage } from 'element-plus'
+    import { getStudentAttendance } from '@/api/attendance'
+    import { formatDate, formatDateTime } from '@/utils/dateUtils'
 
     const studentName = ref('张三')
     const userAvatar = ref('https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png')
@@ -112,11 +116,20 @@
         { id: 3, course: '计算机基础', date: '2024-03-15', score: 78 }
     ])
 
-    const attendanceRecords = ref([
-        { id: 1, course: '高等数学', date: '2024-03-20', status: '正常' },
-        { id: 2, course: '大学英语', date: '2024-03-19', status: '迟到' },
-        { id: 3, course: '计算机基础', date: '2024-03-18', status: '正常' }
-    ])
+    const attendanceRecords = ref([])
+
+    const fetchAttendanceRecords = async () => {
+        try {
+            const response = await getStudentAttendance({ page: 1, size: 3 })
+            if (response?.code !== 200) throw new Error(response?.message || '获取考勤记录失败')
+            attendanceRecords.value = response.data?.records || []
+        } catch (error) {
+            console.error('获取首页考勤记录失败：', error)
+            ElMessage.error(error?.message || '获取考勤记录失败')
+        }
+    }
+
+    onMounted(fetchAttendanceRecords)
 </script>
 
 <style scoped lang="scss">

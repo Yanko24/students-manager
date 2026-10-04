@@ -10,16 +10,19 @@
                 <el-descriptions-item label="姓名">{{ attendance.studentName }}</el-descriptions-item>
                 <el-descriptions-item label="课程代码">{{ attendance.courseCode }}</el-descriptions-item>
                 <el-descriptions-item label="课程名称">{{ attendance.courseName }}</el-descriptions-item>
-                <el-descriptions-item label="日期">{{ attendance.date }}</el-descriptions-item>
+                <el-descriptions-item label="班级">{{ attendance.className }}</el-descriptions-item>
+                <el-descriptions-item label="授课教师">{{ attendance.teacherName }}</el-descriptions-item>
+                <el-descriptions-item label="日期">{{ formatDate(attendance.date) }}</el-descriptions-item>
+                <el-descriptions-item label="节次">{{ attendance.classPeriod || '未指定' }}</el-descriptions-item>
                 <el-descriptions-item label="状态">
                     <el-tag
-                        :type="attendance.status === '正常' ? 'success' : attendance.status === '迟到' ? 'warning' : 'danger'">
+                        :type="statusType(attendance.status)">
                         {{ attendance.status }}
                     </el-tag>
                 </el-descriptions-item>
                 <el-descriptions-item label="备注">{{ attendance.remark || '无' }}</el-descriptions-item>
-                <el-descriptions-item label="创建时间">{{ attendance.createTime }}</el-descriptions-item>
-                <el-descriptions-item label="更新时间">{{ attendance.updateTime }}</el-descriptions-item>
+                <el-descriptions-item label="创建时间">{{ formatDateTime(attendance.createTime) }}</el-descriptions-item>
+                <el-descriptions-item label="更新时间">{{ formatDateTime(attendance.updateTime) }}</el-descriptions-item>
             </el-descriptions>
 
             <div class="action-buttons">
@@ -36,6 +39,7 @@
     import { useRouter, useRoute } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { getAttendanceById } from '@/api/attendance'
+    import { formatDate, formatDateTime } from '@/utils/dateUtils'
 
     const router = useRouter()
     const route = useRoute()
@@ -51,6 +55,7 @@
         createTime: '',
         updateTime: ''
     })
+    const statusType = (status) => ({ 正常: 'success', 迟到: 'warning', 早退: 'warning', 缺勤: 'danger', 请假: 'info' }[status] || 'info')
 
     const fetchAttendance = async () => {
         try {

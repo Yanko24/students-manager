@@ -17,8 +17,8 @@
                             {{ teacher.status === 'active' ? '在职' : '离职' }}
                         </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="创建时间">{{ teacher.createTime }}</el-descriptions-item>
-                    <el-descriptions-item label="更新时间">{{ teacher.updateTime }}</el-descriptions-item>
+                    <el-descriptions-item label="创建时间">{{ formatDateTime(teacher.createTime) }}</el-descriptions-item>
+                    <el-descriptions-item label="更新时间">{{ formatDateTime(teacher.updateTime) }}</el-descriptions-item>
                 </el-descriptions>
             </template>
         </el-card>
@@ -29,6 +29,7 @@
     import { ref, onMounted } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { getTeacherById } from '@/api/teacher'
+    import { formatDateTime } from '@/utils/dateUtils'
 
     const route = useRoute()
     const router = useRouter()

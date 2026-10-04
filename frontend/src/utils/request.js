@@ -37,6 +37,14 @@ request.interceptors.response.use(
 	(error) => {
 		console.error("响应错误:", error);
 		if (error.response) {
+			const isLoginRequest = /\/auth\/login(?:\?|$)/.test(error.config?.url || "");
+			if (
+				error.response.status === 401 &&
+				!isLoginRequest &&
+				localStorage.getItem("token")
+			) {
+				window.dispatchEvent(new Event("auth:expired"));
+			}
 			// 直接返回错误响应，让调用方处理具体的错误信息
 			return Promise.reject(error.response.data);
 		} else {

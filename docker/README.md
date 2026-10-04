@@ -21,6 +21,8 @@ cp docker/.env.example docker/.env
 
 编辑 `docker/.env`，设置强 `MYSQL_ROOT_PASSWORD`，并为 `SM4_KEY_BASE64` 填入 16 字节随机密钥的 Base64 值（可用 `openssl rand -base64 16` 生成）。密钥必须妥善备份，丢失后无法解密邮箱和手机号。不要将实际 `.env` 提交到代码仓库。
 
+JWT 登录凭证默认 30 分钟过期。可在 `docker/.env` 中通过 `JWT_EXPIRATION` 覆盖，单位为毫秒；默认 `1800000`。后端重启会使该实例此前签发的 token 失效，用户需要重新登录。
+
 ## 生产部署
 
 ```bash
@@ -32,7 +34,7 @@ docker compose up -d --build
 
 ## 数据与初始化
 
-MySQL 镜像使用 `mysql:8.4`，数据保存在 `students-manager-mysql-data` 命名卷中。Docker 挂载 `docker/db/`，其中的 `init.sql` 创建数据库表并插入首个管理员账号，不含演示学生、教师、学院或课程数据。Docker 只在空数据卷首次启动时执行它；项目仍处于首次发布前，暂不维护升级迁移脚本。现有数据卷会保留，不会自动套用初始化结构，也不会因重新构建容器而清空。若先前数据看起来缺失，请确认 Compose 实际使用的项目名及其绑定的数据卷；不要直接删除数据卷。
+MySQL 镜像使用 `mysql:8.4`，数据保存在 `students-manager-mysql-data` 命名卷中。Docker 挂载 `docker/db/`，其中的 `init.sql` 创建数据库表并插入首个管理员账号，不含演示学生、教师、学院或课程数据。Docker 只在空数据卷首次启动时执行它；已有数据卷会保留，不会自动套用初始化结构，也不会因重新构建容器而清空。若先前数据看起来缺失，请确认 Compose 实际使用的项目名及其绑定的数据卷；不要直接删除数据卷。
 
 本地开发需要演示数据时，单独使用 [`backend/db/init.sql`](../backend/db/init.sql)。它包含管理员、教师、学生、课程等测试数据，不会被生产 Compose 挂载或执行。
 

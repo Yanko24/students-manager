@@ -11,17 +11,21 @@
                 </el-form-item>
                 <el-form-item label="课程" prop="courseId">
                     <el-select v-model="form.courseId" placeholder="请选择课程" style="width: 100%" disabled>
-                        <el-option v-for="course in courseList" :key="course.id" :label="course.name"
+                        <el-option v-for="course in courseList" :key="course.id" :label="course.courseName"
                             :value="course.id" />
                     </el-select>
                 </el-form-item>
                 <el-form-item label="日期" prop="date">
-                    <el-date-picker v-model="form.date" type="date" placeholder="请选择日期" style="width: 100%" />
+                    <el-date-picker v-model="form.date" type="date" value-format="YYYY-MM-DD" placeholder="请选择日期" style="width: 100%" />
+                </el-form-item>
+                <el-form-item label="节次">
+                    <el-input v-model="form.classPeriod" placeholder="如：第1-2节" />
                 </el-form-item>
                 <el-form-item label="状态" prop="status">
                     <el-select v-model="form.status" placeholder="请选择状态" style="width: 100%">
                         <el-option label="正常" value="正常" />
                         <el-option label="迟到" value="迟到" />
+                        <el-option label="早退" value="早退" />
                         <el-option label="缺勤" value="缺勤" />
                         <el-option label="请假" value="请假" />
                     </el-select>
@@ -54,6 +58,7 @@
         studentNo: '',
         courseId: '',
         date: '',
+        classPeriod: '',
         status: '',
         remark: ''
     })
@@ -70,7 +75,7 @@
     const fetchAttendance = async () => {
         try {
             const response = await getAttendanceById(route.params.id)
-            if (response && response.data) {
+            if (response?.code === 200 && response.data) {
                 Object.assign(form.value, response.data)
             }
         } catch (error) {
@@ -82,7 +87,7 @@
     const fetchCourses = async () => {
         try {
             const response = await getCourseList({ page: 1, size: 1000 })
-            if (response && response.data) {
+            if (response?.code === 200 && response.data) {
                 courseList.value = response.data.records || []
             }
         } catch (error) {

@@ -1,9 +1,13 @@
 package com.example.studentsmanager.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.studentsmanager.model.dto.teacher.TeacherQueryDTO;
 import com.example.studentsmanager.model.entity.Teacher;
+import com.example.studentsmanager.model.vo.teacher.TeacherListVO;
 
 public interface TeacherService extends IService<Teacher> {
+    Page<TeacherListVO> getTeacherPage(TeacherQueryDTO queryDTO);
     // 根据教师编号查询教师
     Teacher getByTeacherNumber(String teacherNumber);
 
@@ -15,4 +19,4 @@ public interface TeacherService extends IService<Teacher> {
 
     // 删除教师
     boolean deleteTeacher(Long id);
-} 
+}

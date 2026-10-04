@@ -9,6 +9,15 @@ export function getScoreList(params) {
 	});
 }
 
+// 获取成绩分布统计，period 支持 semester 或 year
+export function getScoreDistribution(period = "semester") {
+	return request({
+		url: "/scores/distribution",
+		method: "get",
+		params: { period },
+	});
+}
+
 // 获取成绩详情
 export function getScoreById(id) {
 	return request({

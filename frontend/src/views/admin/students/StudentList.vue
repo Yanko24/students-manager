@@ -98,7 +98,7 @@
 </template>
 
 <script setup>
-    import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue'
+    import { ref, computed, nextTick, onUnmounted } from 'vue'
     import { useRouter } from 'vue-router'
     import { ElMessage, ElMessageBox } from 'element-plus'
     import { getStudentList, deleteStudent, importStudents, getStatusType, getStatusText } from '@/api/student'
@@ -234,9 +234,6 @@
         }
     }
 
-    onMounted(() => {
-        handleSearch();
-    });
 </script>
 
 <style scoped>

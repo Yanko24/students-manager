@@ -26,13 +26,13 @@
                 <el-descriptions-item label="专业全称">{{ studentInfo.displayName }}</el-descriptions-item>
                 <el-descriptions-item label="手机号">{{ studentInfo.phone }}</el-descriptions-item>
                 <el-descriptions-item label="邮箱">{{ studentInfo.email }}</el-descriptions-item>
-                <el-descriptions-item label="入学日期">{{ studentInfo.admissionDate }}</el-descriptions-item>
-                <el-descriptions-item label="出生日期">{{ studentInfo.birthDate }}</el-descriptions-item>
+                <el-descriptions-item label="入学日期">{{ formatDate(studentInfo.admissionDate) }}</el-descriptions-item>
+                <el-descriptions-item label="出生日期">{{ formatDate(studentInfo.birthDate) }}</el-descriptions-item>
                 <el-descriptions-item label="地址" :span="2">{{ studentInfo.address }}</el-descriptions-item>
                 <el-descriptions-item label="创建人">{{ studentInfo.createBy }}</el-descriptions-item>
-                <el-descriptions-item label="创建时间">{{ formatDate(studentInfo.createTime) }}</el-descriptions-item>
+                <el-descriptions-item label="创建时间">{{ formatDateTime(studentInfo.createTime) }}</el-descriptions-item>
                 <el-descriptions-item label="更新人">{{ studentInfo.updateBy || '无' }}</el-descriptions-item>
-                <el-descriptions-item label="更新时间">{{ formatDate(studentInfo.updateTime) }}</el-descriptions-item>
+                <el-descriptions-item label="更新时间">{{ formatDateTime(studentInfo.updateTime) }}</el-descriptions-item>
                 <el-descriptions-item label="备注" :span="2">{{ studentInfo.remark || '无' }}</el-descriptions-item>
             </el-descriptions>
         </el-card>
@@ -44,7 +44,8 @@
     import { useRouter, useRoute } from 'vue-router'
     import { Back } from '@element-plus/icons-vue'
     import { ElMessage } from 'element-plus'
-    import { getStudentById, getStatusType, getStatusText, formatDate } from '@/api/student'
+    import { getStudentById, getStatusType, getStatusText } from '@/api/student'
+    import { formatDate, formatDateTime } from '@/utils/dateUtils'
 
     const router = useRouter()
     const route = useRoute()

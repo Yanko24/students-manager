@@ -7,11 +7,11 @@
 
 /* 全局变量 */
 :root {
-	--primary-color: #409eff;
-	--success-color: #67c23a;
-	--warning-color: #e6a23c;
-	--danger-color: #f56c6c;
-	--info-color: #909399;
+	--primary-color: #3978d4;
+	--success-color: #36a879;
+	--warning-color: #d99a32;
+	--danger-color: #df6268;
+	--info-color: #7d8999;
 
 	--text-primary: #303133;
 	--text-regular: #606266;
@@ -23,8 +23,152 @@
 	--border-color-lighter: #ebeef5;
 	--border-color-extra-light: #f2f6fc;
 
-	--background-color-base: #f5f7fa;
+	--background-color-base: #f3f5f8;
+	--surface-color: #ffffff;
+	--surface-muted: #f7f9fc;
+	--shadow-soft: 0 8px 24px rgba(24, 39, 75, 0.06);
+	--el-color-primary: #3978d4;
+	--el-color-success: #36a879;
+	--el-color-warning: #d99a32;
+	--el-color-danger: #df6268;
+	--el-border-radius-base: 8px;
 }
+
+html, body, #app {
+	min-height: 100%;
+}
+
+body {
+	color: #263247;
+	background: var(--background-color-base);
+	font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+	font-size: 14px;
+	-webkit-font-smoothing: antialiased;
+}
+
+button, input, textarea {
+	font: inherit;
+}
+
+.el-card {
+	--el-card-border-color: #e9edf3;
+	border-radius: 12px;
+	box-shadow: var(--shadow-soft);
+}
+
+.el-card__body {
+	padding: 22px;
+}
+
+.el-button {
+	font-weight: 550;
+	transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+
+.el-button:not(.is-link):not(.is-text):not(:disabled):hover {
+	transform: translateY(-1px);
+}
+
+.el-button--primary {
+	--el-button-bg-color: #3978d4;
+	--el-button-border-color: #3978d4;
+	--el-button-hover-bg-color: #2f69bd;
+	--el-button-hover-border-color: #2f69bd;
+}
+
+.el-input__wrapper, .el-select__wrapper, .el-textarea__inner {
+	box-shadow: 0 0 0 1px #dfe5ee inset;
+	transition: box-shadow .16s ease, background-color .16s ease;
+}
+
+.el-input__wrapper:hover, .el-select__wrapper:hover, .el-textarea__inner:hover {
+	box-shadow: 0 0 0 1px #b8c9df inset;
+}
+
+.el-input__wrapper.is-focus, .el-select__wrapper.is-focused, .el-textarea__inner:focus {
+	box-shadow: 0 0 0 1px var(--primary-color) inset, 0 0 0 3px rgba(57, 120, 212, .10) !important;
+}
+
+.el-table {
+	--el-table-border-color: #e8edf4;
+	--el-table-header-bg-color: #f6f8fb;
+	--el-table-row-hover-bg-color: #f5f9ff;
+	border-radius: 8px;
+	color: #364256;
+}
+
+.el-table th.el-table__cell {
+	color: #5e6b7e;
+	font-weight: 650;
+	height: 48px;
+}
+
+.el-table td.el-table__cell {
+	height: 48px;
+}
+
+.el-table .cell {
+	line-height: 1.45;
+}
+
+.el-empty {
+	padding: 28px 0;
+}
+
+.el-message {
+	border-radius: 10px;
+	box-shadow: 0 10px 30px rgba(24, 39, 75, .12);
+}
+
+.el-dialog {
+	border-radius: 14px;
+	overflow: hidden;
+}
+
+.el-dialog__header {
+	margin-right: 0;
+	padding: 22px 24px 14px;
+}
+
+.el-dialog__body {
+	padding: 12px 24px 22px;
+}
+
+.el-dialog__footer {
+	padding: 14px 24px 22px;
+}
+
+.page-header {
+	margin-bottom: 22px;
+}
+
+.page-header h2 {
+	color: #202c40 !important;
+	font-size: 25px !important;
+	font-weight: 700;
+	letter-spacing: -.3px;
+}
+
+.filter-card {
+	background: var(--surface-muted) !important;
+	border: 1px solid #e9edf3 !important;
+}
+
+.filter-form {
+	gap: 14px 18px !important;
+}
+
+.table-card {
+	background: var(--surface-color);
+	border: 1px solid #e9edf3 !important;
+}
+
+.fade-enter-active, .fade-leave-active {
+	transition: opacity .16s ease, transform .16s ease;
+}
+
+.fade-enter-from { opacity: 0; transform: translateY(4px); }
+.fade-leave-to { opacity: 0; transform: translateY(-3px); }
 
 /* 通用样式 */
 .flex-center {

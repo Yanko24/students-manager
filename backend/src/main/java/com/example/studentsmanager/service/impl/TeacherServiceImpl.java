@@ -1,22 +1,82 @@
 package com.example.studentsmanager.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.studentsmanager.exception.BusinessException;
 import com.example.studentsmanager.mapper.TeacherMapper;
+import com.example.studentsmanager.model.dto.teacher.TeacherQueryDTO;
 import com.example.studentsmanager.model.entity.Teacher;
 import com.example.studentsmanager.model.entity.User;
+import com.example.studentsmanager.model.vo.teacher.TeacherListVO;
 import com.example.studentsmanager.service.TeacherService;
 import com.example.studentsmanager.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 @Service
 public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> implements TeacherService {
 
     @Autowired
     private UserService userService;
+
+    @Override
+    public Page<TeacherListVO> getTeacherPage(TeacherQueryDTO queryDTO) {
+        Page<Teacher> teacherPage = new Page<>(queryDTO.getPage(), queryDTO.getSize());
+        LambdaQueryWrapper<Teacher> teacherQuery = new LambdaQueryWrapper<Teacher>()
+                .like(queryDTO.getTeacherNo() != null && !queryDTO.getTeacherNo().trim().isEmpty(),
+                        Teacher::getTeacherNumber, queryDTO.getTeacherNo())
+                .like(queryDTO.getDepartment() != null && !queryDTO.getDepartment().trim().isEmpty(),
+                        Teacher::getDepartment, queryDTO.getDepartment())
+                .orderByDesc(Teacher::getCreateTime);
+
+        if (queryDTO.getRealName() != null && !queryDTO.getRealName().trim().isEmpty()) {
+            List<Long> userIds = userService.list(new LambdaQueryWrapper<User>()
+                            .select(User::getId)
+                            .eq(User::getRole, "teacher")
+                            .like(User::getRealName, queryDTO.getRealName()))
+                    .stream().map(User::getId).collect(Collectors.toList());
+            if (userIds.isEmpty()) {
+                Page<TeacherListVO> emptyPage = new Page<>(queryDTO.getPage(), queryDTO.getSize());
+                emptyPage.setRecords(Collections.emptyList());
+                return emptyPage;
+            }
+            teacherQuery.in(Teacher::getUserId, userIds);
+        }
+
+        Page<Teacher> result = page(teacherPage, teacherQuery);
+        List<Long> userIds = result.getRecords().stream().map(Teacher::getUserId).collect(Collectors.toList());
+        Map<Long, User> usersById = userIds.isEmpty()
+                ? Collections.emptyMap()
+                : userService.listByIds(userIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
+
+        Page<TeacherListVO> response = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        response.setRecords(result.getRecords().stream().map(teacher -> {
+            TeacherListVO vo = new TeacherListVO();
+            vo.setId(teacher.getId());
+            vo.setTeacherNo(teacher.getTeacherNumber());
+            vo.setDepartment(teacher.getDepartment());
+            vo.setTitle(teacher.getTitle());
+            vo.setStatus(teacher.getStatus());
+            vo.setHireDate(teacher.getHireDate());
+            User user = usersById.get(teacher.getUserId());
+            if (user != null) {
+                vo.setRealName(user.getRealName());
+                vo.setGender(user.getGender());
+                vo.setPhone(user.getPhone());
+                vo.setEmail(user.getEmail());
+            }
+            return vo;
+        }).collect(Collectors.toList()));
+        return response;
+    }
 
     @Override
     public Teacher getByTeacherNumber(String teacherNumber) {

@@ -133,8 +133,13 @@ CREATE TABLE IF NOT EXISTS courses
     course_name VARCHAR(100) NOT NULL COMMENT '课程名称',
     course_code VARCHAR(20)  NOT NULL UNIQUE COMMENT '课程代码',
     teacher_id  BIGINT COMMENT '授课教师ID',
-    credits     INT          NOT NULL COMMENT '学分',
+    credits     DECIMAL(4,1) NOT NULL COMMENT '学分',
+    course_type VARCHAR(30)  NOT NULL DEFAULT '必修课' COMMENT '课程类型',
+    semester    VARCHAR(20)  NOT NULL DEFAULT '2026-2027-1' COMMENT '开课学期',
+    hours       INT          NOT NULL DEFAULT 48 COMMENT '学时',
+    status      TINYINT      NOT NULL DEFAULT 0 COMMENT '状态：0-未开课，1-已开课，2-已结课',
     description TEXT COMMENT '课程描述',
+    objectives  TEXT COMMENT '教学目标',
     create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     create_by   VARCHAR(50)  DEFAULT NULL COMMENT '创建人',
@@ -163,6 +168,55 @@ CREATE TABLE IF NOT EXISTS course_selections
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='选课表';
+
+-- 创建成绩表
+CREATE TABLE IF NOT EXISTS scores
+(
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    student_id  BIGINT        NOT NULL COMMENT '学生ID',
+    course_id   BIGINT        NOT NULL COMMENT '课程ID',
+    score       DECIMAL(5,2)  NOT NULL COMMENT '百分制成绩',
+    grade       VARCHAR(5)    NOT NULL COMMENT '等级',
+    grade_point DECIMAL(4,2)  NOT NULL COMMENT '绩点',
+    semester    VARCHAR(20)   NOT NULL COMMENT '学期',
+    exam_time   DATETIME      NOT NULL COMMENT '考试时间',
+    remarks     TEXT COMMENT '评语',
+    create_time DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    create_by   VARCHAR(50) DEFAULT NULL COMMENT '创建人',
+    update_by   VARCHAR(50) DEFAULT NULL COMMENT '更新人',
+    is_deleted  TINYINT       NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+    UNIQUE KEY uk_score_student_course_semester (student_id, course_id, semester),
+    KEY idx_scores_exam_time (exam_time),
+    CONSTRAINT fk_scores_student FOREIGN KEY (student_id) REFERENCES students (id),
+    CONSTRAINT fk_scores_course FOREIGN KEY (course_id) REFERENCES courses (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='学生成绩表';
+
+-- 创建考勤记录表
+CREATE TABLE IF NOT EXISTS attendance_records
+(
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    student_id      BIGINT      NOT NULL COMMENT '学生ID',
+    course_id       BIGINT      NOT NULL COMMENT '课程ID',
+    attendance_date DATE        NOT NULL COMMENT '考勤日期',
+    class_period    VARCHAR(30) NOT NULL DEFAULT '未指定' COMMENT '上课节次',
+    status          VARCHAR(20) NOT NULL COMMENT '正常、迟到、早退、缺勤、请假',
+    remark          VARCHAR(500) DEFAULT NULL COMMENT '备注',
+    create_time     DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time     DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    create_by       VARCHAR(50) DEFAULT NULL COMMENT '创建人',
+    update_by       VARCHAR(50) DEFAULT NULL COMMENT '更新人',
+    is_deleted      TINYINT     NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+    KEY idx_attendance_student_date (student_id, attendance_date),
+    KEY idx_attendance_course_date (course_id, attendance_date),
+    KEY idx_attendance_date_status (attendance_date, status),
+    CONSTRAINT fk_attendance_student FOREIGN KEY (student_id) REFERENCES students (id),
+    CONSTRAINT fk_attendance_course FOREIGN KEY (course_id) REFERENCES courses (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='学生考勤记录表';
 
 -- 插入测试数据
 -- 1. 插入管理员用户
@@ -361,7 +415,74 @@ VALUES ('Java程序设计', 'CS101', 1, 4, 'Java语言基础与面向对象程�
        ('人工智能导论', 'AI101', 7, 3, '人工智能基础理论与应用', NOW(), NOW(), 'system', 'system'),
        ('机器学习', 'AI102', 8, 4, '机器学习算法与实践', NOW(), NOW(), 'system', 'system');
 
--- 6. 插入选课数据
+-- 初始化少量成绩样例：前10名学生的3门示例课程，共最多30条；重复执行不会重复插入。
+INSERT IGNORE INTO scores (student_id, course_id, score, grade, grade_point, semester, exam_time, remarks, create_by, update_by)
+SELECT seed.student_id,
+       seed.course_id,
+       seed.score,
+       CASE WHEN seed.score >= 90 THEN 'A+'
+            WHEN seed.score >= 85 THEN 'A'
+            WHEN seed.score >= 80 THEN 'B+'
+            WHEN seed.score >= 75 THEN 'B'
+            WHEN seed.score >= 70 THEN 'C+'
+            WHEN seed.score >= 60 THEN 'C'
+            WHEN seed.score >= 50 THEN 'D' ELSE 'F' END,
+       CASE WHEN seed.score >= 90 THEN 4.00
+            WHEN seed.score >= 85 THEN 3.70
+            WHEN seed.score >= 82 THEN 3.30
+            WHEN seed.score >= 78 THEN 3.00
+            WHEN seed.score >= 75 THEN 2.70
+            WHEN seed.score >= 72 THEN 2.30
+            WHEN seed.score >= 68 THEN 2.00
+            WHEN seed.score >= 64 THEN 1.50
+            WHEN seed.score >= 60 THEN 1.00 ELSE 0.00 END,
+       '2026-2027-1', DATE_SUB(NOW(), INTERVAL 1 DAY), '本地开发初始化演示成绩', 'system', 'system'
+FROM (
+    SELECT s.id AS student_id, c.id AS course_id,
+           60 + MOD(s.id + c.id * 3, 41) AS score
+    FROM (SELECT id FROM students WHERE is_deleted = 0 ORDER BY id LIMIT 10) s
+    CROSS JOIN (SELECT id FROM courses WHERE course_code IN ('CS101', 'CS102', 'CS103') AND is_deleted = 0) c
+) seed;
+
+-- 插入最近14天考勤演示记录：前20名学生、3门课程，状态按固定规则分布，重复执行不会重复插入。
+INSERT INTO attendance_records
+    (student_id, course_id, attendance_date, class_period, status, remark, create_by, update_by)
+SELECT s.id,
+       c.id,
+       DATE_SUB(CURRENT_DATE, INTERVAL day_offset DAY),
+       CASE MOD(c.id, 3) WHEN 0 THEN '第1-2节' WHEN 1 THEN '第3-4节' ELSE '第5-6节' END,
+       CASE MOD(s.id + c.id + day_offset, 20)
+           WHEN 0 THEN '缺勤'
+           WHEN 1 THEN '迟到'
+           WHEN 2 THEN '早退'
+           WHEN 3 THEN '请假'
+           ELSE '正常'
+       END,
+       CASE MOD(s.id + c.id + day_offset, 20)
+           WHEN 0 THEN '演示缺勤记录'
+           WHEN 1 THEN '演示迟到记录'
+           WHEN 2 THEN '演示早退记录'
+           WHEN 3 THEN '演示请假记录'
+           ELSE NULL
+       END,
+       'system', 'system'
+FROM (SELECT id FROM students WHERE is_deleted = 0 ORDER BY id LIMIT 20) s
+CROSS JOIN (SELECT id FROM courses WHERE course_code IN ('CS101', 'CS102', 'CS103') AND is_deleted = 0) c
+CROSS JOIN (
+    SELECT 0 AS day_offset UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3
+    UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7
+    UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11
+    UNION ALL SELECT 12 UNION ALL SELECT 13
+) days
+WHERE NOT EXISTS (
+    SELECT 1 FROM attendance_records existing
+    WHERE existing.student_id = s.id AND existing.course_id = c.id
+      AND existing.attendance_date = DATE_SUB(CURRENT_DATE, INTERVAL day_offset DAY)
+      AND existing.class_period = CASE MOD(c.id, 3) WHEN 0 THEN '第1-2节' WHEN 1 THEN '第3-4节' ELSE '第5-6节' END
+      AND existing.is_deleted = 0
+);
+
+-- 7. 插入选课数据
 INSERT INTO course_selections (student_id, course_id, status, create_time, update_time, create_by, update_by)
 SELECT s.id,
        c.id,

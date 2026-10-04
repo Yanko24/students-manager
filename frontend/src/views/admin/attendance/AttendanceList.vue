@@ -16,8 +16,19 @@
                 <el-form-item label="课程">
                     <el-input v-model="filterForm.courseName" placeholder="请输入课程名称" />
                 </el-form-item>
+                <el-form-item label="班级">
+                    <el-input v-model="filterForm.className" placeholder="请输入学院、专业或班级" />
+                </el-form-item>
                 <el-form-item label="日期">
-                    <el-date-picker v-model="filterForm.date" type="date" placeholder="请选择日期" />
+                    <el-date-picker v-model="filterForm.date" type="date" value-format="YYYY-MM-DD" placeholder="请选择日期" />
+                </el-form-item>
+                <el-form-item label="学期">
+                    <el-input v-model="filterForm.semester" placeholder="如 2026-2027-1" />
+                </el-form-item>
+                <el-form-item label="状态">
+                    <el-select v-model="filterForm.status" clearable placeholder="全部状态" style="width: 130px">
+                        <el-option v-for="status in attendanceStatuses" :key="status" :label="status" :value="status" />
+                    </el-select>
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="handleSearch">搜索</el-button>
@@ -31,10 +42,15 @@
                 <el-table-column prop="studentNo" label="学号" width="120" />
                 <el-table-column prop="studentName" label="姓名" width="120" />
                 <el-table-column prop="courseName" label="课程" width="180" />
-                <el-table-column prop="date" label="日期" width="120" />
+                <el-table-column prop="className" label="班级" min-width="210" />
+                <el-table-column prop="teacherName" label="授课教师" width="120" />
+                <el-table-column prop="classPeriod" label="节次" width="100" />
+                <el-table-column prop="date" label="日期" width="120">
+                    <template #default="{ row }">{{ formatDate(row.date) }}</template>
+                </el-table-column>
                 <el-table-column prop="status" label="状态" width="100">
                     <template #default="{ row }">
-                        <el-tag :type="row.status === '正常' ? 'success' : row.status === '迟到' ? 'warning' : 'danger'">
+                        <el-tag :type="statusType(row.status)">
                             {{ row.status }}
                         </el-tag>
                     </template>
@@ -65,6 +81,7 @@
     import { useRouter } from 'vue-router'
     import { ElMessage, ElMessageBox } from 'element-plus'
     import { getAttendanceList, deleteAttendance } from '@/api/attendance'
+    import { formatDate } from '@/utils/dateUtils'
 
     const router = useRouter()
     const loading = ref(false)
@@ -77,8 +94,13 @@
         studentNo: '',
         studentName: '',
         courseName: '',
+        className: '',
+        semester: '',
+        status: '',
         date: ''
     })
+    const attendanceStatuses = ['正常', '迟到', '早退', '缺勤', '请假']
+    const statusType = (status) => ({ 正常: 'success', 迟到: 'warning', 早退: 'warning', 缺勤: 'danger', 请假: 'info' }[status] || 'info')
 
     const fetchAttendanceList = async () => {
         loading.value = true
@@ -111,6 +133,9 @@
             studentNo: '',
             studentName: '',
             courseName: '',
+            className: '',
+            semester: '',
+            status: '',
             date: ''
         }
         handleSearch()

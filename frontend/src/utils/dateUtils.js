@@ -1,20 +1,30 @@
-/**
- * 格式化日期为 YYYY-MM-DD 格式
- * @param {string|Date} date - 要格式化的日期
- * @returns {string} 格式化后的日期字符串
- */
-export const formatDate = (date) => {
-	if (!date) return "";
-	// 如果是字符串格式的日期，直接返回
-	if (typeof date === "string" && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-		return date;
+const pad = (value) => String(value).padStart(2, "0");
+
+const formatLocalDate = (date) =>
+	`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+/** Format API dates as YYYY-MM-DD without timezone shifting date-only values. */
+export const formatDate = (value) => {
+	if (!value) return "";
+	if (typeof value === "string") {
+		const match = value.trim().match(/^(\d{4}-\d{2}-\d{2})/);
+		if (match) return match[1];
 	}
-	// 如果是 Date 对象或时间戳，进行格式化
-	const d = new Date(date);
-	const year = d.getFullYear();
-	const month = String(d.getMonth() + 1).padStart(2, "0");
-	const day = String(d.getDate()).padStart(2, "0");
-	return `${year}-${month}-${day}`;
+	const date = value instanceof Date ? value : new Date(value);
+	return Number.isNaN(date.getTime()) ? String(value) : formatLocalDate(date);
+};
+
+/** Format ISO/API timestamps as YYYY-MM-DD HH:mm:ss for readable page display. */
+export const formatDateTime = (value) => {
+	if (!value) return "";
+	if (typeof value === "string") {
+		const match = value.trim().match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::(\d{2}))?/);
+		if (match) return `${match[1]} ${match[2]}:${match[3] || "00"}`;
+		return formatDate(value);
+	}
+	const date = value instanceof Date ? value : new Date(value);
+	if (Number.isNaN(date.getTime())) return String(value);
+	return `${formatLocalDate(date)} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 };
 
 /**
@@ -24,5 +34,7 @@ export const formatDate = (date) => {
  */
 export const parseDate = (dateStr) => {
 	if (!dateStr) return null;
+	const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+	if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 	return new Date(dateStr);
 };

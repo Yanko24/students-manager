@@ -47,15 +47,6 @@
                             </el-breadcrumb>
                         </div>
                         <div class="header-right">
-                            <!-- 消息通知 -->
-                            <el-tooltip content="消息通知" placement="bottom">
-                                <el-badge :value="unreadCount" :max="99" class="notice-badge" type="danger">
-                                    <el-icon class="header-icon" @click="handleMessage">
-                                        <Bell />
-                                    </el-icon>
-                                </el-badge>
-                            </el-tooltip>
-
                             <!-- 全屏切换 -->
                             <el-tooltip :content="isFullscreen ? '退出全屏' : '全屏'" placement="bottom">
                                 <el-icon class="header-icon" @click="toggleFullScreen">
@@ -118,11 +109,10 @@
     import { ref, computed } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { useUserStore } from '@/stores/user'
-    import { ElMessageBox, ElMessage } from 'element-plus'
+    import { ElMessageBox } from 'element-plus'
     import {
         Fold,
         Expand,
-        Bell,
         FullScreen,
         Aim,
         User,
@@ -139,7 +129,6 @@
     const userStore = useUserStore()
     const isSidebarCollapsed = ref(false)
     const isFullscreen = ref(false)
-    const unreadCount = ref(3) // 模拟未读消息数量
 
     const toggleSidebar = () => {
         isSidebarCollapsed.value = !isSidebarCollapsed.value
@@ -154,11 +143,6 @@
             document.exitFullscreen()
             isFullscreen.value = false
         }
-    }
-
-    // 处理消息通知点击
-    const handleMessage = () => {
-        ElMessage.info('消息中心功能开发中...')
     }
 
     // 处理下拉菜单命令

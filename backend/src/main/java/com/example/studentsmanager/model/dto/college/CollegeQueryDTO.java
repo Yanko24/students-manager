@@ -15,9 +15,6 @@ public class CollegeQueryDTO extends BaseQueryDTO {
     @ApiModelProperty(value = "学院名称")
     private String name;
     
-    @ApiModelProperty(value = "院长ID")
-    private Long deanId;
-    
     @ApiModelProperty(value = "状态（0-正常，1-停用）")
     private Integer status;
-} 
+}

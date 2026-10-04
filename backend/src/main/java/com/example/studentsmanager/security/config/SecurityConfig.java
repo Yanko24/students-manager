@@ -8,6 +8,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import com.example.studentsmanager.security.Sm3Pbkdf2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -47,6 +49,9 @@ public class SecurityConfig {
                 .antMatchers("/api/admin/**").hasRole("ADMIN")
                 .antMatchers("/api/students/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
                 .antMatchers("/api/teachers/**").hasAnyRole("ADMIN", "TEACHER")
+                .antMatchers("/api/attendance/teacher/**").hasRole("TEACHER")
+                .antMatchers("/api/attendance/student/**").hasRole("STUDENT")
+                .antMatchers("/api/attendance", "/api/attendance/**").hasRole("ADMIN")
                 // 其他接口需要认证
                 .anyRequest().authenticated()
             .and()

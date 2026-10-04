@@ -25,8 +25,12 @@
                 <el-table-column prop="code" label="学院代码" min-width="120" align="center" />
                 <el-table-column prop="name" label="学院名称" min-width="150" align="center" />
                 <el-table-column prop="description" label="描述" min-width="200" align="center" show-overflow-tooltip />
-                <el-table-column prop="createTime" label="创建时间" min-width="180" align="center" />
-                <el-table-column prop="updateTime" label="更新时间" min-width="180" align="center" />
+                <el-table-column prop="createTime" label="创建时间" min-width="180" align="center">
+                    <template #default="{ row }">{{ formatDateTime(row.createTime) }}</template>
+                </el-table-column>
+                <el-table-column prop="updateTime" label="更新时间" min-width="180" align="center">
+                    <template #default="{ row }">{{ formatDateTime(row.updateTime) }}</template>
+                </el-table-column>
                 <el-table-column label="操作" min-width="180" fixed="right" align="center">
                     <template #default="{ row }">
                         <el-button type="primary" link @click="router.push(`/admin/colleges/${row.id}`)">
@@ -42,22 +46,25 @@
                 </el-table-column>
             </el-table>
 
-            <smart-pagination :total="total" :on-page-change="handlePageChange" />
+            <smart-pagination ref="paginationRef" :total="total" :on-page-change="handlePageChange" />
         </el-card>
     </div>
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref } from 'vue'
     import { useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { getCollegeList, deleteCollege } from '@/api/college'
     import SmartPagination from '@/components/common/SmartPagination.vue'
+    import { formatDateTime } from '@/utils/dateUtils'
 
     const router = useRouter()
     const loading = ref(false)
     const collegeList = ref([])
     const total = ref(0)
+    const paginationRef = ref(null)
+    const pageSize = ref(10)
 
     const filterForm = ref({
         code: '',
@@ -80,10 +87,15 @@
             });
 
             console.log('获取学院列表响应：', response);
-            if (response && response.data) {
-                collegeList.value = response.data.records || [];
-                total.value = response.data.total || 0;
+            if (response?.code !== 200 || !response.data) {
+                collegeList.value = [];
+                total.value = 0;
+                ElMessage.error(response?.message || '获取学院列表失败');
+                return;
             }
+
+            collegeList.value = response.data.records || [];
+            total.value = response.data.total || 0;
         } catch (error) {
             console.error('获取学院列表失败：', error);
             ElMessage.error('获取学院列表失败');
@@ -93,7 +105,11 @@
     };
 
     const handleSearch = () => {
-        handlePageChange({ page: 1, size: 20 });
+        if (paginationRef.value) {
+            paginationRef.value.resetToFirstPage()
+        } else {
+            handlePageChange({ page: 1, size: pageSize.value })
+        }
     };
 
     const resetFilter = () => {
@@ -118,12 +134,10 @@
     };
 
     const handlePageChange = ({ page, size }) => {
+        pageSize.value = size
         fetchColleges(page, size);
     };
 
-    onMounted(() => {
-        handleSearch();
-    });
 </script>
 
 <style scoped>
