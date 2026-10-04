@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.studentsmanager.mapper.MajorMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.example.studentsmanager.model.entity.Major">
+        <id column="code" property="code"/>
+        <id column="grade" property="grade"/>
+        <id column="class_no" property="classNo"/>
+        <result column="name" property="name"/>
+        <result column="college_id" property="collegeId"/>
+        <result column="head_teacher_id" property="headTeacherId"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <!-- 关联学院信息 -->
+        <association property="college" javaType="com.example.studentsmanager.model.entity.College">
+            <id column="c_id" property="id"/>
+            <result column="college_name" property="name"/>
+            <result column="college_code" property="code"/>
+            <result column="college_status" property="status"/>
+        </association>
+        <!-- 关联班主任信息 -->
+        <association property="headTeacher" javaType="com.example.studentsmanager.model.entity.Teacher">
+            <id column="t_id" property="id"/>
+            <result column="teacher_number" property="teacherNumber"/>
+            <result column="teacher_status" property="status"/>
+            <association property="user" javaType="com.example.studentsmanager.model.entity.User">
+                <id column="u_id" property="id"/>
+                <result column="real_name" property="realName"/>
+                <result column="phone" property="phone" typeHandler="com.example.studentsmanager.security.handler.Sm4StringTypeHandler"/>
+                <result column="email" property="email" typeHandler="com.example.studentsmanager.security.handler.Sm4StringTypeHandler"/>
+            </association>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        m.code, m.grade, m.class_no, m.name, m.college_id, m.head_teacher_id, m.status,
+        m.create_time, m.update_time, m.create_by, m.update_by, m.is_deleted,
+        c.id as c_id, c.name as college_name, c.code as college_code, c.status as college_status,
+        t.id as t_id, t.teacher_number, t.status as teacher_status,
+        u.id as u_id, u.real_name, u.phone, u.email
+    </sql>
+
+    <!-- 查询专业列表 -->
+    <select id="searchMajors" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM majors m
+        LEFT JOIN colleges c ON m.college_id = c.id AND c.is_deleted = 0
+        LEFT JOIN teachers t ON m.head_teacher_id = t.id
+        LEFT JOIN users u ON t.user_id = u.id AND u.is_deleted = 0
+        <where>
+            m.is_deleted = 0
+            <if test="query.code != null and query.code != ''">
+                AND m.code = #{query.code}
+            </if>
+            <if test="query.grade != null and query.grade != ''">
+                AND m.grade = #{query.grade}
+            </if>
+            <if test="query.classNo != null and query.classNo != ''">
+                AND m.class_no = #{query.classNo}
+            </if>
+            <if test="query.name != null and query.name != ''">
+                AND m.name LIKE CONCAT('%', #{query.name}, '%')
+            </if>
+            <if test="query.collegeId != null">
+                AND m.college_id = #{query.collegeId}
+            </if>
+            <if test="query.status != null">
+                AND m.status = #{query.status}
+            </if>
+        </where>
+        ORDER BY m.code, m.grade, m.class_no
+    </select>
+
+    <!-- 根据ID查询专业 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM majors m
+        LEFT JOIN colleges c ON m.college_id = c.id AND c.is_deleted = 0
+        LEFT JOIN teachers t ON m.head_teacher_id = t.id
+        LEFT JOIN users u ON t.user_id = u.id AND u.is_deleted = 0
+        WHERE m.code = #{code}
+        AND m.grade = #{grade}
+        AND m.class_no = #{classNo}
+        AND m.is_deleted = 0
+    </select>
+
+    <!-- 软删除专业 -->
+    <update id="deleteById">
+        UPDATE majors
+        SET is_deleted = 1,
+            update_time = NOW(),
+            update_by = #{updateBy}
+        WHERE code = #{code}
+        AND grade = #{grade}
+        AND class_no = #{classNo}
+        AND is_deleted = 0
+    </update>
+
+    <!-- 更新专业信息 -->
+    <update id="updateById">
+        UPDATE majors
+        <set>
+            <if test="name != null and name != ''">
+                name = #{name},
+            </if>
+            <if test="collegeId != null">
+                college_id = #{collegeId},
+            </if>
+            <if test="headTeacherId != null">
+                head_teacher_id = #{headTeacherId},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            update_time = NOW(),
+            update_by = #{updateBy}
+        </set>
+        WHERE code = #{code}
+        AND grade = #{grade}
+        AND class_no = #{classNo}
+        AND is_deleted = 0
+    </update>
+
+    <select id="getMajorPage" resultType="com.example.studentsmanager.model.vo.major.MajorVO">
+        SELECT
+        m.code,
+        m.grade,
+        m.class_no as classNo,
+        m.name,
+        m.college_id as collegeId,
+        c.name as collegeName,
+        m.head_teacher_id as headTeacherId,
+        t.teacher_number as headTeacherNumber,
+        u.real_name as headTeacherName,
+        m.status,
+        CASE 
+            WHEN m.status = 0 THEN '正常'
+            WHEN m.status = 1 THEN '停招'
+            WHEN m.status = 2 THEN '撤销'
+            ELSE '未知'
+        END as statusText,
+        m.create_time as createTime,
+        m.update_time as updateTime,
+        m.create_by as createBy,
+        m.update_by as updateBy,
+        m.is_deleted as isDeleted,
+        (SELECT COUNT(*) FROM students s
+        WHERE s.major_code = m.code
+        AND s.grade = m.grade
+        AND s.class_no = m.class_no
+        AND s.is_deleted = 0
+        and s.status = 0) as studentCount
+        FROM majors m
+        LEFT JOIN colleges c ON m.college_id = c.id AND c.is_deleted = 0
+        LEFT JOIN teachers t ON m.head_teacher_id = t.id
+        LEFT JOIN users u ON t.user_id = u.id AND u.is_deleted = 0
+        WHERE m.is_deleted = 0
+        <if test="code != null and code != ''">
+            AND m.code LIKE CONCAT('%', #{code}, '%')
+        </if>
+        <if test="name != null and name != ''">
+            AND m.name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="grade != null and grade != ''">
+            AND m.grade = #{grade}
+        </if>
+        <if test="collegeId != null">
+            AND m.college_id = #{collegeId}
+        </if>
+        <if test="status != null">
+            AND m.status = #{status}
+        </if>
+        ORDER BY m.grade DESC, m.class_no ASC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countAllMajors" resultType="long">
+        SELECT COUNT(*)
+        FROM majors m
+        WHERE m.is_deleted = 0
+        <if test="name != null and name != ''">
+            AND m.name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="grade != null and grade != ''">
+            AND m.grade = #{grade}
+        </if>
+        <if test="collegeId != null">
+            AND m.college_id = #{collegeId}
+        </if>
+        <if test="status != null">
+            AND m.status = #{status}
+        </if>
+    </select>
+
+    <!-- 统计班级在读学生人数 -->
+    <select id="countClassEnrolledStudents" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM students s
+        WHERE s.major_code = #{code}
+        AND s.grade = #{grade}
+        AND s.class_no = #{classNo}
+        AND s.status = 0
+        AND s.is_deleted = 0
+    </select>
+
+    <!-- 查询专业列表 -->
+    <select id="selectMajorList" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM majors m
+        LEFT JOIN colleges c ON m.college_id = c.id
+        <where>
+            m.is_deleted = 0
+            <if test="query.collegeId != null">
+                AND m.college_id = #{query.collegeId}
+            </if>
+            <if test="query.code != null and query.code != ''">
+                AND m.code = #{query.code}
+            </if>
+            <if test="query.grade != null and query.grade != ''">
+                AND m.grade = #{query.grade}
+            </if>
+            <if test="query.classNo != null and query.classNo != ''">
+                AND m.class_no = #{query.classNo}
+            </if>
+            <if test="query.status != null">
+                AND m.status = #{query.status}
+            </if>
+        </where>
+        ORDER BY m.grade DESC, m.class_no ASC
+    </select>
+
+    <!-- 根据专业代码、年级和班级号查询专业详细信息 -->
+    <select id="getMajorByIdWithDetails" resultType="com.example.studentsmanager.model.vo.major.MajorVO">
+        SELECT 
+            m.code, m.grade, m.class_no as classNo, m.name,
+            m.college_id as collegeId, c.name as collegeName,
+            m.head_teacher_id as headTeacherId, t.teacher_number as headTeacherNumber, u.real_name as headTeacherName,
+            m.status,
+            CASE 
+                WHEN m.status = 0 THEN '正常'
+                WHEN m.status = 1 THEN '停招'
+                WHEN m.status = 2 THEN '撤销'
+                ELSE '未知'
+            END as statusText,
+            COUNT(s.id) as studentCount,
+            m.create_time as createTime, m.create_by as createBy, m.update_time as updateTime, m.update_by as updateBy
+        FROM majors m
+        LEFT JOIN colleges c ON m.college_id = c.id
+        LEFT JOIN teachers t ON m.head_teacher_id = t.id
+        LEFT JOIN users u ON t.user_id = u.id
+        LEFT JOIN students s ON m.code = s.major_code AND m.grade = s.grade AND m.class_no = s.class_no AND s.is_deleted = 0
+        WHERE m.code = #{code} 
+        AND m.grade = #{grade}
+        AND m.class_no = #{classNo}
+        AND m.is_deleted = 0
+        GROUP BY m.code, m.grade, m.class_no
+    </select>
+</mapper> 

@@ -1,0 +1,33 @@
+spring:
+  profiles:
+    active: dev # 本地开发默认；Docker Compose 显式指定 prod
+  application:
+    name: students-manager
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  # 跨域配置
+  cors:
+    allowed-origins: http://localhost:3000
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+    max-age: 3600
+
+# JWT配置
+jwt:
+  secret: your-secret-key-must-be-at-least-256-bits-long-for-HS256-algorithm
+  expiration: 86400000 # 24小时
+  header: Authorization
+  prefix: "Bearer "
+
+security:
+  sm4:
+    key-base64: ${SM4_KEY_BASE64:}
+
+# 文件上传配置
+file:
+  upload:
+    path: uploads/
+    max-size: 10MB
+    allowed-types: image/jpeg,image/png,image/gif

@@ -1,0 +1,27 @@
+# Git metadata and editor files
+.git
+**/.git
+.idea
+**/.idea
+.vscode
+**/.vscode
+**/.DS_Store
+
+# Build output, installed dependencies, and runtime files
+backend/target
+frontend/node_modules
+frontend/dist
+frontend/coverage
+backend/logs
+logs
+backend/uploads
+uploads
+**/*.log
+
+# Local configuration and secrets
+docker/.env
+backend/.env.local
+**/.env.local
+
+# The Docker backend image serves the API only; frontend has its own image.
+backend/src/main/resources/static

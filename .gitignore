@@ -1,0 +1,22 @@
+# IDE and operating system files
+.idea/
+.vscode/
+.DS_Store
+*.iml
+
+# Local secrets and runtime data
+docker/.env
+backend/.env.local
+backend/logs/
+backend/uploads/
+logs/
+
+# Build output and installed dependencies
+backend/target/
+backend/src/main/resources/static/
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+
+# Logs
+*.log

@@ -1,0 +1,207 @@
+/* 重置样式 */
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+/* 全局变量 */
+:root {
+	--primary-color: #409eff;
+	--success-color: #67c23a;
+	--warning-color: #e6a23c;
+	--danger-color: #f56c6c;
+	--info-color: #909399;
+
+	--text-primary: #303133;
+	--text-regular: #606266;
+	--text-secondary: #909399;
+	--text-placeholder: #c0c4cc;
+
+	--border-color-base: #dcdfe6;
+	--border-color-light: #e4e7ed;
+	--border-color-lighter: #ebeef5;
+	--border-color-extra-light: #f2f6fc;
+
+	--background-color-base: #f5f7fa;
+}
+
+/* 通用样式 */
+.flex-center {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.flex-between {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.flex-start {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+}
+
+.flex-end {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+}
+
+/* 间距类 */
+.mt-10 {
+	margin-top: 10px;
+}
+.mt-20 {
+	margin-top: 20px;
+}
+.mt-30 {
+	margin-top: 30px;
+}
+.mt-40 {
+	margin-top: 40px;
+}
+
+.mb-10 {
+	margin-bottom: 10px;
+}
+.mb-20 {
+	margin-bottom: 20px;
+}
+.mb-30 {
+	margin-bottom: 30px;
+}
+.mb-40 {
+	margin-bottom: 40px;
+}
+
+.ml-10 {
+	margin-left: 10px;
+}
+.ml-20 {
+	margin-left: 20px;
+}
+.ml-30 {
+	margin-left: 30px;
+}
+.ml-40 {
+	margin-left: 40px;
+}
+
+.mr-10 {
+	margin-right: 10px;
+}
+.mr-20 {
+	margin-right: 20px;
+}
+.mr-30 {
+	margin-right: 30px;
+}
+.mr-40 {
+	margin-right: 40px;
+}
+
+/* 文本类 */
+.text-primary {
+	color: var(--primary-color);
+}
+.text-success {
+	color: var(--success-color);
+}
+.text-warning {
+	color: var(--warning-color);
+}
+.text-danger {
+	color: var(--danger-color);
+}
+.text-info {
+	color: var(--info-color);
+}
+
+.text-left {
+	text-align: left;
+}
+.text-center {
+	text-align: center;
+}
+.text-right {
+	text-align: right;
+}
+
+.text-bold {
+	font-weight: bold;
+}
+.text-italic {
+	font-style: italic;
+}
+
+/* 卡片类 */
+.card {
+	background-color: #fff;
+	border-radius: 4px;
+	box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+	padding: 20px;
+	width: 100%;
+}
+
+.card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 20px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--border-color-light);
+}
+
+/* 动画类 */
+.fade-enter-active,
+.fade-leave-active {
+	transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+	opacity: 0;
+}
+
+/* 响应式布局 */
+@media screen and (max-width: 768px) {
+	.el-form-item__label {
+		float: none;
+		display: block;
+		text-align: left;
+		padding: 0 0 8px;
+		line-height: 1.5;
+	}
+
+	.el-form-item__content {
+		margin-left: 0 !important;
+	}
+
+	.el-form-item {
+		margin-bottom: 22px;
+	}
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--background-color-base);
+	border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--text-secondary);
+	border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--text-regular);
+}

@@ -1,0 +1,62 @@
+import request from "@/utils/request";
+
+// 获取考勤列表
+export function getAttendanceList(params) {
+	return request({
+		url: "/attendance",
+		method: "get",
+		params,
+	});
+}
+
+// 获取考勤详情
+export function getAttendanceById(id) {
+	return request({
+		url: `/attendance/${id}`,
+		method: "get",
+	});
+}
+
+// 创建考勤记录
+export function createAttendance(data) {
+	return request({
+		url: "/attendance",
+		method: "post",
+		data,
+	});
+}
+
+// 更新考勤记录
+export function updateAttendance(id, data) {
+	return request({
+		url: `/attendance/${id}`,
+		method: "put",
+		data,
+	});
+}
+
+// 删除考勤记录
+export function deleteAttendance(id) {
+	return request({
+		url: `/attendance/${id}`,
+		method: "delete",
+	});
+}
+
+// 获取教师所授课程的考勤记录
+export function getTeacherAttendance(params) {
+	return request({
+		url: "/attendance/teacher",
+		method: "get",
+		params,
+	});
+}
+
+// 获取学生的考勤记录
+export function getStudentAttendance(params) {
+	return request({
+		url: "/attendance/student",
+		method: "get",
+		params,
+	});
+}

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.studentsmanager.mapper.CollegeMapper">
+    
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.example.studentsmanager.model.entity.College">
+        <id column="id" property="id"/>
+        <result column="code" property="code"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="update_by" property="updateBy"/>
+    </resultMap>
+    
+    <!-- 学院VO结果映射 -->
+    <resultMap id="CollegeVOMap" type="com.example.studentsmanager.model.vo.college.CollegeVO">
+        <id column="id" property="id"/>
+        <result column="code" property="code"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="update_by" property="updateBy"/>
+    </resultMap>
+    
+    <!-- 分页查询学院信息 -->
+    <select id="getCollegePage" resultMap="CollegeVOMap">
+        SELECT 
+            c.id, c.code, c.name, c.description, c.status,
+            c.create_time, c.create_by, c.update_time, c.update_by
+        FROM colleges c
+        WHERE c.is_deleted = 0
+        <if test="code != null and code != ''">
+            AND c.code LIKE CONCAT('%', #{code}, '%')
+        </if>
+        <if test="name != null and name != ''">
+            AND c.name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="status != null">
+            AND c.status = #{status}
+        </if>
+        ORDER BY c.create_time DESC
+        LIMIT #{offset}, #{size}
+    </select>
+    
+    <!-- 统计符合条件的记录数 -->
+    <select id="countAllColleges" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM colleges c
+        WHERE c.is_deleted = 0
+        <if test="code != null and code != ''">
+            AND c.code LIKE CONCAT('%', #{code}, '%')
+        </if>
+        <if test="name != null and name != ''">
+            AND c.name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="status != null">
+            AND c.status = #{status}
+        </if>
+    </select>
+    
+    <!-- 根据ID查询学院详细信息 -->
+    <select id="getCollegeByIdWithDetails" resultMap="CollegeVOMap">
+        SELECT 
+            c.id, c.code, c.name, c.description, c.status,
+            c.create_time, c.create_by, c.update_time, c.update_by
+        FROM colleges c
+        WHERE c.id = #{id} AND c.is_deleted = 0
+    </select>
+    
+    <!-- 软删除学院 -->
+    <update id="softDeleteCollege">
+        UPDATE t_college
+        SET is_deleted = 1,
+            update_time = NOW(),
+            update_by = #{updateBy}
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+    
+</mapper> 

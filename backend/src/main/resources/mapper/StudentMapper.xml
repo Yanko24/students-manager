@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.studentsmanager.mapper.StudentMapper">
+
+    <resultMap id="StudentVOResultMap" type="com.example.studentsmanager.model.vo.student.StudentVO" autoMapping="true">
+        <result column="phone" property="phone" typeHandler="com.example.studentsmanager.security.handler.Sm4StringTypeHandler"/>
+        <result column="email" property="email" typeHandler="com.example.studentsmanager.security.handler.Sm4StringTypeHandler"/>
+    </resultMap>
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.example.studentsmanager.model.entity.Student">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="student_no" property="studentNo"/>
+        <result column="major_code" property="majorCode"/>
+        <result column="grade" property="grade"/>
+        <result column="class_no" property="classNo"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <!-- 关联用户信息 -->
+        <association property="user" javaType="com.example.studentsmanager.model.entity.User">
+            <id column="user_id" property="id"/>
+            <result column="real_name" property="realName"/>
+            <result column="gender" property="gender"/>
+            <result column="phone" property="phone" typeHandler="com.example.studentsmanager.security.handler.Sm4StringTypeHandler"/>
+            <result column="email" property="email" typeHandler="com.example.studentsmanager.security.handler.Sm4StringTypeHandler"/>
+        </association>
+        <!-- 关联专业信息 -->
+        <association property="major" javaType="com.example.studentsmanager.model.entity.Major">
+            <id column="major_code" property="code"/>
+            <id column="grade" property="grade"/>
+            <id column="class_no" property="classNo"/>
+            <result column="major_name" property="name"/>
+            <result column="college_id" property="collegeId"/>
+            <result column="major_status" property="status"/>
+        </association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        s.id, s.user_id, s.student_no, s.major_code, s.grade, s.class_no, s.status,
+        s.create_time, s.update_time, s.create_by, s.update_by, s.is_deleted,
+        u.real_name, u.gender, u.phone, u.email,
+        m.name as major_name, m.college_id, m.status as major_status
+    </sql>
+
+    <!-- 查询学生列表 -->
+    <select id="searchStudents" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM students s
+        LEFT JOIN users u ON s.user_id = u.id AND u.is_deleted = 0
+        LEFT JOIN majors m ON s.major_code = m.code AND s.grade = m.grade AND s.class_no = m.class_no AND m.is_deleted = 0
+        <where>
+            s.is_deleted = 0
+            <if test="query.studentNo != null and query.studentNo != ''">
+                AND s.student_no = #{query.studentNo}
+            </if>
+            <if test="query.majorCode != null and query.majorCode != ''">
+                AND s.major_code = #{query.majorCode}
+            </if>
+            <if test="query.grade != null and query.grade != ''">
+                AND s.grade = #{query.grade}
+            </if>
+            <if test="query.classNo != null and query.classNo != ''">
+                AND s.class_no = #{query.classNo}
+            </if>
+            <if test="query.status != null">
+                AND s.status = #{query.status}
+            </if>
+        </where>
+        ORDER BY s.student_no
+    </select>
+
+    <!-- 根据ID查询学生 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM students s
+        LEFT JOIN users u ON s.user_id = u.id AND u.is_deleted = 0
+        LEFT JOIN majors m ON s.major_code = m.code AND s.grade = m.grade AND s.class_no = m.class_no AND m.is_deleted = 0
+        WHERE s.id = #{id}
+        AND s.is_deleted = 0
+    </select>
+
+    <!-- 软删除学生 -->
+    <update id="deleteById">
+        UPDATE students
+        SET is_deleted = 1,
+            update_time = NOW(),
+            update_by = #{updateBy}
+        WHERE id = #{id}
+        AND is_deleted = 0
+    </update>
+
+    <!-- 更新学生信息 -->
+    <update id="updateById">
+        UPDATE students
+        <set>
+            <if test="et.studentNo != null and et.studentNo != ''">
+                student_no = #{et.studentNo},
+            </if>
+            <if test="et.majorCode != null and et.majorCode != ''">
+                major_code = #{et.majorCode},
+            </if>
+            <if test="et.grade != null and et.grade != ''">
+                grade = #{et.grade},
+            </if>
+            <if test="et.classNo != null and et.classNo != ''">
+                class_no = #{et.classNo},
+            </if>
+            <if test="et.status != null">
+                status = #{et.status},
+            </if>
+            <if test="et.birthDate != null">
+                birth_date = #{et.birthDate},
+            </if>
+            <if test="et.admissionDate != null">
+                admission_date = #{et.admissionDate},
+            </if>
+            <if test="et.address != null and et.address != ''">
+                address = #{et.address},
+            </if>
+            update_time = NOW(),
+            update_by = #{et.updateBy}
+        </set>
+        WHERE id = #{et.id}
+        AND is_deleted = 0
+    </update>
+
+    <select id="selectStudentPage" resultMap="StudentVOResultMap">
+        SELECT
+        s.id,
+        s.user_id,
+        s.student_no as studentNo,
+        u.real_name as realName,
+        u.gender,
+        s.birth_date,
+        s.admission_date as admissionDate,
+        u.phone,
+        u.email,
+        s.address,
+        m.name as majorName,
+        m.code as majorCode,
+        c.name as collegeName,
+        m.grade,
+        m.class_no as classNo,
+        s.status,
+        CASE 
+            WHEN s.status = 0 THEN '在读'
+            WHEN s.status = 1 THEN '休学'
+            WHEN s.status = 2 THEN '退学'
+            WHEN s.status = 3 THEN '毕业'
+            ELSE '未知'
+        END as statusText,
+        s.create_time as createTime,
+        s.update_time as updateTime,
+        s.create_by as createBy,
+        s.update_by as updateBy,
+        s.is_deleted as isDeleted
+        FROM students s
+        LEFT JOIN users u ON s.user_id = u.id
+        LEFT JOIN majors m ON s.major_code = m.code AND s.grade = m.grade AND s.class_no = m.class_no
+        LEFT JOIN colleges c ON m.college_id = c.id
+        <where>
+            s.is_deleted = 0
+            <if test="query.studentNo != null and query.studentNo != ''">
+                AND s.student_no LIKE CONCAT('%', #{query.studentNo}, '%')
+            </if>
+            <if test="query.realName != null and query.realName != ''">
+                AND u.real_name LIKE CONCAT('%', #{query.realName}, '%')
+            </if>
+            <if test="query.majorCode != null and query.majorCode != ''">
+                AND m.code = #{query.majorCode}
+            </if>
+            <if test="query.grade != null and query.grade != ''">
+                AND m.grade = #{query.grade}
+            </if>
+            <if test="query.classNo != null and query.classNo != ''">
+                AND m.class_no = #{query.classNo}
+            </if>
+            <if test="query.status != null">
+                AND s.status = #{query.status}
+            </if>
+        </where>
+        ORDER BY s.create_time DESC, s.student_no ASC
+    </select>
+
+    <select id="selectAllStudentsWithInfo" resultMap="StudentVOResultMap">
+        SELECT 
+            s.id,
+            s.student_no as studentNo,
+            s.admission_date as admissionDate,
+            m.name as majorName,
+            m.code as majorCode,
+            u.real_name as realName,
+            u.gender,
+            u.email,
+            u.phone,
+            m.grade,
+            m.class_no as classNo,
+            s.status,
+            CASE 
+                WHEN s.status = 0 THEN '在读'
+                WHEN s.status = 1 THEN '休学'
+                WHEN s.status = 2 THEN '退学'
+                WHEN s.status = 3 THEN '毕业'
+                ELSE '未知'
+            END as statusText,
+            s.create_time as createTime,
+            s.update_time as updateTime,
+            s.is_deleted as isDeleted
+        FROM students s
+        LEFT JOIN users u ON s.user_id = u.id
+        LEFT JOIN majors m ON s.major_code = m.code AND s.grade = m.grade AND s.class_no = m.class_no
+        WHERE s.is_deleted = 0
+        ORDER BY s.create_time DESC
+    </select>
+
+    <select id="getAllStudents" resultMap="StudentVOResultMap">
+        SELECT
+            s.id,
+            s.student_no as studentNo,
+            s.admission_date as admissionDate,
+            m.name as majorName,
+            m.code as majorCode,
+            u.real_name as realName,
+            u.gender,
+            u.email,
+            u.phone,
+            m.grade,
+            m.class_no as classNo,
+            s.status,
+            CASE 
+                WHEN s.status = 0 THEN '在读'
+                WHEN s.status = 1 THEN '休学'
+                WHEN s.status = 2 THEN '退学'
+                WHEN s.status = 3 THEN '毕业'
+                ELSE '未知'
+            END as statusText,
+            s.create_time as createTime,
+            s.update_time as updateTime,
+            s.is_deleted as isDeleted
+        FROM students s
+        LEFT JOIN users u ON s.user_id = u.id
+        LEFT JOIN majors m ON s.major_code = m.code AND s.grade = m.grade AND s.class_no = m.class_no
+        <where>
+            s.is_deleted = 0
+            <if test="studentNo != null and studentNo != ''">
+                AND s.student_no LIKE CONCAT('%', #{studentNo}, '%')
+            </if>
+            <if test="name != null and name != ''">
+                AND u.real_name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="majorCode != null and majorCode != ''">
+                AND m.code = #{majorCode}
+            </if>
+            <if test="grade != null and grade != ''">
+                AND m.grade = #{grade}
+            </if>
+            <if test="classNo != null and classNo != ''">
+                AND m.class_no = #{classNo}
+            </if>
+        </where>
+        ORDER BY m.grade DESC, m.class_no ASC, s.student_no ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countAllStudents" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM students s
+        LEFT JOIN users u ON s.user_id = u.id
+        LEFT JOIN majors m ON s.major_code = m.code AND s.grade = m.grade AND s.class_no = m.class_no
+        <where>
+            s.is_deleted = 0
+            <if test="studentNo != null and studentNo != ''">
+                AND s.student_no LIKE CONCAT('%', #{studentNo}, '%')
+            </if>
+            <if test="name != null and name != ''">
+                AND u.real_name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="majorCode != null and majorCode != ''">
+                AND m.code = #{majorCode}
+            </if>
+            <if test="grade != null and grade != ''">
+                AND m.grade = #{grade}
+            </if>
+            <if test="classNo != null and classNo != ''">
+                AND m.class_no = #{classNo}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据ID查询学生完整信息 -->
+    <select id="selectByIdWithInfo" resultMap="StudentVOResultMap">
+        SELECT 
+            s.id,
+            s.user_id as userId,
+            s.student_no as studentNo,
+            s.major_code as majorCode,
+            s.grade,
+            s.class_no as classNo,
+            s.admission_date as admissionDate,
+            s.birth_date as birthDate,
+            s.status,
+            CASE 
+                WHEN s.status = 0 THEN '在读'
+                WHEN s.status = 1 THEN '休学'
+                WHEN s.status = 2 THEN '退学'
+                WHEN s.status = 3 THEN '毕业'
+                ELSE '未知'
+            END as statusText,
+            u.real_name as realName,
+            u.gender,
+            u.phone,
+            u.email,
+            s.address,
+            m.name as majorName,
+            c.name as collegeName,
+            s.create_time as createTime,
+            s.update_time as updateTime,
+            s.create_by as createBy,
+            s.update_by as updateBy,
+            s.is_deleted as isDeleted
+        FROM students s
+        LEFT JOIN users u ON s.user_id = u.id
+        LEFT JOIN majors m ON s.major_code = m.code AND s.grade = m.grade AND s.class_no = m.class_no
+        LEFT JOIN colleges c ON m.college_id = c.id
+        WHERE s.id = #{id} AND s.is_deleted = 0
+    </select>
+
+    <!-- 统计班级总人数（包括所有状态） -->
+    <select id="countClassTotalStudents" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM students s
+        WHERE s.major_code = #{majorCode}
+        AND s.grade = #{grade}
+        AND s.class_no = #{classNo}
+    </select>
+
+    <!-- 统计班级在读学生人数 -->
+    <select id="countClassEnrolledStudents" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM students s
+        WHERE s.major_code = #{majorCode}
+        AND s.grade = #{grade}
+        AND s.class_no = #{classNo}
+        AND s.status = 0
+        AND s.is_deleted = 0
+    </select>
+
+    <!-- 软删除学生 -->
+    <update id="softDeleteStudent">
+        UPDATE students
+        SET is_deleted = 1,
+            update_time = NOW(),
+            update_by = #{updateBy}
+        WHERE id = #{id}
+        AND is_deleted = 0
+    </update>
+
+    <!-- 根据ID获取学生详情 -->
+    <select id="getStudentById" resultMap="StudentVOResultMap">
+        SELECT 
+            s.id,
+            s.student_no as studentNo,
+            u.real_name as realName,
+            u.gender,
+            s.birth_date as birthDate,
+            s.admission_date as admissionDate,
+            u.phone,
+            u.email,
+            s.address,
+            s.major_code as majorCode,
+            m.name as majorName,
+            c.name as collegeName,
+            s.grade,
+            s.class_no as classNo,
+            s.status,
+            CASE 
+                WHEN s.status = 0 THEN '在读'
+                WHEN s.status = 1 THEN '休学'
+                WHEN s.status = 2 THEN '退学'
+                WHEN s.status = 3 THEN '毕业'
+                ELSE '未知'
+            END as statusText,
+            s.create_time as createTime,
+            s.update_time as updateTime,
+            s.create_by as createBy,
+            s.update_by as updateBy,
+            CONCAT(s.student_no, ' - ', u.real_name) as displayName
+        FROM students s
+        LEFT JOIN users u ON s.user_id = u.id
+        LEFT JOIN majors m ON s.major_code = m.code
+        LEFT JOIN colleges c ON m.code = c.code
+        WHERE s.id = #{id}
+        AND s.is_deleted = 0
+    </select>
+</mapper> 

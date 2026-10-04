@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 定义日志文件的存储地址 -->
+    <property name="LOG_HOME" value="logs"/>
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"/>
+    <property name="LOG_PATTERN_DETAIL" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} [%file:%line] - %msg%n"/>
+
+    <!-- 控制台输出 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 文件输出 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/students-manager.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/students-manager.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 错误日志单独输出 -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/students-manager-error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/students-manager-error.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <encoder>
+            <pattern>${LOG_PATTERN_DETAIL}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 开发环境配置 -->
+    <springProfile name="dev">
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+        <!-- 设置特定包的日志级别 -->
+        <logger name="com.example.studentsmanager" level="DEBUG"/>
+        <logger name="com.example.studentsmanager.controller" level="DEBUG"/>
+        <logger name="com.example.studentsmanager.service" level="DEBUG"/>
+        <logger name="com.example.studentsmanager.mapper" level="DEBUG"/>
+        <logger name="com.example.studentsmanager.security" level="DEBUG"/>
+        <logger name="com.example.studentsmanager.exception" level="ERROR"/>
+        <logger name="org.springframework" level="INFO"/>
+        <logger name="org.mybatis" level="DEBUG"/>
+        <logger name="org.hibernate" level="INFO"/>
+        <logger name="com.zaxxer.hikari" level="INFO"/>
+        <logger name="org.apache.catalina" level="INFO"/>
+        <logger name="org.apache.tomcat" level="INFO"/>
+        <logger name="org.apache.http" level="INFO"/>
+        <logger name="org.quartz" level="INFO"/>
+        <logger name="io.swagger.models.parameters.AbstractSerializableParameter" level="ERROR"/>
+    </springProfile>
+
+    <!-- 生产环境配置 -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+        <!-- 设置特定包的日志级别 -->
+        <logger name="com.example.studentsmanager" level="INFO"/>
+        <logger name="com.example.studentsmanager.controller" level="INFO"/>
+        <logger name="com.example.studentsmanager.service" level="INFO"/>
+        <logger name="com.example.studentsmanager.mapper" level="INFO"/>
+        <logger name="com.example.studentsmanager.security" level="INFO"/>
+        <logger name="com.example.studentsmanager.exception" level="ERROR"/>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.mybatis" level="INFO"/>
+        <logger name="org.mybatis.spring" level="INFO"/>
+        <logger name="org.mybatis.spring.SqlSessionFactoryBean" level="INFO"/>
+        <logger name="org.mybatis.spring.mapper.MapperFactoryBean" level="INFO"/>
+        <logger name="org.hibernate" level="WARN"/>
+        <logger name="com.zaxxer.hikari" level="WARN"/>
+        <logger name="org.apache.catalina" level="WARN"/>
+        <logger name="org.apache.tomcat" level="WARN"/>
+        <logger name="org.apache.http" level="WARN"/>
+        <logger name="org.quartz" level="WARN"/>
+        <logger name="io.swagger.models.parameters.AbstractSerializableParameter" level="ERROR"/>
+    </springProfile>
+</configuration> 
