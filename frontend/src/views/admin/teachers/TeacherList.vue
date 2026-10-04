@@ -24,7 +24,7 @@
         </el-card>
 
         <el-card class="table-card">
-            <el-table ref="tableRef" :data="teacherList" v-loading="loading" border
+            <el-table ref="tableRef" :data="teacherList" v-loading="loading" border stripe
                 :style="{ width: tableWidth + 'px' }">
                 <el-table-column prop="teacherNo" label="工号" :width="columnWidth.teacherNo" align="center" />
                 <el-table-column prop="realName" label="姓名" :width="columnWidth.realName" align="center" />
@@ -48,10 +48,8 @@
                 </el-table-column>
                 <el-table-column label="操作" :width="columnWidth.operation" align="center">
                     <template #default="{ row }">
-                        <el-button type="primary" link @click="router.push(`/admin/teachers/${row.id}`)">
-                            查看
-                        </el-button>
-                        <el-button type="primary" link @click="router.push(`/admin/teachers/${row.id}/edit`)">
+                        <record-view-link :to="{ name: 'TeacherView', params: { id: row.id } }" />
+                        <el-button type="primary" link @click.stop="router.push({ name: 'TeacherEdit', params: { id: row.id } })">
                             编辑
                         </el-button>
                         <el-button type="danger" link @click="handleDelete(row.id)">
@@ -72,6 +70,7 @@
     import { ElMessage, ElMessageBox } from 'element-plus'
     import { getTeacherList, deleteTeacher, getStatusText } from '@/api/teacher'
     import SmartPagination from '@/components/common/SmartPagination.vue'
+    import RecordViewLink from '@/components/common/RecordViewLink.vue'
     import { useTableWidth } from '@/composables/useTableWidth'
 
     const router = useRouter()
@@ -168,7 +167,7 @@
 
 <style scoped>
     .teacher-list-container {
-        padding: 20px;
+        padding: 0;
         width: 100%;
         margin: 0 auto;
         box-sizing: border-box;
@@ -191,7 +190,6 @@
 
     .filter-card {
         margin-bottom: 20px;
-        background-color: #f5f7fa;
     }
 
     .filter-form {
@@ -199,7 +197,7 @@
         flex-wrap: wrap;
         justify-content: flex-start;
         align-items: center;
-        gap: 20px;
+        gap: 12px 16px;
     }
 
     .filter-form :deep(.el-form-item) {
@@ -214,7 +212,6 @@
     .table-card {
         margin-bottom: 20px;
         overflow-x: auto;
-        padding: 20px;
     }
 
     .table-card :deep(.el-table) {
@@ -269,7 +266,7 @@
 
     @media screen and (max-width: 768px) {
         .teacher-list-container {
-            padding: 10px;
+            padding: 0;
         }
 
         .page-header {

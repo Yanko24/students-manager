@@ -17,9 +17,21 @@ export function getAllMajors(params) {
 	});
 }
 
-export function getMajorById(id) {
+export function getMajorKey(major) {
+	return [major.code, major.grade, major.classNo].map((part) => String(part ?? '')).join('~')
+}
+
+function majorResourcePath(key) {
+	const parts = String(key ?? '').split('~')
+	if (parts.length !== 3 || parts.some((part) => !part)) {
+		throw new Error('专业详情缺少专业代码、年级或班级信息')
+	}
+	return `/majors/${parts.map(encodeURIComponent).join('/')}`
+}
+
+export function getMajorById(key) {
 	return request({
-		url: `/majors/${id}`,
+		url: majorResourcePath(key),
 		method: "get",
 	});
 }
@@ -32,17 +44,17 @@ export function createMajor(data) {
 	});
 }
 
-export function updateMajor(id, data) {
+export function updateMajor(key, data) {
 	return request({
-		url: `/majors/${id}`,
+		url: majorResourcePath(key),
 		method: "put",
 		data,
 	});
 }
 
-export function deleteMajor(id) {
+export function deleteMajor(key) {
 	return request({
-		url: `/majors/${id}`,
+		url: majorResourcePath(key),
 		method: "delete",
 	});
 }

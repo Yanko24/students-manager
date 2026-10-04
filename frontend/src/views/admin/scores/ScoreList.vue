@@ -36,7 +36,7 @@
         </el-card>
 
         <el-card class="table-card">
-            <el-table :data="scoreList" v-loading="loading" border style="width: 100%">
+            <el-table :data="scoreList" v-loading="loading" border stripe style="width: 100%">
                 <el-table-column prop="studentNo" label="学号" min-width="120" align="center" />
                 <el-table-column prop="studentName" label="姓名" min-width="100" align="center" />
                 <el-table-column prop="courseNo" label="课程代码" min-width="120" align="center" />
@@ -61,10 +61,8 @@
                 </el-table-column>
                 <el-table-column label="操作" min-width="180" fixed="right" align="center">
                     <template #default="{ row }">
-                        <el-button type="primary" link @click="router.push(`/admin/scores/${row.id}`)">
-                            查看
-                        </el-button>
-                        <el-button type="primary" link @click="router.push(`/admin/scores/${row.id}/edit`)">
+                        <record-view-link :to="{ name: 'ScoreView', params: { id: row.id } }" />
+                        <el-button type="primary" link @click.stop="router.push({ name: 'ScoreEdit', params: { id: row.id } })">
                             编辑
                         </el-button>
                         <el-button type="danger" link @click="handleDelete(row.id)">
@@ -86,6 +84,7 @@
     import { ElMessage, ElMessageBox } from 'element-plus'
     import { getScoreList, deleteScore, exportScores } from '@/api/score'
     import SmartPagination from '@/components/common/SmartPagination.vue'
+    import RecordViewLink from '@/components/common/RecordViewLink.vue'
     import { formatDateTime } from '@/utils/dateUtils'
 
     const router = useRouter()
@@ -217,8 +216,8 @@
 </script>
 
 <style scoped>
-    .score-list-container {
-        padding: 20px;
+.score-list-container {
+        padding: 0;
         width: 100%;
         margin: 0 auto;
         box-sizing: border-box;
@@ -241,6 +240,8 @@
 
 .header-actions {
     display: flex;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
 }
 
@@ -252,7 +253,6 @@
 
     .filter-card {
         margin-bottom: 20px;
-        background-color: #f5f7fa;
     }
 
     .filter-form {
@@ -260,7 +260,7 @@
         flex-wrap: wrap;
         justify-content: flex-start;
         align-items: center;
-        gap: 20px;
+        gap: 12px 16px;
     }
 
     .filter-form :deep(.el-form-item) {
@@ -303,7 +303,7 @@
 
     @media screen and (max-width: 768px) {
         .score-list-container {
-            padding: 10px;
+            padding: 0;
         }
 
         .page-header {

@@ -50,7 +50,7 @@
         </el-card>
 
         <el-card class="table-card">
-            <el-table ref="tableRef" :data="studentList" v-loading="loading" border
+            <el-table ref="tableRef" :data="studentList" v-loading="loading" border stripe
                 :style="{ width: tableWidth + 'px' }">
                 <el-table-column prop="studentNo" label="学号" :width="columnWidth.studentNo" align="center" />
                 <el-table-column prop="realName" label="姓名" :width="columnWidth.realName" align="center" />
@@ -76,18 +76,11 @@
                 </el-table-column>
                 <el-table-column label="操作" :width="columnWidth.operation" fixed="right" align="center">
                     <template #default="{ row }">
-                        <el-button type="primary" link @click="router.push(`/admin/students/${row.id}`)">
-                            查看
-                        </el-button>
-                        <el-button type="primary" link @click="router.push(`/admin/students/${row.id}/edit`)">
+                        <record-view-link :to="{ name: 'StudentView', params: { id: row.id } }" />
+                        <el-button type="primary" link @click.stop="router.push({ name: 'StudentEdit', params: { id: row.id } })">
                             编辑
                         </el-button>
-                        <el-popconfirm title="确定要删除这个学生吗？" @confirm="handleDelete(row.id)" confirm-button-text="确定"
-                            cancel-button-text="取消" confirm-button-type="danger">
-                            <template #reference>
-                                <el-button type="danger" link>删除</el-button>
-                            </template>
-                        </el-popconfirm>
+                        <el-button type="danger" link @click="handleDelete(row.id)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -103,6 +96,7 @@
     import { ElMessage, ElMessageBox } from 'element-plus'
     import { getStudentList, deleteStudent, importStudents, getStatusType, getStatusText } from '@/api/student'
     import SmartPagination from '@/components/common/SmartPagination.vue'
+    import RecordViewLink from '@/components/common/RecordViewLink.vue'
     import { useTableWidth } from '@/composables/useTableWidth'
 
     const router = useRouter()
@@ -183,6 +177,12 @@
 
     const handleDelete = async (id) => {
         try {
+            await ElMessageBox.confirm('删除后无法恢复，确定删除这名学生吗？', '删除学生', {
+                confirmButtonText: '删除',
+                cancelButtonText: '取消',
+                type: 'warning',
+                confirmButtonClass: 'el-button--danger'
+            })
             loading.value = true;
             await deleteStudent(id);
             ElMessage.success('删除成功');
@@ -195,6 +195,7 @@
                 await fetchStudents(currentPage.value, pageSize.value);
             }
         } catch (error) {
+            if (error === 'cancel' || error === 'close') return
             console.error('删除学生失败：', error);
             ElMessage.error(error.response?.data?.message || '删除失败');
         } finally {
@@ -238,7 +239,7 @@
 
 <style scoped>
     .student-list-container {
-        padding: 20px;
+        padding: 0;
         width: 100%;
         margin: 0 auto;
         box-sizing: border-box;
@@ -266,7 +267,6 @@
 
     .filter-card {
         margin-bottom: 20px;
-        background-color: #f5f7fa;
     }
 
     .filter-form {
@@ -274,7 +274,7 @@
         flex-wrap: wrap;
         justify-content: flex-start;
         align-items: center;
-        gap: 20px;
+        gap: 12px 16px;
     }
 
     .filter-form :deep(.el-form-item) {
@@ -289,7 +289,6 @@
     .table-card {
         margin-bottom: 20px;
         overflow-x: auto;
-        padding: 20px;
     }
 
     .table-card :deep(.el-table) {
@@ -339,7 +338,7 @@
     .pagination-container {
         margin-top: 20px;
         display: flex;
-        justify-content: center;
+        justify-content: flex-end;
     }
 
     :deep(.el-button--link) {
@@ -360,7 +359,7 @@
 
     @media screen and (max-width: 768px) {
         .student-list-container {
-            padding: 10px;
+            padding: 0;
         }
 
         .page-header {

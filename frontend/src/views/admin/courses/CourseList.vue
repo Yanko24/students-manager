@@ -27,7 +27,7 @@
         </el-card>
 
         <el-card class="table-card">
-            <el-table ref="tableRef" :data="courseList" v-loading="loading" border
+            <el-table ref="tableRef" :data="courseList" v-loading="loading" border stripe
                 :style="{ width: tableWidth + 'px' }">
                 <el-table-column prop="code" label="课程代码" :width="columnWidth.code" align="center" />
                 <el-table-column prop="name" label="课程名称" :width="columnWidth.name" align="center"
@@ -53,10 +53,8 @@
                 </el-table-column>
                 <el-table-column label="操作" :width="columnWidth.operation" fixed="right" align="center">
                     <template #default="{ row }">
-                        <el-button type="primary" link @click="router.push(`/admin/courses/${row.id}`)">
-                            查看
-                        </el-button>
-                        <el-button type="primary" link @click="router.push(`/admin/courses/${row.id}/edit`)">
+                        <record-view-link :to="{ name: 'CourseView', params: { id: row.id } }" />
+                        <el-button type="primary" link @click.stop="router.push({ name: 'CourseEdit', params: { id: row.id } })">
                             编辑
                         </el-button>
                         <el-button type="danger" link @click="handleDelete(row.id)">
@@ -74,6 +72,7 @@
 <script setup>
     import { ref } from 'vue'
     import { useRouter } from 'vue-router'
+    import RecordViewLink from '@/components/common/RecordViewLink.vue'
     import { ElMessage, ElMessageBox } from 'element-plus'
     import { getCourseList, deleteCourse } from '@/api/course'
     import SmartPagination from '@/components/common/SmartPagination.vue'
@@ -176,7 +175,7 @@
 
 <style scoped>
     .course-list-container {
-        padding: 20px;
+        padding: 0;
         width: 100%;
         margin: 0 auto;
         box-sizing: border-box;
@@ -187,6 +186,8 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
     }
 
     .page-header h2 {
@@ -197,7 +198,6 @@
 
     .filter-card {
         margin-bottom: 20px;
-        background-color: #f5f7fa;
     }
 
     .filter-form {
@@ -205,7 +205,7 @@
         flex-wrap: wrap;
         justify-content: flex-start;
         align-items: center;
-        gap: 20px;
+        gap: 12px 16px;
     }
 
     .filter-form :deep(.el-form-item) {
@@ -221,7 +221,6 @@
     .table-card {
         margin-bottom: 20px;
         overflow-x: auto;
-        padding: 20px;
     }
 
     .table-card :deep(.el-table) {
@@ -275,7 +274,7 @@
 
     @media screen and (max-width: 768px) {
         .course-list-container {
-            padding: 10px;
+            padding: 0;
         }
 
         .page-header {

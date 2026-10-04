@@ -162,7 +162,7 @@
 <style lang="scss" scoped>
     .profile-container {
         height: 100%;
-        padding: 20px;
+        padding: 0;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -254,7 +254,7 @@
 
     @media screen and (max-width: 768px) {
         .profile-container {
-            padding: 10px;
+            padding: 0;
 
             .profile-card {
                 .profile-content {

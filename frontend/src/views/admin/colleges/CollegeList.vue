@@ -21,7 +21,7 @@
         </el-card>
 
         <el-card class="table-card">
-            <el-table :data="collegeList" v-loading="loading" border style="width: 100%">
+            <el-table :data="collegeList" v-loading="loading" border stripe style="width: 100%">
                 <el-table-column prop="code" label="学院代码" min-width="120" align="center" />
                 <el-table-column prop="name" label="学院名称" min-width="150" align="center" />
                 <el-table-column prop="description" label="描述" min-width="200" align="center" show-overflow-tooltip />
@@ -33,12 +33,8 @@
                 </el-table-column>
                 <el-table-column label="操作" min-width="180" fixed="right" align="center">
                     <template #default="{ row }">
-                        <el-button type="primary" link @click="router.push(`/admin/colleges/${row.id}`)">
-                            查看
-                        </el-button>
-                        <el-button type="primary" link @click="router.push(`/admin/colleges/${row.id}/edit`)">
-                            编辑
-                        </el-button>
+                        <record-view-link :to="{ name: 'CollegeView', params: { id: row.id } }" />
+                        <record-view-link :to="{ name: 'CollegeEdit', params: { id: row.id } }">编辑</record-view-link>
                         <el-button type="danger" link @click="handleDelete(row.id)">
                             删除
                         </el-button>
@@ -54,9 +50,10 @@
 <script setup>
     import { ref } from 'vue'
     import { useRouter } from 'vue-router'
-    import { ElMessage } from 'element-plus'
+    import { ElMessage, ElMessageBox } from 'element-plus'
     import { getCollegeList, deleteCollege } from '@/api/college'
     import SmartPagination from '@/components/common/SmartPagination.vue'
+    import RecordViewLink from '@/components/common/RecordViewLink.vue'
     import { formatDateTime } from '@/utils/dateUtils'
 
     const router = useRouter()
@@ -122,12 +119,17 @@
 
     const handleDelete = async (id) => {
         try {
-            console.log('开始删除学院，ID：', id);
+            await ElMessageBox.confirm('删除后无法恢复，确定删除这个学院吗？', '删除学院', {
+                confirmButtonText: '删除',
+                cancelButtonText: '取消',
+                type: 'warning',
+                confirmButtonClass: 'el-button--danger'
+            })
             await deleteCollege(id);
-            console.log('删除学院成功');
             ElMessage.success('删除成功');
             handleSearch();
         } catch (error) {
+            if (error === 'cancel' || error === 'close') return
             console.error('删除学院失败：', error);
             ElMessage.error('删除失败');
         }
@@ -142,7 +144,7 @@
 
 <style scoped>
     .college-list-container {
-        padding: 20px;
+        padding: 0;
         width: 100%;
         margin: 0 auto;
         box-sizing: border-box;
@@ -165,7 +167,6 @@
 
     .filter-card {
         margin-bottom: 20px;
-        background-color: #f5f7fa;
     }
 
     .filter-form {
@@ -173,7 +174,7 @@
         flex-wrap: wrap;
         justify-content: flex-start;
         align-items: center;
-        gap: 20px;
+        gap: 12px 16px;
     }
 
     .filter-form :deep(.el-form-item) {
@@ -215,7 +216,7 @@
 
     @media screen and (max-width: 768px) {
         .college-list-container {
-            padding: 10px;
+            padding: 0;
         }
 
         .page-header {

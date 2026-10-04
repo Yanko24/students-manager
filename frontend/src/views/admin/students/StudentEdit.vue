@@ -1,16 +1,13 @@
 <template>
-    <div class="student-edit-container">
+    <div class="student-edit-container admin-record-page">
         <div class="page-header">
-            <h2>编辑学生信息</h2>
-            <el-button @click="router.back()">
-                <el-icon>
-                    <Back />
-                </el-icon>
-                返回
-            </el-button>
+            <h2>编辑学生</h2>
+            <div class="header-actions">
+                <el-button @click="router.push('/admin/students')">返回列表</el-button>
+            </div>
         </div>
 
-        <el-card class="edit-card" v-loading="loading">
+        <el-card class="edit-card record-card" v-loading="loading">
             <StudentForm ref="studentFormRef" :is-edit="true" :initial-data="studentInfo" @submit="handleSubmit" />
         </el-card>
     </div>
@@ -19,7 +16,6 @@
 <script setup>
     import { ref, onMounted } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
-    import { Back } from '@element-plus/icons-vue'
     import { ElMessage } from 'element-plus'
     import { getStudentById, updateStudent } from '@/api/student'
     import StudentForm from '@/components/student/StudentForm.vue'

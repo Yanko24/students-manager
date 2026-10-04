@@ -55,7 +55,7 @@
     .pagination-container {
         margin-top: 20px;
         display: flex;
-        justify-content: center;
+        justify-content: flex-end;
         white-space: nowrap;
 
         :deep(.el-pagination) {

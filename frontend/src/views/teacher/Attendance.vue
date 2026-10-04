@@ -1,7 +1,7 @@
 <template>
   <div class="attendance-container">
     <div class="page-header"><h2>课程考勤</h2></div>
-    <el-card class="search-card">
+  <el-card class="search-card filter-card">
       <el-form :inline="true" :model="filters" @submit.prevent="search">
         <el-form-item label="课程"><el-input v-model="filters.courseName" clearable placeholder="课程名称" @keyup.enter="search" /></el-form-item>
         <el-form-item label="班级"><el-input v-model="filters.className" clearable placeholder="学院、专业或班级" @keyup.enter="search" /></el-form-item>
@@ -79,7 +79,7 @@ onMounted(fetchList)
 </script>
 
 <style scoped lang="scss">
-.attendance-container { padding: 20px; }
+.attendance-container { padding: 0; }
 .page-header { margin-bottom: 20px; }
 .page-header h2 { margin: 0; font-size: 24px; }
 .search-card { margin-bottom: 20px; }

@@ -1,12 +1,5 @@
 <template>
-    <div class="course-view-container">
-        <div class="page-header">
-            <h2>课程详情</h2>
-            <el-button @click="router.push('/admin/courses')">返回列表</el-button>
-        </div>
-        <el-card class="info-card" v-loading="loading">
-            <template v-if="course">
-                <el-descriptions :column="2" border>
+    <record-detail-page title="课程详情" back-path="/admin/courses" :loading="loading">
                     <el-descriptions-item label="课程名称">{{ course.name }}</el-descriptions-item>
                     <el-descriptions-item label="课程代码">{{ course.code }}</el-descriptions-item>
                     <el-descriptions-item label="授课院系">{{ course.college }}</el-descriptions-item>
@@ -24,21 +17,17 @@
                     </el-descriptions-item>
                     <el-descriptions-item label="创建时间">{{ formatDateTime(course.createTime) }}</el-descriptions-item>
                     <el-descriptions-item label="更新时间">{{ formatDateTime(course.updateTime) }}</el-descriptions-item>
-                </el-descriptions>
-
-            </template>
-        </el-card>
-    </div>
+    </record-detail-page>
 </template>
 
 <script setup>
     import { ref, onMounted } from 'vue'
-    import { useRoute, useRouter } from 'vue-router'
+    import { useRoute } from 'vue-router'
     import { getCourseById } from '@/api/course'
     import { formatDateTime } from '@/utils/dateUtils'
+    import RecordDetailPage from '@/components/common/RecordDetailPage.vue'
 
     const route = useRoute()
-    const router = useRouter()
     const loading = ref(true)
     const course = ref(null)
 

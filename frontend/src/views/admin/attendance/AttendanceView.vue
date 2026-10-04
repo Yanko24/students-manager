@@ -1,11 +1,5 @@
 <template>
-    <div class="attendance-view-container">
-        <div class="page-header">
-            <h2>考勤详情</h2>
-        </div>
-
-        <el-card class="detail-card">
-            <el-descriptions :column="1" border>
+    <record-detail-page title="考勤详情" back-path="/admin/attendance" :loading="loading">
                 <el-descriptions-item label="学号">{{ attendance.studentNo }}</el-descriptions-item>
                 <el-descriptions-item label="姓名">{{ attendance.studentName }}</el-descriptions-item>
                 <el-descriptions-item label="课程代码">{{ attendance.courseCode }}</el-descriptions-item>
@@ -23,26 +17,19 @@
                 <el-descriptions-item label="备注">{{ attendance.remark || '无' }}</el-descriptions-item>
                 <el-descriptions-item label="创建时间">{{ formatDateTime(attendance.createTime) }}</el-descriptions-item>
                 <el-descriptions-item label="更新时间">{{ formatDateTime(attendance.updateTime) }}</el-descriptions-item>
-            </el-descriptions>
-
-            <div class="action-buttons">
-                <el-button type="primary"
-                    @click="router.push(`/admin/attendance/${route.params.id}/edit`)">编辑</el-button>
-                <el-button @click="router.back()">返回</el-button>
-            </div>
-        </el-card>
-    </div>
+    </record-detail-page>
 </template>
 
 <script setup>
     import { ref, onMounted } from 'vue'
-    import { useRouter, useRoute } from 'vue-router'
+    import { useRoute } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { getAttendanceById } from '@/api/attendance'
     import { formatDate, formatDateTime } from '@/utils/dateUtils'
+    import RecordDetailPage from '@/components/common/RecordDetailPage.vue'
 
-    const router = useRouter()
     const route = useRoute()
+    const loading = ref(true)
 
     const attendance = ref({
         studentNo: '',
@@ -58,6 +45,7 @@
     const statusType = (status) => ({ 正常: 'success', 迟到: 'warning', 早退: 'warning', 缺勤: 'danger', 请假: 'info' }[status] || 'info')
 
     const fetchAttendance = async () => {
+        loading.value = true
         try {
             const response = await getAttendanceById(route.params.id)
             if (response && response.data) {
@@ -66,6 +54,8 @@
         } catch (error) {
             console.error('获取考勤详情失败：', error)
             ElMessage.error('获取考勤详情失败')
+        } finally {
+            loading.value = false
         }
     }
 

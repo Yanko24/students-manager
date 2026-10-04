@@ -1,11 +1,5 @@
 <template>
-    <div class="score-view-container">
-        <div class="page-header">
-            <h2>成绩详情</h2>
-        </div>
-
-        <el-card class="detail-card">
-            <el-descriptions :column="1" border>
+    <record-detail-page title="成绩详情" back-path="/admin/scores" :loading="loading">
                 <el-descriptions-item label="学号">{{ score.studentNo }}</el-descriptions-item>
                 <el-descriptions-item label="学生姓名">{{ score.studentName }}</el-descriptions-item>
                 <el-descriptions-item label="课程代码">{{ score.courseCode }}</el-descriptions-item>
@@ -23,25 +17,19 @@
                 <el-descriptions-item label="备注">{{ score.comment || score.remark || '无' }}</el-descriptions-item>
                 <el-descriptions-item label="创建时间">{{ formatDateTime(score.createTime) }}</el-descriptions-item>
                 <el-descriptions-item label="更新时间">{{ formatDateTime(score.updateTime) }}</el-descriptions-item>
-            </el-descriptions>
-
-            <div class="action-buttons">
-                <el-button type="primary" @click="router.push(`/admin/scores/${route.params.id}/edit`)">编辑</el-button>
-                <el-button @click="router.back()">返回</el-button>
-            </div>
-        </el-card>
-    </div>
+    </record-detail-page>
 </template>
 
 <script setup>
     import { ref, onMounted } from 'vue'
-    import { useRouter, useRoute } from 'vue-router'
+    import { useRoute } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { getScoreById } from '@/api/score'
     import { formatDateTime } from '@/utils/dateUtils'
+    import RecordDetailPage from '@/components/common/RecordDetailPage.vue'
 
-    const router = useRouter()
     const route = useRoute()
+    const loading = ref(true)
 
     const score = ref({
         studentNo: '',
@@ -60,6 +48,7 @@
     })
 
     const fetchScore = async () => {
+        loading.value = true
         try {
             const response = await getScoreById(route.params.id)
             if (response && response.data) {
@@ -68,6 +57,8 @@
         } catch (error) {
             console.error('获取成绩详情失败：', error)
             ElMessage.error('获取成绩详情失败')
+        } finally {
+            loading.value = false
         }
     }
 

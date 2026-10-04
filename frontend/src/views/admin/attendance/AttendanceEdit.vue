@@ -1,10 +1,11 @@
 <template>
-    <div class="attendance-edit-container">
+    <div class="attendance-edit-container admin-record-page">
         <div class="page-header">
             <h2>编辑考勤</h2>
+            <div class="header-actions"><el-button @click="router.push('/admin/attendance')">返回列表</el-button></div>
         </div>
 
-        <el-card class="form-card">
+        <el-card class="form-card record-card">
             <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
                 <el-form-item label="学号" prop="studentNo">
                     <el-input v-model="form.studentNo" placeholder="请输入学号" disabled />

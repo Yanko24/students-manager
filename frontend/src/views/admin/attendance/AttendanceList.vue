@@ -6,7 +6,7 @@
         </div>
 
         <el-card class="filter-card">
-            <el-form :model="filterForm" inline>
+            <el-form :model="filterForm" inline class="filter-form">
                 <el-form-item label="学号">
                     <el-input v-model="filterForm.studentNo" placeholder="请输入学号" />
                 </el-form-item>
@@ -38,7 +38,7 @@
         </el-card>
 
         <el-card class="table-card">
-            <el-table :data="attendanceList" v-loading="loading" border style="width: 100%">
+            <el-table :data="attendanceList" v-loading="loading" border stripe style="width: 100%">
                 <el-table-column prop="studentNo" label="学号" width="120" />
                 <el-table-column prop="studentName" label="姓名" width="120" />
                 <el-table-column prop="courseName" label="课程" width="180" />
@@ -58,10 +58,9 @@
                 <el-table-column prop="remark" label="备注" />
                 <el-table-column label="操作" width="200" fixed="right">
                     <template #default="{ row }">
+                        <record-view-link :to="{ name: 'AttendanceView', params: { id: row.id } }" />
                         <el-button type="primary" link
-                            @click="router.push(`/admin/attendance/${row.id}`)">查看</el-button>
-                        <el-button type="primary" link
-                            @click="router.push(`/admin/attendance/${row.id}/edit`)">编辑</el-button>
+                            @click.stop="router.push({ name: 'AttendanceEdit', params: { id: row.id } })">编辑</el-button>
                         <el-button type="danger" link @click="handleDelete(row.id)">删除</el-button>
                     </template>
                 </el-table-column>
@@ -82,6 +81,7 @@
     import { ElMessage, ElMessageBox } from 'element-plus'
     import { getAttendanceList, deleteAttendance } from '@/api/attendance'
     import { formatDate } from '@/utils/dateUtils'
+    import RecordViewLink from '@/components/common/RecordViewLink.vue'
 
     const router = useRouter()
     const loading = ref(false)
@@ -143,16 +143,17 @@
 
     const handleDelete = async (id) => {
         try {
-            await ElMessageBox.confirm('确定要删除这条考勤记录吗？', '提示', {
-                confirmButtonText: '确定',
+            await ElMessageBox.confirm('删除后无法恢复，确定删除这条考勤记录吗？', '删除考勤', {
+                confirmButtonText: '删除',
                 cancelButtonText: '取消',
-                type: 'warning'
+                type: 'warning',
+                confirmButtonClass: 'el-button--danger'
             })
             await deleteAttendance(id)
             ElMessage.success('删除成功')
             fetchAttendanceList()
         } catch (error) {
-            if (error !== 'cancel') {
+            if (error !== 'cancel' && error !== 'close') {
                 console.error('删除失败：', error)
                 ElMessage.error('删除失败')
             }
@@ -176,7 +177,7 @@
 
 <style scoped>
     .attendance-list-container {
-        padding: 20px;
+        padding: 0;
         width: 100%;
         margin: 0 auto;
         box-sizing: border-box;
@@ -187,6 +188,8 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
     }
 
     .page-header h2 {
@@ -199,19 +202,54 @@
         margin-bottom: 20px;
     }
 
+    .filter-form {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 12px 16px;
+    }
+
+    .filter-form :deep(.el-form-item) {
+        margin: 0;
+    }
+
+    .filter-form :deep(.el-input),
+    .filter-form :deep(.el-select) {
+        width: 200px;
+    }
+
     .table-card {
         margin-bottom: 20px;
+        overflow-x: auto;
+    }
+
+    .table-card :deep(.el-table) {
+        width: 100%;
+        font-size: 14px;
+    }
+
+    .table-card :deep(.el-table th) {
+        background-color: #f5f7fa;
+        color: #606266;
+        font-weight: 600;
+    }
+
+    .table-card :deep(.el-table td) {
+        padding: 8px 0;
     }
 
     .pagination-container {
         margin-top: 20px;
         display: flex;
         justify-content: flex-end;
+        white-space: nowrap;
+        overflow-x: auto;
     }
 
     @media screen and (max-width: 768px) {
         .attendance-list-container {
-            padding: 10px;
+            padding: 0;
         }
     }
 </style>

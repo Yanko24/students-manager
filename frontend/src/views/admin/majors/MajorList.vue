@@ -21,7 +21,7 @@
         </el-card>
 
         <el-card class="table-card">
-            <el-table ref="tableRef" :data="majorList" v-loading="loading" border :style="{ width: tableWidth + 'px' }">
+            <el-table ref="tableRef" :data="majorList" v-loading="loading" border stripe :style="{ width: tableWidth + 'px' }">
                 <el-table-column prop="code" label="专业代码" :width="columnWidth.code" align="center" />
                 <el-table-column prop="name" label="专业名称" :width="columnWidth.name" align="center" />
                 <el-table-column prop="collegeName" label="所属学院" :width="columnWidth.collegeName" align="center"
@@ -42,13 +42,11 @@
                 </el-table-column>
                 <el-table-column label="操作" :width="columnWidth.operation" fixed="right" align="center">
                     <template #default="{ row }">
-                        <el-button type="primary" link @click="router.push(`/admin/majors/${row.id}`)">
-                            查看
-                        </el-button>
-                        <el-button type="primary" link @click="router.push(`/admin/majors/${row.id}/edit`)">
+                        <record-view-link :to="{ name: 'MajorView', params: { id: getMajorKey(row) } }" />
+                        <el-button type="primary" link @click.stop="router.push({ name: 'MajorEdit', params: { id: getMajorKey(row) } })">
                             编辑
                         </el-button>
-                        <el-button type="danger" link @click="handleDelete(row.id)">
+                        <el-button type="danger" link @click="handleDelete(row)">
                             删除
                         </el-button>
                     </template>
@@ -63,9 +61,11 @@
 <script setup>
     import { ref, computed, nextTick, onUnmounted } from 'vue'
     import { useRouter } from 'vue-router'
-    import { ElMessage } from 'element-plus'
+    import { ElMessage, ElMessageBox } from 'element-plus'
     import { getAllMajors, deleteMajor, getStatusType, getStatusText } from '@/api/major'
+    import { getMajorKey } from '@/api/major'
     import SmartPagination from '@/components/common/SmartPagination.vue'
+    import RecordViewLink from '@/components/common/RecordViewLink.vue'
     import { useTableWidth } from '@/composables/useTableWidth'
 
     const router = useRouter()
@@ -91,7 +91,6 @@
 
     // 使用表格宽度计算组合式函数
     const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths)
-
     const filterForm = ref({
         code: '',
         name: ''
@@ -143,14 +142,19 @@
         handleSearch();
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (row) => {
         try {
-            console.log('开始删除专业，ID：', id);
-            await deleteMajor(id);
-            console.log('删除专业成功');
+            await ElMessageBox.confirm('删除后无法恢复，确定删除这个专业吗？', '删除专业', {
+                confirmButtonText: '删除',
+                cancelButtonText: '取消',
+                type: 'warning',
+                confirmButtonClass: 'el-button--danger'
+            })
+            await deleteMajor(getMajorKey(row));
             ElMessage.success('删除成功');
             handleSearch();
         } catch (error) {
+            if (error === 'cancel' || error === 'close') return
             console.error('删除专业失败：', error);
             ElMessage.error('删除失败');
         }
@@ -165,7 +169,7 @@
 
 <style scoped>
     .major-list-container {
-        padding: 20px;
+        padding: 0;
         width: 100%;
         margin: 0 auto;
         box-sizing: border-box;
@@ -188,7 +192,6 @@
 
     .filter-card {
         margin-bottom: 20px;
-        background-color: #f5f7fa;
     }
 
     .filter-form {
@@ -196,7 +199,7 @@
         flex-wrap: wrap;
         justify-content: flex-start;
         align-items: center;
-        gap: 20px;
+        gap: 12px 16px;
     }
 
     .filter-form :deep(.el-form-item) {
@@ -211,7 +214,6 @@
     .table-card {
         margin-bottom: 20px;
         overflow-x: auto;
-        padding: 20px;
     }
 
     .table-card :deep(.el-table) {
@@ -261,7 +263,7 @@
     .pagination-container {
         margin-top: 20px;
         display: flex;
-        justify-content: center;
+        justify-content: flex-end;
     }
 
     :deep(.el-button--link) {
@@ -274,7 +276,7 @@
 
     @media screen and (max-width: 768px) {
         .major-list-container {
-            padding: 10px;
+            padding: 0;
         }
 
         .page-header {

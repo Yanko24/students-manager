@@ -1,13 +1,11 @@
 <template>
     <div class="profile-container">
-        <el-card class="profile-card">
-            <template #header>
-                <div class="card-header">
-                    <span>个人信息</span>
-                    <el-button type="primary" @click="handleEdit">编辑信息</el-button>
-                </div>
-            </template>
+        <div class="page-header">
+            <h2>个人信息</h2>
+            <el-button type="primary" @click="handleEdit">编辑信息</el-button>
+        </div>
 
+        <el-card class="profile-card">
             <el-form :model="studentInfo" label-width="100px" class="profile-form">
                 <el-row :gutter="20">
                     <el-col :span="12">
@@ -127,15 +125,9 @@
 
 <style scoped lang="scss">
     .profile-container {
-        padding: 20px;
+        padding: 0;
 
         .profile-card {
-            .card-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-
             .profile-form {
                 max-width: 800px;
                 margin: 0 auto;

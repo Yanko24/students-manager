@@ -1,9 +1,10 @@
 <template>
-    <div class="teacher-edit-container">
+    <div class="teacher-edit-container admin-record-page">
         <div class="page-header">
             <h2>编辑教师</h2>
+            <div class="header-actions"><el-button @click="handleCancel">返回列表</el-button></div>
         </div>
-        <el-card class="form-card">
+        <el-card class="form-card record-card">
             <teacher-form :id="id" :is-edit="true" @submit="handleSubmit" @cancel="handleCancel" />
         </el-card>
     </div>

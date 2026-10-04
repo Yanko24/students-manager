@@ -145,6 +145,24 @@ const router = createRouter({
 					meta: { title: "考勤管理", requiresAuth: true, roles: ["admin"] },
 				},
 				{
+					path: "attendance/add",
+					name: "AttendanceAdd",
+					component: () => import("@/views/admin/attendance/AttendanceAdd.vue"),
+					meta: { title: "添加考勤", requiresAuth: true, role: "admin" },
+				},
+				{
+					path: "attendance/:id/edit",
+					name: "AttendanceEdit",
+					component: () => import("@/views/admin/attendance/AttendanceEdit.vue"),
+					meta: { title: "编辑考勤", requiresAuth: true, role: "admin" },
+				},
+				{
+					path: "attendance/:id",
+					name: "AttendanceView",
+					component: () => import("@/views/admin/attendance/AttendanceView.vue"),
+					meta: { title: "考勤详情", requiresAuth: true, role: "admin" },
+				},
+				{
 					path: "scores",
 					name: "ScoreList",
 					component: () => import("@/views/admin/scores/ScoreList.vue"),

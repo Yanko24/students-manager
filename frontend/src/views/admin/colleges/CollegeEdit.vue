@@ -1,10 +1,11 @@
 <template>
-    <div class="college-edit-container">
+    <div class="college-edit-container admin-record-page">
         <div class="page-header">
             <h2>编辑学院</h2>
+            <div class="header-actions"><el-button @click="router.push('/admin/colleges')">返回列表</el-button></div>
         </div>
 
-        <el-card class="form-card">
+        <el-card class="form-card record-card">
             <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
                 <el-form-item label="学院代码" prop="code">
                     <el-input v-model="form.code" placeholder="请输入学院代码" disabled />

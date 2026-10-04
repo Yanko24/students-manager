@@ -1,7 +1,12 @@
 <template>
-    <div class="major-edit">
-        <h2>编辑专业</h2>
-        <major-form :id="id" @submit="handleSubmit" @cancel="handleCancel" />
+    <div class="major-edit admin-record-page">
+        <div class="page-header">
+            <h2>编辑专业</h2>
+            <div class="header-actions"><el-button @click="handleCancel">返回列表</el-button></div>
+        </div>
+        <el-card class="record-card">
+            <major-form :id="id" @submit="handleSubmit" @cancel="handleCancel" />
+        </el-card>
     </div>
 </template>
 

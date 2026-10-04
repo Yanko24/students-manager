@@ -6,7 +6,7 @@
                     <img src="@/assets/images/logo.png" alt="Logo" />
                     <h1>学生管理系统</h1>
                 </div>
-                <el-menu :default-active="activeMenu" class="sidebar-menu" router>
+                <el-menu :default-active="activeMenu" class="sidebar-menu" @select="handleMenuSelect">
                     <el-menu-item index="/admin/dashboard">
                         <el-icon>
                             <Monitor />
@@ -125,7 +125,11 @@
                     </div>
                 </el-header>
                 <el-main>
-                    <router-view></router-view>
+                    <router-view v-slot="{ Component }">
+                        <transition name="fade" mode="out-in">
+                            <component :is="Component" :key="$route.fullPath" />
+                        </transition>
+                    </router-view>
                 </el-main>
             </el-container>
         </el-container>
@@ -160,6 +164,12 @@
     const isFullscreen = ref(false)
 
     const activeMenu = computed(() => route.path)
+
+    const handleMenuSelect = (path) => {
+        if (path && path !== route.path) {
+            router.push(path)
+        }
+    }
 
     const currentRoute = computed(() => {
         const matched = route.matched
@@ -294,7 +304,7 @@
     .el-header {
         background-color: #fff;
 		border-bottom: 1px solid #e9edf3;
-		padding: 0 28px;
+		padding: 0 24px;
 		box-shadow: 0 2px 10px rgba(24, 39, 75, .025);
         height: 60px;
         display: flex;
@@ -375,7 +385,7 @@
     .el-main {
         margin-top: 60px;
         margin-left: 220px;
-		padding: 28px;
+		padding: 24px;
 		background-color: #f3f5f8;
         min-height: calc(100vh - 60px);
     }
@@ -395,10 +405,12 @@
 
         .el-header {
             left: 64px;
+			padding: 0 16px;
         }
 
         .el-main {
             margin-left: 64px;
+			padding: 16px;
         }
 
         .user-detail {

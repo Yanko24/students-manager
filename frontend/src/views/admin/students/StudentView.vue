@@ -1,17 +1,5 @@
 <template>
-    <div class="student-view-container">
-        <div class="page-header">
-            <h2>学生详情</h2>
-            <el-button @click="router.back()">
-                <el-icon>
-                    <Back />
-                </el-icon>
-                返回
-            </el-button>
-        </div>
-
-        <el-card class="detail-card" v-loading="loading">
-            <el-descriptions :column="2" border>
+    <record-detail-page title="学生详情" back-path="/admin/students" :loading="loading">
                 <el-descriptions-item label="学号">{{ studentInfo.studentNo }}</el-descriptions-item>
                 <el-descriptions-item label="姓名">{{ studentInfo.realName }}</el-descriptions-item>
                 <el-descriptions-item label="性别">{{ studentInfo.gender === 1 ? '男' : '女' }}</el-descriptions-item>
@@ -34,20 +22,17 @@
                 <el-descriptions-item label="更新人">{{ studentInfo.updateBy || '无' }}</el-descriptions-item>
                 <el-descriptions-item label="更新时间">{{ formatDateTime(studentInfo.updateTime) }}</el-descriptions-item>
                 <el-descriptions-item label="备注" :span="2">{{ studentInfo.remark || '无' }}</el-descriptions-item>
-            </el-descriptions>
-        </el-card>
-    </div>
+    </record-detail-page>
 </template>
 
 <script setup>
     import { ref, onMounted } from 'vue'
-    import { useRouter, useRoute } from 'vue-router'
-    import { Back } from '@element-plus/icons-vue'
+    import { useRoute } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { getStudentById, getStatusType, getStatusText } from '@/api/student'
     import { formatDate, formatDateTime } from '@/utils/dateUtils'
+    import RecordDetailPage from '@/components/common/RecordDetailPage.vue'
 
-    const router = useRouter()
     const route = useRoute()
     const loading = ref(false)
     const studentInfo = ref({})

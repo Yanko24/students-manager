@@ -1,6 +1,6 @@
 <template>
   <div class="attendance-container">
-    <el-card class="attendance-card">
+    <el-card class="attendance-card table-card">
       <template #header>
         <div class="card-header"><span>我的考勤</span></div>
       </template>
@@ -100,12 +100,12 @@ onMounted(search)
 </script>
 
 <style scoped lang="scss">
-.attendance-container { padding: 20px; }
+.attendance-container { padding: 0; }
 .card-header { font-weight: 600; }
 .filter-form { margin-bottom: 12px; }
 .pagination-container { display: flex; justify-content: flex-end; margin-top: 18px; overflow-x: auto; }
 .summary-info { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--el-border-color-lighter); }
-.info-item { margin-bottom: 12px; padding: 16px; text-align: center; background: var(--el-fill-color-light); border-radius: 8px; }
+.info-item { margin-bottom: 12px; padding: 18px 16px; text-align: center; background: #f7f9fc; border: 1px solid #edf1f6; border-radius: 10px; }
 .label { margin-bottom: 8px; color: var(--el-text-color-secondary); }
 .value { font-size: 22px; font-weight: 600; color: var(--el-text-color-primary); }
 </style>
