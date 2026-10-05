@@ -79,12 +79,13 @@
     }
 
     // 处理登录成功后的逻辑
-    const handleLoginSuccess = (response) => {
+    const handleLoginSuccess = async (response) => {
         const { token, role, userId, name, mustChangePassword } = response.data
+        const normalizedRole = String(role || '').toLowerCase()
 
         // 存储用户信息
         userStore.setToken(token)
-        userStore.setRole(role)
+        userStore.setRole(normalizedRole)
         userStore.setUserInfo({
             id: userId,
             name: name || loginForm.username,
@@ -92,20 +93,26 @@
         })
         userStore.setMustChangePassword(mustChangePassword)
 
-        if (mustChangePassword) {
-            router.push('/change-password')
-            ElMessage.warning('首次登录请先修改默认密码')
-            return
-        }
-
-        // 根据角色跳转
         const redirectMap = {
             admin: '/admin/dashboard',
             teacher: '/teacher/dashboard',
             student: '/student/dashboard'
         }
-        router.push(redirectMap[role])
-        ElMessage.success('登录成功')
+        const targetPath = mustChangePassword ? '/change-password' : redirectMap[normalizedRole]
+        if (!targetPath) {
+            userStore.logout()
+            throw new Error('当前账号角色无效，请联系管理员')
+        }
+
+        await router.replace(targetPath)
+        if (router.currentRoute.value.path !== targetPath) {
+            userStore.logout()
+            await router.replace('/login')
+            throw new Error(`登录后页面跳转失败，当前页面为 ${router.currentRoute.value.fullPath}`)
+        }
+
+        if (mustChangePassword) ElMessage.warning('首次登录请先修改默认密码')
+        else ElMessage.success('登录成功')
     }
 
     // 处理登录失败
@@ -126,7 +133,7 @@
                 const response = await login(loginForm)
 
                 if (response?.code === 200 && response?.data) {
-                    handleLoginSuccess(response)
+                    await handleLoginSuccess(response)
                 } else {
                     handleLoginError({ response })
                 }

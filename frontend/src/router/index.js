@@ -240,12 +240,6 @@ const router = createRouter({
 					meta: { title: "我的课程", requiresAuth: true, role: "teacher" },
 				},
 				{
-					path: "courses/:id",
-					name: "TeacherCourseView",
-					component: () => import("@/views/teacher/courses/CourseView.vue"),
-					meta: { title: "课程详情", requiresAuth: true, role: "teacher" },
-				},
-				{
 					path: "dashboard",
 					name: "TeacherDashboard",
 					component: TeacherDashboard,
@@ -272,7 +266,7 @@ const router = createRouter({
 			children: [
 				{
 					path: "",
-					redirect: "/student/courses",
+					redirect: "/student/dashboard",
 				},
 				{
 					path: "courses",
@@ -287,10 +281,21 @@ const router = createRouter({
 					meta: { title: "课程详情", requiresAuth: true, role: "student" },
 				},
 				{
+					// Keep old bookmarks working; this project stores course enrollment, not timetables.
+					path: "schedule",
+					redirect: { name: "StudentCourseList" },
+				},
+				{
 					path: "dashboard",
 					name: "StudentDashboard",
 					component: () => import("@/views/student/Dashboard.vue"),
 					meta: { title: "控制台", requiresAuth: true, roles: ["student"] },
+				},
+				{
+					path: "scores",
+					name: "StudentScores",
+					component: () => import("@/views/student/Scores.vue"),
+					meta: { title: "成绩查询", requiresAuth: true, role: "student" },
 				},
 				{
 					path: "attendance",

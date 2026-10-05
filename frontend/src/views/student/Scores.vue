@@ -1,342 +1,110 @@
 <template>
-    <div class="scores-container">
-        <div class="page-header">
-            <h2>成绩查询</h2>
-            <el-select v-model="currentSemester" placeholder="选择学期" class="semester-select">
-                <el-option label="2023-2024学年第二学期" value="2023-2" />
-                <el-option label="2023-2024学年第一学期" value="2023-1" />
-            </el-select>
-        </div>
-
-        <el-row :gutter="20">
-            <!-- 成绩列表 -->
-            <el-col :span="16">
-                <el-card class="score-list">
-                    <template #header>
-                        <div class="card-header">
-                            <span>成绩列表</span>
-                            <el-button type="primary" @click="exportScores">
-                                <el-icon>
-                                    <Download />
-                                </el-icon>导出成绩单
-                            </el-button>
-                        </div>
-                    </template>
-
-                    <el-table :data="scoreList" style="width: 100%" v-loading="loading">
-                        <el-table-column prop="courseName" label="课程名称" />
-                        <el-table-column prop="credit" label="学分" width="80" />
-                        <el-table-column prop="score" label="成绩" width="100">
-                            <template #default="{ row }">
-                                <span :class="{ 'pass': row.score >= 60, 'fail': row.score < 60 }">
-                                    {{ row.score }}
-                                </span>
-                            </template>
-                        </el-table-column>
-                        <el-table-column prop="grade" label="等级" width="100">
-                            <template #default="{ row }">
-                                <el-tag :type="getGradeTagType(row.grade)">{{ row.grade }}</el-tag>
-                            </template>
-                        </el-table-column>
-                        <el-table-column prop="examTime" label="考试时间" width="180">
-                            <template #default="{ row }">{{ formatDateTime(row.examTime) }}</template>
-                        </el-table-column>
-                        <el-table-column prop="teacher" label="授课教师" width="120" />
-                    </el-table>
-
-                    <div class="pagination-container">
-                        <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize"
-                            :page-sizes="[10, 20, 50, 100]" :total="total"
-                            layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange"
-                            @current-change="handleCurrentChange" />
-                    </div>
-                </el-card>
-            </el-col>
-
-            <!-- 成绩统计 -->
-            <el-col :span="8">
-                <el-card class="score-stats">
-                    <template #header>
-                        <div class="card-header">
-                            <span>成绩统计</span>
-                        </div>
-                    </template>
-                    <div class="stats-content">
-                        <div class="stat-item">
-                            <div class="label">平均分</div>
-                            <div class="value">{{ averageScore }}</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="label">总学分</div>
-                            <div class="value">{{ totalCredits }}</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="label">及格率</div>
-                            <div class="value">{{ passRate }}%</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="label">优秀率</div>
-                            <div class="value">{{ excellentRate }}%</div>
-                        </div>
-                    </div>
-
-                    <!-- 成绩分布图 -->
-                    <div class="score-distribution">
-                        <div class="chart-title">成绩分布</div>
-                        <div class="chart-container">
-                            <div v-for="(count, grade) in scoreDistribution" :key="grade" class="bar-item">
-                                <div class="bar-label">{{ grade }}</div>
-                                <div class="bar-wrapper">
-                                    <div class="bar" :style="{ height: `${(count / maxCount) * 100}%` }"></div>
-                                </div>
-                                <div class="bar-value">{{ count }}</div>
-                            </div>
-                        </div>
-                    </div>
-                </el-card>
-            </el-col>
-        </el-row>
-    </div>
+  <div class="page-container">
+    <div class="page-heading"><div><h2>成绩查询</h2><p>查询个人课程成绩与学业统计</p></div><el-button :disabled="!scores.length" @click="exportScores">导出当前页</el-button></div>
+    <el-card shadow="never" class="filter-card">
+      <el-form :inline="true" :model="filters" @submit.prevent="search">
+        <el-form-item label="课程名称"><el-input v-model="filters.courseName" clearable placeholder="输入课程名称" @keyup.enter="search" /></el-form-item>
+        <el-form-item label="学期"><el-input v-model="filters.semester" clearable placeholder="如 2026-2027-1" @keyup.enter="search" /></el-form-item>
+        <el-form-item><el-button type="primary" @click="search">查询</el-button><el-button @click="reset">重置</el-button></el-form-item>
+      </el-form>
+    </el-card>
+    <el-row :gutter="18">
+      <el-col :xs="24" :lg="17">
+        <el-card shadow="never">
+          <template #header><span class="card-title">成绩记录</span></template>
+          <el-table :data="scores" v-loading="loading" border>
+            <el-table-column prop="courseCode" label="课程代码" min-width="110" />
+            <el-table-column prop="courseName" label="课程名称" min-width="160" />
+            <el-table-column prop="credit" label="学分" width="80" />
+            <el-table-column prop="score" label="成绩" width="95"><template #default="{ row }"><strong :class="Number(row.score) >= 60 ? 'pass' : 'fail'">{{ row.score }}</strong></template></el-table-column>
+            <el-table-column prop="grade" label="等级" width="90"><template #default="{ row }"><el-tag :type="gradeType(row.grade)">{{ row.grade || '—' }}</el-tag></template></el-table-column>
+            <el-table-column prop="gradePoint" label="绩点" width="80" />
+            <el-table-column prop="semester" label="学期" min-width="130" />
+            <el-table-column prop="examTime" label="考试时间" min-width="170"><template #default="{ row }">{{ formatDateTime(row.examTime) }}</template></el-table-column>
+            <el-table-column prop="teacher" label="授课教师" min-width="110"><template #default="{ row }">{{ row.teacher || '—' }}</template></el-table-column>
+            <template #empty><el-empty description="暂无成绩记录" /></template>
+          </el-table>
+          <div class="pagination"><el-pagination v-model:current-page="page" v-model:page-size="size" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchScores" @current-change="fetchScores" /></div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :lg="7">
+        <el-card shadow="never" v-loading="statsLoading">
+          <template #header><span class="card-title">学业统计<span class="scope-label">{{ filters.semester || '全部学期' }}</span></span></template>
+          <div class="stats-grid">
+            <div class="stat"><span>已出成绩</span><strong>{{ stats.scoreCount }}</strong><small>门课程</small></div>
+            <div class="stat"><span>平均分</span><strong>{{ decimal(stats.averageScore) }}</strong><small>百分制</small></div>
+            <div class="stat"><span>及格率</span><strong>{{ decimal(stats.passRate) }}%</strong><small>成绩 ≥ 60</small></div>
+            <div class="stat"><span>优秀率</span><strong>{{ decimal(stats.excellentRate) }}%</strong><small>成绩 ≥ 90</small></div>
+            <div class="stat wide"><span>已获得学分</span><strong>{{ decimal(stats.earnedCredits) }}</strong><small>仅统计及格课程</small></div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+  </div>
 </template>
 
 <script setup>
-    import { ref, computed } from 'vue'
-    import { Download } from '@element-plus/icons-vue'
-    import { ElMessage } from 'element-plus'
-    import { formatDateTime } from '@/utils/dateUtils'
+import { onMounted, reactive, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { getMyScores, getMyScoreStatistics } from '@/api/student'
+import { formatDateTime } from '@/utils/dateUtils'
 
-    const currentSemester = ref('2023-2')
-    const loading = ref(false)
-    const currentPage = ref(1)
-    const pageSize = ref(10)
-    const total = ref(100)
+const filters = reactive({ courseName: '', semester: '' })
+const scores = ref([])
+const stats = reactive({ scoreCount: 0, averageScore: 0, passRate: 0, excellentRate: 0, earnedCredits: 0 })
+const loading = ref(false)
+const statsLoading = ref(false)
+const page = ref(1)
+const size = ref(10)
+const total = ref(0)
+const decimal = (value) => Number(value || 0).toFixed(1).replace(/\.0$/, '')
+const gradeType = (grade) => (['A+', 'A', '优秀'].includes(grade) ? 'success' : ['F', '不及格'].includes(grade) ? 'danger' : 'info')
 
-    // 模拟成绩数据
-    const scoreList = ref([
-        {
-            courseName: '高等数学',
-            credit: 4,
-            score: 85,
-            grade: 'A',
-            examTime: '2024-01-15 09:00',
-            teacher: '张老师'
-        },
-        {
-            courseName: '大学英语',
-            credit: 3,
-            score: 92,
-            grade: 'A+',
-            examTime: '2024-01-16 14:00',
-            teacher: '李老师'
-        },
-        {
-            courseName: '程序设计基础',
-            credit: 3,
-            score: 78,
-            grade: 'B+',
-            examTime: '2024-01-17 09:00',
-            teacher: '王老师'
-        }
-    ])
-
-    // 计算属性
-    const averageScore = computed(() => {
-        const total = scoreList.value.reduce((sum, course) => sum + course.score, 0)
-        return (total / scoreList.value.length).toFixed(1)
-    })
-
-    const totalCredits = computed(() => {
-        return scoreList.value.reduce((sum, course) => sum + course.credit, 0)
-    })
-
-    const passRate = computed(() => {
-        const passCount = scoreList.value.filter(course => course.score >= 60).length
-        return ((passCount / scoreList.value.length) * 100).toFixed(1)
-    })
-
-    const excellentRate = computed(() => {
-        const excellentCount = scoreList.value.filter(course => course.score >= 90).length
-        return ((excellentCount / scoreList.value.length) * 100).toFixed(1)
-    })
-
-    const scoreDistribution = computed(() => {
-        const distribution = {
-            'A+': 0,
-            'A': 0,
-            'B+': 0,
-            'B': 0,
-            'C+': 0,
-            'C': 0,
-            'D': 0,
-            'F': 0
-        }
-
-        scoreList.value.forEach(course => {
-            distribution[course.grade]++
-        })
-
-        return distribution
-    })
-
-    const maxCount = computed(() => {
-        return Math.max(...Object.values(scoreDistribution.value))
-    })
-
-    // 方法
-    const getGradeTagType = (grade) => {
-        const types = {
-            'A+': 'success',
-            'A': 'success',
-            'B+': 'warning',
-            'B': 'warning',
-            'C+': 'info',
-            'C': 'info',
-            'D': 'danger',
-            'F': 'danger'
-        }
-        return types[grade] || 'info'
-    }
-
-    const exportScores = () => {
-        ElMessage.success('成绩单导出成功')
-    }
-
-    const handleSizeChange = (val) => {
-        pageSize.value = val
-        // 重新加载数据
-    }
-
-    const handleCurrentChange = (val) => {
-        currentPage.value = val
-        // 重新加载数据
-    }
+async function fetchScores() {
+  loading.value = true
+  try {
+    const { data } = await getMyScores({ page: page.value, size: size.value, courseName: filters.courseName.trim() || undefined, semester: filters.semester.trim() || undefined })
+    scores.value = data?.records || []
+    total.value = data?.total || 0
+  } catch (error) {
+    scores.value = []; total.value = 0
+    ElMessage.error(error?.message || '获取成绩列表失败')
+  } finally { loading.value = false }
+}
+async function fetchStats() {
+  statsLoading.value = true
+  try {
+    const { data } = await getMyScoreStatistics({ semester: filters.semester.trim() || undefined })
+    Object.assign(stats, data || {})
+  } catch (error) {
+    Object.assign(stats, { scoreCount: 0, averageScore: 0, passRate: 0, excellentRate: 0, earnedCredits: 0 })
+    ElMessage.error(error?.message || '获取成绩统计失败')
+  } finally { statsLoading.value = false }
+}
+function search() { page.value = 1; fetchScores(); fetchStats() }
+function reset() { filters.courseName = ''; filters.semester = ''; search() }
+function exportScores() {
+  const quote = (v) => `"${String(v ?? '').replaceAll('"', '""')}"`
+  const rows = [['课程代码', '课程名称', '学分', '成绩', '等级', '绩点', '学期', '考试时间'], ...scores.value.map(s => [s.courseCode, s.courseName, s.credit, s.score, s.grade, s.gradePoint, s.semester, formatDateTime(s.examTime)])]
+  const csv = '\ufeff' + rows.map(row => row.map(quote).join(',')).join('\r\n')
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const link = document.createElement('a'); link.href = url; link.download = `成绩记录-第${page.value}页.csv`; link.click(); URL.revokeObjectURL(url)
+}
+onMounted(search)
 </script>
 
-<style lang="scss" scoped>
-    .scores-container {
-        padding: 20px;
-
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-
-            h2 {
-                margin: 0;
-            }
-
-            .semester-select {
-                width: 200px;
-            }
-        }
-
-        .score-list {
-            .card-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .pagination-container {
-                margin-top: 20px;
-                display: flex;
-                justify-content: flex-end;
-            }
-
-            .pass {
-                color: var(--el-color-success);
-                font-weight: bold;
-            }
-
-            .fail {
-                color: var(--el-color-danger);
-                font-weight: bold;
-            }
-        }
-
-        .score-stats {
-            .stats-content {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 20px;
-                padding: 10px;
-
-                .stat-item {
-                    text-align: center;
-                    padding: 15px;
-                    background-color: var(--el-color-primary-light-9);
-                    border-radius: 4px;
-
-                    .label {
-                        font-size: 14px;
-                        color: var(--el-text-color-secondary);
-                        margin-bottom: 5px;
-                    }
-
-                    .value {
-                        font-size: 24px;
-                        font-weight: bold;
-                        color: var(--el-color-primary);
-                    }
-                }
-            }
-
-            .score-distribution {
-                margin-top: 30px;
-                padding: 20px;
-                border-top: 1px solid var(--el-border-color-lighter);
-
-                .chart-title {
-                    font-size: 16px;
-                    font-weight: bold;
-                    margin-bottom: 20px;
-                    text-align: center;
-                }
-
-                .chart-container {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-end;
-                    height: 200px;
-                    padding: 20px 0;
-
-                    .bar-item {
-                        flex: 1;
-                        text-align: center;
-                        margin: 0 5px;
-
-                        .bar-label {
-                            font-size: 12px;
-                            color: var(--el-text-color-secondary);
-                            margin-bottom: 5px;
-                        }
-
-                        .bar-wrapper {
-                            height: 150px;
-                            background-color: var(--el-color-primary-light-9);
-                            border-radius: 4px;
-                            position: relative;
-                            overflow: hidden;
-
-                            .bar {
-                                position: absolute;
-                                bottom: 0;
-                                left: 0;
-                                right: 0;
-                                background-color: var(--el-color-primary);
-                                transition: height 0.3s ease;
-                            }
-                        }
-
-                        .bar-value {
-                            font-size: 12px;
-                            color: var(--el-text-color-secondary);
-                            margin-top: 5px;
-                        }
-                    }
-                }
-            }
-        }
-    }
+<style scoped>
+.page-container { display: grid; gap: 18px; }
+.page-heading { display: flex; justify-content: space-between; align-items: center; }
+.page-heading h2 { margin: 0; font-size: 24px; }
+.page-heading p { margin: 8px 0 0; color: var(--el-text-color-secondary); }
+.card-title { font-weight: 600; }
+.scope-label { margin-left: 8px; color: var(--el-text-color-secondary); font-size: 13px; font-weight: 400; }
+.pass { color: var(--el-color-success); }.fail { color: var(--el-color-danger); }
+.pagination { display: flex; justify-content: flex-end; margin-top: 18px; overflow-x: auto; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stat { display: flex; flex-direction: column; gap: 6px; padding: 16px; border-radius: 10px; background: var(--el-fill-color-light); }
+.stat span,.stat small { color: var(--el-text-color-secondary); }.stat strong { color: var(--el-color-primary); font-size: 25px; }.stat small { font-size: 12px; }
+.stat.wide { grid-column: span 2; }
+@media (max-width: 768px) { .page-heading { align-items: flex-start; gap: 10px; }.page-heading p { max-width: 60vw; } }
 </style>

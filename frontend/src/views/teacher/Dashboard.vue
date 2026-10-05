@@ -1,244 +1,123 @@
 <template>
-    <div class="dashboard-container">
-        <!-- 统计卡片 -->
-        <el-row :gutter="20">
-            <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                    <template #header>
-                        <div class="card-header">
-                            <span>我的课程</span>
-                            <el-icon>
-                                <Reading />
-                            </el-icon>
-                        </div>
-                    </template>
-                    <div class="card-content">
-                        <div class="number">{{ stats.courses }}</div>
-                        <div class="label">本学期课程数</div>
-                    </div>
-                </el-card>
-            </el-col>
-            <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                    <template #header>
-                        <div class="card-header">
-                            <span>学生总数</span>
-                            <el-icon>
-                                <User />
-                            </el-icon>
-                        </div>
-                    </template>
-                    <div class="card-content">
-                        <div class="number">{{ stats.students }}</div>
-                        <div class="label">所教学生数</div>
-                    </div>
-                </el-card>
-            </el-col>
-            <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                    <template #header>
-                        <div class="card-header">
-                            <span>待批作业</span>
-                            <el-icon>
-                                <Document />
-                            </el-icon>
-                        </div>
-                    </template>
-                    <div class="card-content">
-                        <div class="number">{{ stats.homework }}</div>
-                        <div class="label">待批改数量</div>
-                    </div>
-                </el-card>
-            </el-col>
-            <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                    <template #header>
-                        <div class="card-header">
-                            <span>今日考勤</span>
-                            <el-icon>
-                                <Calendar />
-                            </el-icon>
-                        </div>
-                    </template>
-                    <div class="card-content">
-                        <div class="number">{{ stats.attendance ?? '—' }}</div>
-                        <div class="label">今日考勤记录</div>
-                    </div>
-                </el-card>
-            </el-col>
-        </el-row>
 
-        <!-- 待办事项和课程表 -->
-        <el-row :gutter="20" class="mt-20">
-            <el-col :span="16">
-                <el-card class="schedule-card">
-                    <template #header>
-                        <div class="card-header">
-                            <span>今日课程表</span>
-                            <el-button type="primary" link>查看完整课表</el-button>
-                        </div>
-                    </template>
-                    <el-table :data="schedule" style="width: 100%">
-                        <el-table-column prop="time" label="时间" width="120" />
-                        <el-table-column prop="course" label="课程" />
-                        <el-table-column prop="class" label="班级" width="150" />
-                        <el-table-column prop="location" label="地点" width="120" />
-                        <el-table-column label="操作" width="120">
-                            <template #default="{ row }">
-                                <el-button type="primary" link @click="handleAttendance(row)">
-                                    考勤
-                                </el-button>
-                            </template>
-                        </el-table-column>
-                    </el-table>
-                </el-card>
-            </el-col>
-            <el-col :span="8">
-                <el-card class="todo-card">
-                    <template #header>
-                        <div class="card-header">
-                            <span>待办事项</span>
-                        </div>
-                    </template>
-                    <el-timeline>
-                        <el-timeline-item v-for="(todo, index) in todos" :key="index" :type="todo.type"
-                            :timestamp="todo.time">
-                            {{ todo.content }}
-                        </el-timeline-item>
-                    </el-timeline>
-                </el-card>
-            </el-col>
-        </el-row>
-    </div>
+  <div class="teacher-dashboard">
+    <header class="page-header">
+      <div>
+        <h2>教师工作台</h2>
+        <p>查看授课考勤概况，快速进入日常工作。</p>
+      </div>
+      <el-button type="primary" @click="router.push('/teacher/attendance')">查看考勤</el-button>
+    </header>
+
+    <el-row :gutter="16" class="summary-grid">
+      <el-col v-for="item in summaryCards" :key="item.label" :xs="12" :sm="12" :md="6">
+        <el-card shadow="hover" class="summary-card">
+          <div class="summary-icon" :class="item.tone"><el-icon><component :is="item.icon" /></el-icon></div>
+          <div class="summary-copy"><span>{{ item.label }}</span><strong>{{ item.value }}</strong></div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="16" class="content-grid">
+      <el-col :xs="24" :lg="16">
+        <el-card class="content-card" v-loading="loading">
+          <template #header>
+            <div class="card-heading"><div><h3>近期考勤</h3><span>当前教师负责课程的最近记录</span></div>
+              <el-button link type="primary" @click="router.push('/teacher/attendance')">全部记录<el-icon><ArrowRight /></el-icon></el-button>
+            </div>
+          </template>
+          <el-table :data="recentRecords" stripe>
+            <el-table-column prop="date" label="日期" width="120"><template #default="{ row }">{{ formatDate(row.date) }}</template></el-table-column>
+            <el-table-column prop="courseName" label="课程" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="className" label="班级" min-width="180" show-overflow-tooltip />
+            <el-table-column prop="studentName" label="学生" width="100" />
+            <el-table-column prop="status" label="考勤状态" width="110"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="light">{{ row.status }}</el-tag></template></el-table-column>
+            <template #empty><el-empty description="暂无考勤记录" /></template>
+          </el-table>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :lg="8">
+        <el-card class="content-card shortcuts-card">
+          <template #header><div class="card-heading"><div><h3>常用功能</h3><span>快速进入教师工作区</span></div></div></template>
+          <button class="shortcut" type="button" @click="router.push('/teacher/courses')">
+            <span class="shortcut-icon blue"><el-icon><Reading /></el-icon></span><span><strong>我的课程</strong><small>查看有考勤记录的授课课程</small></span><el-icon class="shortcut-arrow"><ArrowRight /></el-icon>
+          </button>
+          <button class="shortcut" type="button" @click="router.push('/teacher/attendance')">
+            <span class="shortcut-icon green"><el-icon><Calendar /></el-icon></span><span><strong>课程考勤</strong><small>筛选并查看学生考勤</small></span><el-icon class="shortcut-arrow"><ArrowRight /></el-icon>
+          </button>
+          <button class="shortcut" type="button" @click="router.push('/teacher/profile')">
+            <span class="shortcut-icon orange"><el-icon><User /></el-icon></span><span><strong>个人信息</strong><small>查看账号并修改登录密码</small></span><el-icon class="shortcut-arrow"><ArrowRight /></el-icon>
+          </button>
+        </el-card>
+        <el-alert v-if="errorMessage" class="load-error" type="error" :title="errorMessage" show-icon :closable="false" />
+      </el-col>
+    </el-row>
+  </div>
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
-    import { useRouter } from 'vue-router'
-    import {
-        Reading,
-        User,
-        Document,
-        Calendar
-    } from '@element-plus/icons-vue'
-    import { ElMessage } from 'element-plus'
-    import { getTeacherAttendance } from '@/api/attendance'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ArrowRight, Calendar, Reading, User, Tickets, WarningFilled, Collection } from '@element-plus/icons-vue'
+import { getTeacherAttendance } from '@/api/attendance'
+import { formatDate } from '@/utils/dateUtils'
 
-    const router = useRouter()
+const router = useRouter()
+const loading = ref(false)
+const errorMessage = ref('')
+const recentRecords = ref([])
+const total = ref(0)
+const anomalies = ref(0)
+const courses = computed(() => new Set(recentRecords.value.map((record) => record.courseId).filter(Boolean)).size)
+const summaryCards = computed(() => [
+  { label: '考勤记录', value: total.value, icon: Tickets, tone: 'blue' },
+  { label: '异常记录（近100条）', value: anomalies.value, icon: WarningFilled, tone: 'orange' },
+  { label: '近期涉及课程', value: courses.value, icon: Collection, tone: 'green' },
+  { label: '最近展示', value: recentRecords.value.length, icon: Calendar, tone: 'purple' },
+])
+const statusType = (status) => ({ 正常: 'success', 迟到: 'warning', 早退: 'warning', 缺勤: 'danger', 请假: 'info' }[status] || 'info')
 
-    // 统计数据
-    const stats = ref({
-        courses: 4,
-        students: 120,
-        homework: 8,
-        attendance: null
-    })
+const loadDashboard = async () => {
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    const response = await getTeacherAttendance({ page: 1, size: 100 })
+    if (response?.code !== 200) throw new Error(response?.message || '获取教师考勤数据失败')
+    const records = response.data?.records || []
+    recentRecords.value = records.slice(0, 10)
+    total.value = Number(response.data?.total || 0)
+    anomalies.value = records.filter((record) => ['迟到', '早退', '缺勤'].includes(record.status)).length
+  } catch (error) {
+    errorMessage.value = error?.message || '获取教师工作台数据失败'
+  } finally {
+    loading.value = false
+  }
+}
 
-    // 课程表数据
-    const schedule = ref([
-        {
-            time: '08:00-09:40',
-            course: '计算机导论',
-            class: '计算机科学与技术2班',
-            location: '教学楼A101'
-        },
-        {
-            time: '10:00-11:40',
-            course: '数据结构',
-            class: '软件工程1班',
-            location: '教学楼B203'
-        },
-        {
-            time: '14:00-15:40',
-            course: 'C语言程序设计',
-            class: '信息安全3班',
-            location: '实验楼C305'
-        }
-    ])
-
-    // 待办事项
-    const todos = ref([
-        {
-            content: '批改计算机导论作业',
-            time: '今天 10:00',
-            type: 'warning'
-        },
-        {
-            content: '录入数据结构期中成绩',
-            time: '今天 14:00',
-            type: 'primary'
-        },
-        {
-            content: '处理软件工程1班考勤异常',
-            time: '今天 16:00',
-            type: 'danger'
-        }
-    ])
-
-    const handleAttendance = (row) => {
-        router.push({
-            path: '/teacher/attendance',
-            query: {
-                course: row.course,
-                class: row.class
-            }
-        })
-    }
-
-    const fetchTodayAttendance = async () => {
-        const today = new Date()
-        const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-        try {
-            const response = await getTeacherAttendance({ date, page: 1, size: 1 })
-            if (response?.code !== 200) throw new Error(response?.message || '获取今日考勤失败')
-            stats.value.attendance = response.data?.total || 0
-        } catch (error) {
-            console.error('获取今日考勤失败：', error)
-            ElMessage.error(error?.message || '获取今日考勤失败')
-        }
-    }
-
-    onMounted(fetchTodayAttendance)
+onMounted(loadDashboard)
 </script>
 
-<style lang="scss" scoped>
-    .dashboard-container {
-        .mt-20 {
-            margin-top: 20px;
-        }
-
-        .stat-card {
-            .card-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .card-content {
-                text-align: center;
-                padding: 20px 0;
-
-                .number {
-                    font-size: 24px;
-                    font-weight: bold;
-                    color: #409EFF;
-                    margin-bottom: 10px;
-                }
-
-                .label {
-                    color: #666;
-                    font-size: 14px;
-                }
-            }
-        }
-
-        .schedule-card,
-        .todo-card {
-            .card-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-        }
-    }
+<style scoped lang="scss">
+.teacher-dashboard { display: flex; flex-direction: column; gap: 18px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.page-header h2 { margin: 0; font-size: 24px; color: var(--el-text-color-primary); }
+.page-header p { margin: 7px 0 0; color: var(--el-text-color-secondary); }
+.summary-grid { row-gap: 16px; }
+.summary-card :deep(.el-card__body) { display: flex; align-items: center; gap: 14px; min-height: 78px; }
+.summary-icon,.shortcut-icon { display: grid; place-items: center; flex: 0 0 auto; border-radius: 12px; }
+.summary-icon { width: 46px; height: 46px; font-size: 21px; }
+.blue { color: #3478f6; background: #edf4ff; }.green { color: #20a779; background: #eaf8f2; }.orange { color: #e89324; background: #fff5e8; }.purple { color: #805ad5; background: #f3edff; }
+.summary-copy { display: flex; flex-direction: column; gap: 5px; color: var(--el-text-color-secondary); font-size: 13px; }
+.summary-copy strong { color: var(--el-text-color-primary); font-size: 25px; line-height: 1.1; }
+.content-grid { row-gap: 16px; }
+.content-card { height: 100%; }
+.card-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.card-heading h3 { margin: 0; color: var(--el-text-color-primary); font-size: 16px; }
+.card-heading span { display: block; margin-top: 5px; color: var(--el-text-color-secondary); font-size: 12px; }
+.shortcut { display: flex; align-items: center; width: 100%; padding: 14px 4px; border: 0; border-bottom: 1px solid var(--el-border-color-lighter); background: transparent; text-align: left; cursor: pointer; }
+.shortcut:last-child { border-bottom: 0; }.shortcut-icon { width: 40px; height: 40px; margin-right: 12px; font-size: 18px; }
+.shortcut > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 5px; }.shortcut strong { color: var(--el-text-color-primary); font-size: 14px; }.shortcut small { color: var(--el-text-color-secondary); font-size: 12px; }
+.shortcut-arrow { color: var(--el-text-color-placeholder); }.shortcut:hover strong,.shortcut:hover .shortcut-arrow { color: var(--el-color-primary); }
+.load-error { margin-top: 16px; }
+@media (max-width: 640px) { .page-header { align-items: flex-start; flex-direction: column; }.summary-card :deep(.el-card__body) { padding: 14px; gap: 10px; }.summary-icon { width: 38px; height: 38px; }.summary-copy strong { font-size: 21px; } }
 </style>

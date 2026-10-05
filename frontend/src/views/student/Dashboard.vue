@@ -1,219 +1,92 @@
 <template>
-    <div class="dashboard-container">
-        <el-row :gutter="20">
-            <el-col :span="24">
-                <el-card class="welcome-card">
-                    <div class="welcome-content">
-                        <el-avatar :size="64" :src="userAvatar" />
-                        <div class="welcome-text">
-                            <h2>欢迎回来，{{ studentName }}</h2>
-                            <p>今天是 {{ currentDate }}</p>
-                        </div>
-                    </div>
-                </el-card>
-            </el-col>
-        </el-row>
+  <div class="dashboard" v-loading="loading">
+    <section class="welcome-card">
+      <div><span class="eyebrow">学生服务中心</span><h2>欢迎回来，{{ profile.realName || '同学' }}</h2><p>{{ todayLabel }} · 学业信息一目了然</p></div>
+      <el-avatar :size="68">{{ (profile.realName || '同').slice(0, 1) }}</el-avatar>
+    </section>
 
-        <el-row :gutter="20" class="mt-4">
-            <el-col :span="8">
-                <el-card class="info-card" shadow="hover">
-                    <template #header>
-                        <div class="card-header">
-                            <span>今日课程</span>
-                            <el-button text>查看全部</el-button>
-                        </div>
-                    </template>
-                    <div class="course-list">
-                        <div v-for="course in todayCourses" :key="course.id" class="course-item">
-                            <div class="course-info">
-                                <h4>{{ course.name }}</h4>
-                                <p>{{ course.time }}</p>
-                            </div>
-                            <el-tag :type="course.status === '进行中' ? 'success' : 'info'">
-                                {{ course.status }}
-                            </el-tag>
-                        </div>
-                    </div>
-                </el-card>
-            </el-col>
+    <el-row :gutter="16" class="summary-row">
+      <el-col :xs="12" :sm="8"><el-card shadow="never" class="summary-card"><div class="summary-label">已选课程</div><div class="summary-value">{{ courseTotal }}<small> 门</small></div><el-link type="primary" :underline="false" @click="router.push('/student/courses')">查看课程 →</el-link></el-card></el-col>
+      <el-col :xs="12" :sm="8"><el-card shadow="never" class="summary-card"><div class="summary-label">成绩平均分</div><div class="summary-value">{{ decimal(scoreStats.averageScore) }}<small> 分</small></div><el-link type="primary" :underline="false" @click="router.push('/student/scores')">查看成绩 →</el-link></el-card></el-col>
+      <el-col :xs="24" :sm="8"><el-card shadow="never" class="summary-card"><div class="summary-label">考勤出勤率</div><div class="summary-value">{{ decimal(attendanceStats.attendanceRate) }}<small>%</small></div><el-link type="primary" :underline="false" @click="router.push('/student/attendance')">查看考勤 →</el-link></el-card></el-col>
+    </el-row>
 
-            <el-col :span="8">
-                <el-card class="info-card" shadow="hover">
-                    <template #header>
-                        <div class="card-header">
-                            <span>最近成绩</span>
-                            <el-button text>查看全部</el-button>
-                        </div>
-                    </template>
-                    <div class="score-list">
-                        <div v-for="score in recentScores" :key="score.id" class="score-item">
-                            <div class="score-info">
-                                <h4>{{ score.course }}</h4>
-                                <p>考试时间：{{ formatDateTime(score.date) }}</p>
-                            </div>
-                            <div class="score-value" :class="score.score >= 60 ? 'pass' : 'fail'">
-                                {{ score.score }}
-                            </div>
-                        </div>
-                    </div>
-                </el-card>
-            </el-col>
-
-            <el-col :span="8">
-                <el-card class="info-card" shadow="hover">
-                    <template #header>
-                        <div class="card-header">
-                            <span>考勤记录</span>
-                            <el-button text>查看全部</el-button>
-                        </div>
-                    </template>
-                    <div class="attendance-list">
-                        <div v-for="record in attendanceRecords" :key="record.id" class="attendance-item">
-                            <div class="attendance-info">
-                                <h4>{{ record.courseName }}</h4>
-                                <p>{{ formatDate(record.date) }} {{ record.classPeriod }}</p>
-                            </div>
-                            <el-tag :type="record.status === '正常' ? 'success' : record.status === '迟到' || record.status === '早退' ? 'warning' : record.status === '请假' ? 'info' : 'danger'">
-                                {{ record.status }}
-                            </el-tag>
-                        </div>
-                        <el-empty v-if="attendanceRecords.length === 0" description="暂无考勤记录" :image-size="70" />
-                    </div>
-                </el-card>
-            </el-col>
-        </el-row>
-    </div>
+    <el-row :gutter="16" class="content-row">
+      <el-col :xs="24" :lg="12">
+        <el-card shadow="never" class="list-card">
+          <template #header><div class="card-heading"><div><strong>我的课程</strong><span>已通过选课</span></div><el-button link type="primary" @click="router.push('/student/courses')">全部课程</el-button></div></template>
+          <div v-for="course in courses" :key="course.id" class="list-row" @click="router.push(`/student/courses/${course.id}`)"><div class="row-main"><strong>{{ course.name }}</strong><span>{{ course.code }} · {{ course.semester }}</span></div><el-tag size="small" :type="course.status === 1 ? 'success' : 'info'">{{ course.statusText }}</el-tag></div>
+          <el-empty v-if="!courses.length" description="暂无已确认课程" :image-size="72" />
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :lg="12">
+        <el-card shadow="never" class="list-card">
+          <template #header><div class="card-heading"><div><strong>最近成绩</strong><span>最新公布的课程成绩</span></div><el-button link type="primary" @click="router.push('/student/scores')">全部成绩</el-button></div></template>
+          <div v-for="score in scores" :key="score.id" class="list-row"><div class="row-main"><strong>{{ score.courseName }}</strong><span>{{ score.semester }} · {{ formatDateTime(score.examTime) }}</span></div><strong class="score" :class="Number(score.score) >= 60 ? 'pass' : 'fail'">{{ score.score ?? '—' }}</strong></div>
+          <el-empty v-if="!scores.length" description="暂无成绩记录" :image-size="72" />
+        </el-card>
+      </el-col>
+    </el-row>
+    <el-card shadow="never" class="attendance-card">
+      <template #header><div class="card-heading"><div><strong>最近考勤</strong><span>个人考勤记录</span></div><el-button link type="primary" @click="router.push('/student/attendance')">全部考勤</el-button></div></template>
+      <div class="attendance-list">
+        <div v-for="record in attendance" :key="record.id" class="list-row"><div class="row-main"><strong>{{ record.courseName }}</strong><span>{{ formatDate(record.date) }} · {{ record.classPeriod || '节次未注明' }}</span></div><el-tag size="small" :type="attendanceType(record.status)">{{ record.status }}</el-tag></div>
+      </div>
+      <el-empty v-if="!attendance.length" description="暂无考勤记录" :image-size="72" />
+    </el-card>
+  </div>
 </template>
 
 <script setup>
-    import { ref, computed, onMounted } from 'vue'
-    import { ElMessage } from 'element-plus'
-    import { getStudentAttendance } from '@/api/attendance'
-    import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import { onMounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { getCurrentUser } from '@/api/auth'
+import { getMyScoreStatistics, getMyScores, getStudentCourses } from '@/api/student'
+import { getStudentAttendance, getStudentAttendanceStatistics } from '@/api/attendance'
+import { formatDate, formatDateTime } from '@/utils/dateUtils'
 
-    const studentName = ref('张三')
-    const userAvatar = ref('https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png')
+const router = useRouter()
+const loading = ref(false)
+const profile = ref({})
+const courses = ref([])
+const courseTotal = ref(0)
+const scores = ref([])
+const attendance = ref([])
+const scoreStats = ref({ averageScore: 0 })
+const attendanceStats = ref({ attendanceRate: 0 })
+const todayLabel = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'full' }).format(new Date())
+const decimal = value => Number(value || 0).toFixed(1).replace(/\.0$/, '')
+const attendanceType = status => ({ 正常: 'success', 迟到: 'warning', 早退: 'warning', 请假: 'info', 缺勤: 'danger' }[status] || 'info')
 
-    const currentDate = computed(() => {
-        return new Date().toLocaleDateString('zh-CN', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            weekday: 'long'
-        })
-    })
-
-    // 模拟数据
-    const todayCourses = ref([
-        { id: 1, name: '高等数学', time: '08:00 - 09:40', status: '进行中' },
-        { id: 2, name: '大学英语', time: '10:00 - 11:40', status: '未开始' },
-        { id: 3, name: '计算机基础', time: '14:00 - 15:40', status: '未开始' }
-    ])
-
-    const recentScores = ref([
-        { id: 1, course: '高等数学', date: '2024-03-20', score: 85 },
-        { id: 2, course: '大学英语', date: '2024-03-18', score: 92 },
-        { id: 3, course: '计算机基础', date: '2024-03-15', score: 78 }
-    ])
-
-    const attendanceRecords = ref([])
-
-    const fetchAttendanceRecords = async () => {
-        try {
-            const response = await getStudentAttendance({ page: 1, size: 3 })
-            if (response?.code !== 200) throw new Error(response?.message || '获取考勤记录失败')
-            attendanceRecords.value = response.data?.records || []
-        } catch (error) {
-            console.error('获取首页考勤记录失败：', error)
-            ElMessage.error(error?.message || '获取考勤记录失败')
-        }
-    }
-
-    onMounted(fetchAttendanceRecords)
+async function loadDashboard() {
+  loading.value = true
+  const results = await Promise.allSettled([
+    getCurrentUser(),
+    getStudentCourses({ page: 1, size: 5 }),
+    getMyScores({ page: 1, size: 5 }),
+    getMyScoreStatistics(),
+    getStudentAttendance({ page: 1, size: 5 }),
+    getStudentAttendanceStatistics()
+  ])
+  const [user, courseResult, scoreResult, scoreStatsResult, attendanceResult, attendanceStatsResult] = results
+  if (user.status === 'fulfilled') profile.value = user.value?.data || {}
+  if (courseResult.status === 'fulfilled') { courses.value = courseResult.value?.data?.records || []; courseTotal.value = courseResult.value?.data?.total || 0 }
+  if (scoreResult.status === 'fulfilled') scores.value = scoreResult.value?.data?.records || []
+  if (scoreStatsResult.status === 'fulfilled') scoreStats.value = scoreStatsResult.value?.data || { averageScore: 0 }
+  if (attendanceResult.status === 'fulfilled') attendance.value = attendanceResult.value?.data?.records || []
+  if (attendanceStatsResult.status === 'fulfilled') attendanceStats.value = attendanceStatsResult.value?.data || { attendanceRate: 0 }
+  if (results.some(item => item.status === 'rejected')) ElMessage.warning('部分首页数据暂时无法加载，可进入相应页面重试')
+  loading.value = false
+}
+onMounted(loadDashboard)
 </script>
 
-<style scoped lang="scss">
-    .dashboard-container {
-        padding: 20px;
-
-        .welcome-card {
-            margin-bottom: 20px;
-
-            .welcome-content {
-                display: flex;
-                align-items: center;
-                gap: 20px;
-
-                .welcome-text {
-                    h2 {
-                        margin: 0;
-                        font-size: 24px;
-                        color: var(--el-text-color-primary);
-                    }
-
-                    p {
-                        margin: 8px 0 0;
-                        color: var(--el-text-color-secondary);
-                    }
-                }
-            }
-        }
-
-        .info-card {
-            height: 100%;
-
-            .card-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .course-list,
-            .score-list,
-            .attendance-list {
-
-                .course-item,
-                .score-item,
-                .attendance-item {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 12px 0;
-                    border-bottom: 1px solid var(--el-border-color-lighter);
-
-                    &:last-child {
-                        border-bottom: none;
-                    }
-
-                    h4 {
-                        margin: 0;
-                        font-size: 16px;
-                    }
-
-                    p {
-                        margin: 4px 0 0;
-                        font-size: 14px;
-                        color: var(--el-text-color-secondary);
-                    }
-                }
-            }
-
-            .score-value {
-                font-size: 20px;
-                font-weight: bold;
-
-                &.pass {
-                    color: var(--el-color-success);
-                }
-
-                &.fail {
-                    color: var(--el-color-danger);
-                }
-            }
-        }
-    }
-
-    .mt-4 {
-        margin-top: 16px;
-    }
+<style scoped>
+.dashboard { display: grid; gap: 18px; }
+.welcome-card { display: flex; justify-content: space-between; align-items: center; padding: 28px 32px; color: #fff; border-radius: 12px; background: linear-gradient(120deg, #3478f6, #55a6f8); }
+.welcome-card .eyebrow { font-size: 13px; opacity: .82; }.welcome-card h2 { margin: 8px 0; font-size: 25px; }.welcome-card p { margin: 0; opacity: .85; }
+.summary-row,.content-row { row-gap: 16px; }.summary-card { height: 100%; }.summary-label { color: var(--el-text-color-secondary); }.summary-value { margin: 10px 0; font-size: 30px; font-weight: 700; color: var(--el-text-color-primary); }.summary-value small { font-size: 14px; font-weight: 400; color: var(--el-text-color-secondary); }
+.card-heading { display: flex; justify-content: space-between; align-items: center; }.card-heading div { display: grid; gap: 5px; }.card-heading span { color: var(--el-text-color-secondary); font-size: 12px; }
+.list-card { height: 100%; }.list-row { display: flex; justify-content: space-between; align-items: center; min-height: 62px; gap: 16px; border-bottom: 1px solid var(--el-border-color-lighter); }.list-row:last-child { border-bottom: 0; }.row-main { display: grid; gap: 6px; min-width: 0; }.row-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.row-main span { color: var(--el-text-color-secondary); font-size: 13px; }.list-card .list-row { cursor: pointer; }.list-card .list-row:hover .row-main strong { color: var(--el-color-primary); }.score { font-size: 20px; }.pass { color: var(--el-color-success); }.fail { color: var(--el-color-danger); }
 </style>

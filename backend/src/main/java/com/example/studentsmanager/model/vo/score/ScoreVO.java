@@ -24,6 +24,7 @@ public class ScoreVO {
     private String comment;
     private String remark;
     private String status;
+    private String teacher;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

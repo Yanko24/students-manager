@@ -4,6 +4,13 @@ import com.example.studentsmanager.model.dto.auth.LoginRequest;
 import com.example.studentsmanager.model.dto.auth.LoginResponse;
 import com.example.studentsmanager.model.dto.auth.ChangePasswordRequest;
 import com.example.studentsmanager.model.entity.User;
+import com.example.studentsmanager.model.entity.Student;
+import com.example.studentsmanager.model.entity.Teacher;
+import com.example.studentsmanager.model.vo.auth.AccountProfileVO;
+import com.example.studentsmanager.model.vo.student.StudentVO;
+import com.example.studentsmanager.service.StudentService;
+import com.example.studentsmanager.service.TeacherService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.studentsmanager.exception.BusinessException;
 import com.example.studentsmanager.constant.ResultCode;
 import com.example.studentsmanager.service.AuthService;
@@ -27,6 +34,8 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
+    private final StudentService studentService;
+    private final TeacherService teacherService;
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -69,6 +78,51 @@ public class AuthServiceImpl implements AuthService {
         } catch (BadCredentialsException e) {
             throw new BadCredentialsException("用户名或密码错误");
         }
+    }
+
+    @Override
+    public AccountProfileVO getCurrentProfile(String username) {
+        User user = userService.findByUsername(username);
+        if (user == null) throw new UsernameNotFoundException("用户不存在");
+
+        AccountProfileVO profile = new AccountProfileVO();
+        profile.setUserId(user.getId());
+        profile.setUsername(user.getUsername());
+        profile.setRealName(user.getRealName());
+        profile.setRole(user.getRole() == null ? null : user.getRole().toLowerCase());
+        profile.setGender(user.getGender());
+        profile.setPhone(user.getPhone());
+        profile.setEmail(user.getEmail());
+        profile.setAccountStatus(user.getStatus());
+        profile.setAccountCreatedAt(user.getCreateTime());
+
+        if ("student".equalsIgnoreCase(user.getRole())) {
+            Student student = studentService.getOne(new LambdaQueryWrapper<Student>()
+                    .eq(Student::getUserId, user.getId()));
+            if (student == null) throw new BusinessException("学生档案不存在");
+            StudentVO detail = studentService.getStudentById(student.getId());
+            profile.setStudentNo(detail.getStudentNo());
+            profile.setBirthDate(detail.getBirthDate());
+            profile.setAdmissionDate(detail.getAdmissionDate());
+            profile.setAddress(detail.getAddress());
+            profile.setMajorCode(detail.getMajorCode());
+            profile.setMajorName(detail.getMajorName());
+            profile.setCollegeName(detail.getCollegeName());
+            profile.setGrade(detail.getGrade());
+            profile.setClassNo(detail.getClassNo());
+            profile.setStudentStatus(detail.getStatus());
+            profile.setStudentStatusText(detail.getStatusText());
+        } else if ("teacher".equalsIgnoreCase(user.getRole())) {
+            Teacher teacher = teacherService.getOne(new LambdaQueryWrapper<Teacher>()
+                    .eq(Teacher::getUserId, user.getId()));
+            if (teacher == null) throw new BusinessException("教师档案不存在");
+            profile.setTeacherNo(teacher.getTeacherNumber());
+            profile.setDepartment(teacher.getDepartment());
+            profile.setTitle(teacher.getTitle());
+            profile.setHireDate(teacher.getHireDate());
+            profile.setTeacherStatus(teacher.getStatus());
+        }
+        return profile;
     }
 
     @Override

@@ -1,10 +1,58 @@
 import "./assets/main.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import ElementPlus from "element-plus";
-import { ElMessage } from "element-plus";
+import {
+	ElAlert,
+	ElAside,
+	ElAvatar,
+	ElBreadcrumb,
+	ElBreadcrumbItem,
+	ElButton,
+	ElButtonGroup,
+	ElCard,
+	ElCheckbox,
+	ElCheckboxGroup,
+	ElCol,
+	ElConfigProvider,
+	ElContainer,
+	ElDatePicker,
+	ElDescriptions,
+	ElDescriptionsItem,
+	ElDialog,
+	ElDropdown,
+	ElDropdownItem,
+	ElDropdownMenu,
+	ElEmpty,
+	ElForm,
+	ElFormItem,
+	ElHeader,
+	ElIcon,
+	ElInput,
+	ElInputNumber,
+	ElLoading,
+	ElMain,
+	ElMenu,
+	ElMenuItem,
+	ElMessage,
+	ElOption,
+	ElPagination,
+	ElProgress,
+	ElRadio,
+	ElRadioButton,
+	ElRadioGroup,
+	ElResult,
+	ElRow,
+	ElSelect,
+	ElSwitch,
+	ElTabPane,
+	ElTable,
+	ElTableColumn,
+	ElTabs,
+	ElTag,
+	ElTooltip,
+	ElUpload,
+} from "element-plus";
 import "element-plus/dist/index.css";
-import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import App from "./App.vue";
 import router from "./router";
 import { useUserStore } from "./stores/user";
@@ -13,14 +61,58 @@ import { installEnterShortcuts } from "./utils/keyboardShortcuts";
 const app = createApp(App);
 const pinia = createPinia();
 
-// 注册所有图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-	app.component(key, component);
-}
-
 app.use(pinia);
 app.use(router);
-app.use(ElementPlus);
+[
+	ElAlert,
+	ElAside,
+	ElAvatar,
+	ElBreadcrumb,
+	ElBreadcrumbItem,
+	ElButton,
+	ElButtonGroup,
+	ElCard,
+	ElCheckbox,
+	ElCheckboxGroup,
+	ElCol,
+	ElConfigProvider,
+	ElContainer,
+	ElDatePicker,
+	ElDescriptions,
+	ElDescriptionsItem,
+	ElDialog,
+	ElDropdown,
+	ElDropdownItem,
+	ElDropdownMenu,
+	ElEmpty,
+	ElForm,
+	ElFormItem,
+	ElHeader,
+	ElIcon,
+	ElInput,
+	ElInputNumber,
+	ElMain,
+	ElMenu,
+	ElMenuItem,
+	ElOption,
+	ElPagination,
+	ElProgress,
+	ElRadio,
+	ElRadioButton,
+	ElRadioGroup,
+	ElResult,
+	ElRow,
+	ElSelect,
+	ElSwitch,
+	ElTabPane,
+	ElTable,
+	ElTableColumn,
+	ElTabs,
+	ElTag,
+	ElTooltip,
+	ElUpload,
+].forEach((component) => app.component(component.name, component));
+app.directive("loading", ElLoading.directive);
 
 const userStore = useUserStore(pinia);
 let authRedirecting = false;

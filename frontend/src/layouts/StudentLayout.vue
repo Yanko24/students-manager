@@ -7,7 +7,7 @@
                     <h1>学生管理系统</h1>
                 </div>
                 <el-menu :default-active="activeMenu" class="sidebar-menu" :collapse="isSidebarCollapsed"
-                    background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF" router>
+                    background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF" @select="navigate">
                     <el-menu-item index="/student/dashboard">
                         <el-icon>
                             <Monitor />
@@ -26,11 +26,11 @@
                         </el-icon>
                         <template #title>成绩查询</template>
                     </el-menu-item>
-                    <el-menu-item index="/student/schedule">
+                    <el-menu-item index="/student/attendance">
                         <el-icon>
                             <Calendar />
                         </el-icon>
-                        <template #title>课程表</template>
+                        <template #title>我的考勤</template>
                     </el-menu-item>
                     <el-menu-item index="/student/profile">
                         <el-icon>
@@ -83,10 +83,10 @@
                                                 <User />
                                             </el-icon>个人信息
                                         </el-dropdown-item>
-                                        <el-dropdown-item command="schedule">
+                                        <el-dropdown-item command="attendance">
                                             <el-icon>
                                                 <Calendar />
-                                            </el-icon>课程表
+                                            </el-icon>我的考勤
                                         </el-dropdown-item>
                                         <el-dropdown-item command="scores">
                                             <el-icon>
@@ -131,7 +131,6 @@
         Document,
         SwitchButton,
         CaretBottom,
-        DataLine,
         Reading
     } from '@element-plus/icons-vue'
     import defaultAvatar from '@/assets/images/default-avatar.png'
@@ -163,8 +162,8 @@
             case 'profile':
                 router.push('/student/profile')
                 break
-            case 'schedule':
-                router.push('/student/schedule')
+            case 'attendance':
+                router.push('/student/attendance')
                 break
             case 'scores':
                 router.push('/student/scores')
@@ -185,6 +184,10 @@
         }
     }
 
+    const navigate = (path) => {
+        if (path && path !== route.path) router.push(path)
+    }
+
     const currentRoute = computed(() => {
         const matched = route.matched
         if (matched.length > 1) {
@@ -193,7 +196,7 @@
         return ''
     })
 
-    const activeMenu = computed(() => route.path)
+    const activeMenu = computed(() => route.path.startsWith('/student/courses/') ? '/student/courses' : route.path)
 </script>
 
 <style scoped>
@@ -326,8 +329,8 @@
     .el-main {
         margin-top: 60px;
         margin-left: 220px;
-        padding: 20px;
-        background-color: #f0f2f5;
+        padding: 24px;
+        background-color: #f3f5f8;
         min-height: calc(100vh - 60px);
         transition: margin-left 0.3s;
     }
@@ -396,6 +399,7 @@
 
         .el-main {
             margin-left: 64px;
+            padding: 16px;
         }
 
         .user-detail {

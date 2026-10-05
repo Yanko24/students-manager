@@ -204,9 +204,9 @@
                     confirmButtonText: '确定',
                     cancelButtonText: '取消',
                     type: 'warning'
-                }).then(() => {
+                }).then(async () => {
                     userStore.logout()
-                    router.push('/login')
+                    await router.replace('/login')
                 })
                 break
         }

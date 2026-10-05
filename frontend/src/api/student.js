@@ -122,10 +122,22 @@ export function getStudentCount(params) {
  */
 export function getStudentCourses(params) {
 	return request({
-		url: "/students/courses",
+		url: "/student-portal/courses",
 		method: "get",
 		params,
 	});
+}
+
+export function getMyCourseById(id) {
+	return request({ url: `/student-portal/courses/${id}`, method: "get" });
+}
+
+export function getMyScores(params) {
+	return request({ url: "/student-portal/scores", method: "get", params });
+}
+
+export function getMyScoreStatistics(params = {}) {
+	return request({ url: "/student-portal/scores/statistics", method: "get", params });
 }
 
 // 获取状态对应的标签类型

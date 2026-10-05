@@ -1,5 +1,6 @@
 import axios from "axios";
 import { ElMessage } from "element-plus";
+import { getAuthSessionRevision } from "@/utils/authSession";
 
 // 创建 axios 实例
 const request = axios.create({
@@ -12,6 +13,9 @@ request.interceptors.request.use(
 	(config) => {
 		// 从 localStorage 获取 token
 		const token = localStorage.getItem("token");
+		// 记下发起请求时的凭证，旧会话的迟到响应不能注销新会话。
+		config._authToken = token;
+		config._authSessionRevision = getAuthSessionRevision();
 		if (token) {
 			// 设置请求头，添加 Bearer 前缀
 			config.headers["Authorization"] = `Bearer ${token}`;
@@ -38,10 +42,14 @@ request.interceptors.response.use(
 		console.error("响应错误:", error);
 		if (error.response) {
 			const isLoginRequest = /\/auth\/login(?:\?|$)/.test(error.config?.url || "");
+			const responseToken = error.config?._authToken;
+			const isCurrentSession = responseToken &&
+				responseToken === localStorage.getItem("token") &&
+				error.config?._authSessionRevision === getAuthSessionRevision();
 			if (
 				error.response.status === 401 &&
 				!isLoginRequest &&
-				localStorage.getItem("token")
+				isCurrentSession
 			) {
 				window.dispatchEvent(new Event("auth:expired"));
 			}

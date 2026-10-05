@@ -43,40 +43,6 @@ export function deleteTeacher(id) {
 	});
 }
 
-// 获取教师所授课程
-export function getTeacherCourses(id) {
-	return request({
-		url: `/teachers/${id}/courses`,
-		method: "get",
-	});
-}
-
-// 获取教师个人信息
-export function getTeacherProfile() {
-	return request({
-		url: "/teachers/profile",
-		method: "get",
-	});
-}
-
-// 更新教师个人信息
-export function updateTeacherProfile(data) {
-	return request({
-		url: "/teachers/profile",
-		method: "put",
-		data,
-	});
-}
-
-// 修改教师密码
-export function updateTeacherPassword(data) {
-	return request({
-		url: "/teachers/password",
-		method: "put",
-		data,
-	});
-}
-
 // 获取状态对应的标签类型
 export const getStatusType = (status) => {
 	switch (status) {

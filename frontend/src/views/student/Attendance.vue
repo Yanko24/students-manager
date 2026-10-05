@@ -68,6 +68,8 @@ const fetchList = async () => {
     total.value = response.data?.total || 0
   } catch (error) {
     console.error('查询学生考勤失败：', error)
+    attendanceList.value = []
+    total.value = 0
     ElMessage.error(error?.message || '查询考勤失败')
   } finally {
     loading.value = false
@@ -81,13 +83,14 @@ const fetchStats = async () => {
     Object.assign(stats, response.data || {})
   } catch (error) {
     console.error('读取学生考勤汇总失败：', error)
+    Object.assign(stats, { totalCount: 0, presentCount: 0, lateCount: 0, earlyLeaveCount: 0, absentCount: 0, leaveCount: 0 })
+    ElMessage.error(error?.message || '读取考勤汇总失败')
   }
 }
 
-const search = () => {
+const search = async () => {
   page.value = 1
-  fetchList()
-  fetchStats()
+  await Promise.all([fetchList(), fetchStats()])
 }
 
 const reset = () => {

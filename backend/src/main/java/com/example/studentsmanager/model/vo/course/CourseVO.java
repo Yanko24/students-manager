@@ -21,6 +21,8 @@ public class CourseVO {
     private String statusText;
     private String description;
     private String objectives;
+    private String selectionStatus;
+    private LocalDateTime selectionDate;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

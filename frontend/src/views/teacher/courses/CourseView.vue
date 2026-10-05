@@ -9,41 +9,30 @@
                 <el-descriptions :column="2" border>
                     <el-descriptions-item label="课程名称">{{ course.name }}</el-descriptions-item>
                     <el-descriptions-item label="课程代码">{{ course.code }}</el-descriptions-item>
-                    <el-descriptions-item label="学分">{{ course.credits }}</el-descriptions-item>
+                    <el-descriptions-item label="学分">{{ course.credit }}</el-descriptions-item>
                     <el-descriptions-item label="学时">{{ course.hours }}</el-descriptions-item>
                     <el-descriptions-item label="课程类型">{{ course.type }}</el-descriptions-item>
                     <el-descriptions-item label="开课学期">{{ course.semester }}</el-descriptions-item>
                     <el-descriptions-item label="课程描述">{{ course.description }}</el-descriptions-item>
-                    <el-descriptions-item label="状态">
-                        <el-tag :type="course.status === 'active' ? 'success' : 'danger'">
-                            {{ course.status === 'active' ? '进行中' : '已结束' }}
-                        </el-tag>
-                    </el-descriptions-item>
+                    <el-descriptions-item label="所属学院">{{ course.college || '—' }}</el-descriptions-item>
+                    <el-descriptions-item label="授课教师">{{ course.teacher || '—' }}</el-descriptions-item>
+                    <el-descriptions-item label="状态"><el-tag :type="courseStatusType">{{ course.statusText || '—' }}</el-tag></el-descriptions-item>
                     <el-descriptions-item label="创建时间">{{ formatDateTime(course.createTime) }}</el-descriptions-item>
                     <el-descriptions-item label="更新时间">{{ formatDateTime(course.updateTime) }}</el-descriptions-item>
+                    <el-descriptions-item label="课程目标" :span="2">{{ course.objectives || '—' }}</el-descriptions-item>
                 </el-descriptions>
-
-                <div class="section-title">学生列表</div>
-                <el-table :data="studentList" border style="width: 100%">
-                    <el-table-column prop="studentId" label="学号" width="120" />
-                    <el-table-column prop="name" label="姓名" width="120" />
-                    <el-table-column prop="majorName" label="专业" width="150" />
-                    <el-table-column prop="status" label="状态" width="100">
-                        <template #default="{ row }">
-                            <el-tag :type="row.status === 'active' ? 'success' : 'danger'">
-                                {{ row.status === 'active' ? '在读' : '已毕业' }}
-                            </el-tag>
-                        </template>
-                    </el-table-column>
-                </el-table>
+                <div v-if="course.description" class="course-description"><h3>课程简介</h3><p>{{ course.description }}</p></div>
+                <el-empty v-else class="not-available" description="暂无课程简介" />
             </template>
+            <el-empty v-else-if="!loading" description="课程信息暂不可用" />
         </el-card>
     </div>
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+    import { ref, computed, onMounted } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
+    import { ElMessage } from 'element-plus'
     import { getCourseById } from '@/api/course'
     import { formatDateTime } from '@/utils/dateUtils'
 
@@ -51,17 +40,17 @@
     const router = useRouter()
     const loading = ref(true)
     const course = ref(null)
-    const studentList = ref([])
+    const courseStatusType = computed(() => ({ 0: 'info', 1: 'success', 2: 'warning' }[course.value?.status] || 'info'))
 
     onMounted(async () => {
         try {
             const response = await getCourseById(route.params.id)
-            if (response && response.data) {
+            if (response?.code === 200 && response.data) {
                 course.value = response.data
-                studentList.value = response.data.students || []
             }
         } catch (error) {
             console.error('获取课程详情失败:', error)
+            ElMessage.error(error?.message || '获取课程详情失败')
         } finally {
             loading.value = false
         }
@@ -85,10 +74,8 @@
         margin: 0 auto;
     }
 
-    .section-title {
-        margin: 20px 0 10px;
-        font-size: 16px;
-        font-weight: bold;
-        color: #303133;
-    }
+        .course-description { margin-top: 22px; color: var(--el-text-color-regular); line-height: 1.7; }
+        .course-description h3 { margin: 0 0 8px; color: var(--el-text-color-primary); font-size: 16px; }
+        .course-description p { margin: 0; white-space: pre-wrap; }
+        .not-available { padding: 8px 0; }
 </style>

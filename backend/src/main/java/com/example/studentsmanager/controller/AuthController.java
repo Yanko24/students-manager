@@ -4,6 +4,7 @@ import com.example.studentsmanager.core.response.Result;
 import com.example.studentsmanager.model.dto.auth.LoginRequest;
 import com.example.studentsmanager.model.dto.auth.LoginResponse;
 import com.example.studentsmanager.model.dto.auth.ChangePasswordRequest;
+import com.example.studentsmanager.model.vo.auth.AccountProfileVO;
 import com.example.studentsmanager.service.AuthService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -48,6 +49,11 @@ public class AuthController {
     @GetMapping("/session")
     public Result<Void> validateSession() {
         return Result.success();
+    }
+
+    @GetMapping("/current")
+    public Result<AccountProfileVO> getCurrentProfile(Authentication authentication) {
+        return Result.success(authService.getCurrentProfile(authentication.getName()));
     }
 
     @PostMapping("/change-password")

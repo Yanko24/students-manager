@@ -7,7 +7,7 @@
                     <h1>学生管理系统</h1>
                 </div>
                 <el-menu :default-active="activeMenu" class="sidebar-menu" :collapse="isSidebarCollapsed"
-                    background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF" router>
+                    background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF" @select="handleMenuSelect">
                     <el-menu-item index="/teacher/dashboard">
                         <el-icon>
                             <Monitor />
@@ -77,10 +77,8 @@
                                                 <User />
                                             </el-icon>个人信息
                                         </el-dropdown-item>
-                                        <el-dropdown-item command="schedule">
-                                            <el-icon>
-                                                <Calendar />
-                                            </el-icon>课程表
+                                        <el-dropdown-item command="attendance">
+                                            <el-icon><Calendar /></el-icon>课程考勤
                                         </el-dropdown-item>
                                         <el-dropdown-item divided command="logout">
                                             <el-icon>
@@ -96,7 +94,7 @@
                 <el-main>
                     <router-view v-slot="{ Component }">
                         <transition name="fade" mode="out-in">
-                            <component :is="Component" />
+                            <component :is="Component" :key="$route.fullPath" />
                         </transition>
                     </router-view>
                 </el-main>
@@ -151,8 +149,8 @@
             case 'profile':
                 router.push('/teacher/profile')
                 break
-            case 'schedule':
-                router.push('/teacher/schedule')
+            case 'attendance':
+                router.push('/teacher/attendance')
                 break
             case 'logout':
                 try {
@@ -179,6 +177,10 @@
     })
 
     const activeMenu = computed(() => route.path)
+
+    const handleMenuSelect = (path) => {
+        if (path && path !== route.path) router.push(path)
+    }
 </script>
 
 <style scoped>
@@ -311,8 +313,8 @@
     .el-main {
         margin-top: 60px;
         margin-left: 220px;
-        padding: 20px;
-        background-color: #f0f2f5;
+        padding: 24px;
+        background-color: #f3f5f8;
         min-height: calc(100vh - 60px);
         transition: margin-left 0.3s;
     }
@@ -381,6 +383,7 @@
 
         .el-main {
             margin-left: 64px;
+            padding: 16px;
         }
 
         .user-detail {

@@ -1,11 +1,12 @@
 import { defineStore } from "pinia";
 import { validateSession } from "@/api/auth";
+import { advanceAuthSession } from "@/utils/authSession";
 
 let sessionExpiryTimer;
 let sessionValidationTimer;
 let sessionValidationPending = false;
 
-function startSessionValidation() {
+function startSessionValidation(validateImmediately = true) {
 	window.clearInterval(sessionValidationTimer);
 	const checkSession = () => {
 		if (sessionValidationPending || !localStorage.getItem("token")) return;
@@ -14,7 +15,7 @@ function startSessionValidation() {
 			sessionValidationPending = false;
 		});
 	};
-	checkSession();
+	if (validateImmediately) checkSession();
 	sessionValidationTimer = window.setInterval(checkSession, 30_000);
 }
 
@@ -126,9 +127,10 @@ export const useUserStore = defineStore("user", {
 
 			this.token = token;
 			this.tokenExpiresAt = tokenExpiresAt;
+			advanceAuthSession();
 			localStorage.setItem("token", token);
 			scheduleSessionExpiry(this);
-			startSessionValidation();
+			startSessionValidation(false);
 		},
 
 		setMustChangePassword(required) {
@@ -137,6 +139,7 @@ export const useUserStore = defineStore("user", {
 		},
 
 		logout() {
+			advanceAuthSession();
 			window.clearTimeout(sessionExpiryTimer);
 			window.clearInterval(sessionValidationTimer);
 			sessionValidationPending = false;
