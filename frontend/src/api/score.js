@@ -61,6 +61,7 @@ export function importScores(data) {
 		headers: {
 			"Content-Type": "multipart/form-data",
 		},
+		timeout: 120000,
 	});
 }
 

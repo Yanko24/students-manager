@@ -8,28 +8,17 @@
             </div>
         </div>
 
-        <el-dialog v-model="importDialogVisible" title="批量导入学生" width="520px">
-            <p>下载模板并填写后上传 CSV。需要先创建对应的专业、年级和班级；导入采用全量校验，任一行有误都会取消本次导入。</p>
-            <p><a href="/templates/student-import-template.csv" download>下载学生导入模板</a></p>
-            <el-upload
-                ref="uploadRef"
-                accept=".csv,text/csv"
-                :auto-upload="false"
-                :limit="1"
-                :file-list="uploadFiles"
-                :on-change="handleFileChange"
-                :on-remove="handleFileRemove"
-            >
-                <el-button>选择 CSV 文件</el-button>
-                <template #tip>
-                    <div class="el-upload__tip">最多 5 MB、5000 条；支持 UTF-8 和 GB18030 编码。</div>
-                </template>
-            </el-upload>
-            <template #footer>
-                <el-button @click="importDialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="importing" :disabled="!selectedFile" @click="handleImport">开始导入</el-button>
-            </template>
-        </el-dialog>
+        <csv-import-dialog
+            v-model="importDialogVisible"
+            title="批量导入学生"
+            description="使用中文模板填写学生信息，系统会先校验整份文件，再一次性导入。"
+            template-name="学生导入模板.csv"
+            template-href="/templates/student-import-template.csv"
+            :fields="['学号', '姓名', '性别', '手机号', '邮箱', '专业代码', '年级', '班级号', '出生日期', '入学日期', '家庭住址', '状态']"
+            :tips="studentImportTips"
+            :loading="importing"
+            @submit="handleImport"
+        />
 
         <el-card class="filter-card">
             <el-form :inline="true" :model="filterForm" class="filter-form">
@@ -97,6 +86,7 @@
     import { getStudentList, deleteStudent, importStudents, getStatusType, getStatusText } from '@/api/student'
     import SmartPagination from '@/components/common/SmartPagination.vue'
     import RecordViewLink from '@/components/common/RecordViewLink.vue'
+    import CsvImportDialog from '@/components/common/CsvImportDialog.vue'
     import { useTableWidth } from '@/composables/useTableWidth'
 
     const router = useRouter()
@@ -105,8 +95,11 @@
     const total = ref(0)
     const importDialogVisible = ref(false)
     const importing = ref(false)
-    const selectedFile = ref(null)
-    const uploadFiles = ref([])
+    const studentImportTips = [
+        '文件需保留模板表头，单次最多 5000 条，文件最大 5 MB。',
+        '支持 UTF-8 和 GB18030 编码；任意一行校验失败都会取消整批导入。',
+        '导入前请先创建对应专业、年级和班级；性别填写男/女，状态填写在读、休学、退学或毕业。'
+    ]
     const currentPage = ref(1)
     const pageSize = ref(20)
 
@@ -207,26 +200,14 @@
         fetchStudents(page, size);
     };
 
-    const handleFileChange = (uploadFile, files) => {
-        selectedFile.value = uploadFile.raw || null
-        uploadFiles.value = files.slice(-1)
-    }
-
-    const handleFileRemove = () => {
-        selectedFile.value = null
-        uploadFiles.value = []
-    }
-
-    const handleImport = async () => {
-        if (!selectedFile.value) return
+    const handleImport = async (file) => {
+        if (!file) return
         importing.value = true
         try {
-            const response = await importStudents(selectedFile.value)
+            const response = await importStudents(file)
             const count = response?.data?.imported ?? 0
             ElMessage.success(`成功导入 ${count} 名学生`)
             importDialogVisible.value = false
-            uploadFiles.value = []
-            selectedFile.value = null
             await fetchStudents(1, pageSize.value)
         } catch (error) {
             ElMessage.error(error?.message || '导入失败，请检查文件内容')

@@ -137,7 +137,7 @@ docker compose restart backend
 - 首次登录后必须立即修改密码。数据库中存储 PBKDF2-HMAC-SM3 哈希，不存密码明文。
 - 新建学生由管理员在“学生管理”页面用 CSV 批量导入；学生账号为学号，初始密码 `xiaoer`，首次登录必须改密。
 - 导入学生前先建学院、专业、年级和班级。模板位于 [`../frontend/public/templates/student-import-template.csv`](../frontend/public/templates/student-import-template.csv)。
-- 成绩 CSV 模板位于 [`../frontend/public/templates/score-import-template.csv`](../frontend/public/templates/score-import-template.csv)。开发演示数据请在本地使用 [`../backend/db/init.sql`](../backend/db/init.sql)，不要挂载到生产数据库。
+- 成绩 CSV 模板位于 [`../frontend/public/templates/score-import-template.csv`](../frontend/public/templates/score-import-template.csv)，采用中文表头，考试时间格式为 `YYYY-MM-DDTHH:mm:ss`。开发演示数据请在本地使用 [`../backend/db/init.sql`](../backend/db/init.sql)，不要挂载到生产数据库。
 
 ## 常用运维命令
 

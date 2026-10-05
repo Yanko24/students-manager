@@ -3,16 +3,23 @@
         <div class="page-header">
             <h2>成绩管理</h2>
             <div class="header-actions">
-                <el-upload class="upload-demo" action="/api/scores/import" accept=".csv"
-                    :headers="{ Authorization: `Bearer ${token}` }" :on-success="handleUploadSuccess"
-                    :on-error="handleUploadError" :show-file-list="false">
-                    <el-button type="primary">导入成绩</el-button>
-                </el-upload>
-                <a class="template-link" href="/templates/score-import-template.csv" download>下载导入模板</a>
+                <el-button type="primary" @click="importDialogVisible = true">导入成绩</el-button>
                 <el-button type="success" @click="handleExport">导出成绩</el-button>
                 <el-button type="primary" @click="router.push('/admin/scores/add')">录入成绩</el-button>
             </div>
         </div>
+
+        <csv-import-dialog
+            v-model="importDialogVisible"
+            title="批量导入成绩"
+            description="使用中文模板填写成绩数据。学号和课程代码需已存在，导入前会校验整份文件。"
+            template-name="成绩导入模板.csv"
+            template-href="/templates/score-import-template.csv"
+            :fields="['学号', '课程代码', '成绩', '学期', '考试时间', '评语']"
+            :tips="scoreImportTips"
+            :loading="importing"
+            @submit="handleImport"
+        />
 
         <el-card class="filter-card">
             <el-form :inline="true" :model="filterForm" class="filter-form">
@@ -80,21 +87,26 @@
 <script setup>
     import { ref } from 'vue'
     import { useRouter } from 'vue-router'
-    import { useUserStore } from '@/stores/user'
     import { ElMessage, ElMessageBox } from 'element-plus'
-    import { getScoreList, deleteScore, exportScores } from '@/api/score'
+    import { getScoreList, deleteScore, exportScores, importScores } from '@/api/score'
     import SmartPagination from '@/components/common/SmartPagination.vue'
     import RecordViewLink from '@/components/common/RecordViewLink.vue'
+    import CsvImportDialog from '@/components/common/CsvImportDialog.vue'
     import { formatDateTime } from '@/utils/dateUtils'
 
     const router = useRouter()
-    const userStore = useUserStore()
     const loading = ref(false)
     const scoreList = ref([])
     const total = ref(0)
+    const importDialogVisible = ref(false)
+    const importing = ref(false)
     const paginationRef = ref(null)
     const pageSize = ref(10)
-    const token = userStore.token
+    const scoreImportTips = [
+        '成绩填写 0–100；学期示例：2026-2027-1。',
+        '考试时间格式为 YYYY-MM-DDTHH:mm:ss，例如 2026-10-03T17:27:19。',
+        '最多导入 5000 条、文件不超过 5 MB；学号、课程代码必须已存在，任意记录失败整批回滚。'
+    ]
 
     const filterForm = ref({
         studentNo: '',
@@ -177,18 +189,22 @@
         }
     };
 
-    const handleUploadSuccess = (response) => {
-        if (response?.code !== 200) {
-            ElMessage.error(response?.message || '导入失败');
-            return;
+    const handleImport = async (file) => {
+        const formData = new FormData()
+        formData.append('file', file)
+        importing.value = true
+        try {
+            const response = await importScores(formData)
+            const count = response?.data?.imported ?? 0
+            ElMessage.success(`成功导入 ${count} 条成绩`)
+            importDialogVisible.value = false
+            handleSearch()
+        } catch (error) {
+            ElMessage.error(error?.message || '导入失败，请检查文件内容')
+        } finally {
+            importing.value = false
         }
-        ElMessage.success('导入成功');
-        handleSearch();
-    };
-
-    const handleUploadError = () => {
-        ElMessage.error('导入失败');
-    };
+    }
 
     const handleExport = async () => {
         try {

@@ -159,7 +159,7 @@ Swagger UI：<http://localhost:8080/swagger-ui/index.html>。受保护接口在 
 
 - 文件上传基础限制由 `application.yml` 中 `file.upload` 配置（默认最大 10 MB；JPEG、PNG、GIF）。
 - 学生模板：[`../frontend/public/templates/student-import-template.csv`](../frontend/public/templates/student-import-template.csv)。导入前需创建学院、专业、年级和班级；整批校验通过后才写入。
-- 成绩模板：[`../frontend/public/templates/score-import-template.csv`](../frontend/public/templates/score-import-template.csv)。导入字段为 `studentNo,courseCode,score,semester,examTime,comment`；考试时间格式为 `YYYY-MM-DDTHH:mm:ss`。
+- 成绩模板：[`../frontend/public/templates/score-import-template.csv`](../frontend/public/templates/score-import-template.csv)。中文表头为“学号、课程代码、成绩、学期、考试时间、评语”，同时兼容旧英文表头；考试时间格式为 `YYYY-MM-DDTHH:mm:ss`，成绩范围为 0–100。
 - 学生批量导入在 `/api/admin/students/**` 下仅管理员可用。成绩通用接口当前只要求登录，尚未统一按管理员/教师/学生细分授权。
 
 ## 会话与安全
