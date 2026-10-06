@@ -45,12 +45,13 @@ SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run
 | --- | --- | --- |
 | `SPRING_PROFILES_ACTIVE` | Spring Profile | 本地 `dev`；Docker 为 `prod` |
 | `SPRING_DATASOURCE_URL` | JDBC URL | 本地 `localhost:3306/students_manager` |
-| `SPRING_DATASOURCE_USERNAME` | 数据库用户名 | 本地 `root` |
-| `SPRING_DATASOURCE_PASSWORD` | 数据库密码 | 本地配置默认为 `xiaoer` |
+| `SPRING_DATASOURCE_USERNAME` | 数据库用户名 | 本地 `root`；Docker 使用 `students_manager_app` |
+| `SPRING_DATASOURCE_PASSWORD` | 数据库密码 | 本地配置默认为 `xiaoer`；生产环境必须注入 |
 | `SM4_KEY_BASE64` | 16 字节 SM4 密钥的 Base64 字符串 | 本地 dev 配置有仅供开发的默认值；生产必须设置 |
+| `JWT_SECRET` | JWT 签名密钥，至少 32 个随机字节 | dev 有仅供本地使用的默认值；prod 必须注入，可用 `openssl rand -hex 32` 生成 |
 | `JWT_EXPIRATION` | JWT 有效期，毫秒 | `1800000`（30 分钟） |
 
-**JWT 密钥说明：** 当前 `jwt.secret` 定义在 `application.yml`，尚未绑定到 `JWT_SECRET` 环境变量。生产打包前必须在配置中替换为至少 256 位的随机密钥，并妥善保管；不能假设在 `docker/.env` 添加 `JWT_SECRET` 就会生效。生产系统如需运行时从密钥管理服务注入，应先为应用补充对应的外部化配置。
+生产 Profile 将 `JWT_SECRET` 作为必填配置，未设置时应用不会启动。轮换该密钥会使所有已签发的 JWT 失效。开发 Profile 的静态兜底值只允许本地使用，生产环境必须通过密钥管理服务或容器环境变量注入。
 
 SM4 密钥必须保持稳定。更换或丢失密钥会导致已加密的手机号和邮箱无法解密。不要将生产密钥放入 Git、镜像或 SQL 初始化脚本。
 
@@ -65,7 +66,7 @@ set +a
 mvn spring-boot:run
 ```
 
-注意：模板目前只覆盖本地 SM4 密钥；数据库账号仍来自 `application-dev.yml`，需要时可在 `.env.local` 中自行增加 `SPRING_DATASOURCE_*` 变量。
+注意：模板目前只覆盖本地 SM4 密钥；数据库账号仍来自 `application-dev.yml`，需要时可在 `.env.local` 中自行增加 `SPRING_DATASOURCE_*` 变量。开发 Profile 有独立的本地 JWT 兜底密钥。
 
 ## 本地启动
 

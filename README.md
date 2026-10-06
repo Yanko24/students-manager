@@ -103,14 +103,19 @@ mvn -DskipTests compile
 
 ## Docker 部署
 
-首次部署前配置 Docker 环境文件，并设置强数据库密码和独立的 SM4 密钥：
+首次部署前配置 Docker 环境文件，并为应用数据库账号、JWT 和 SM4 分别生成独立密钥：
 
 ```bash
 cp docker/.env.example docker/.env
-openssl rand -base64 16
 ```
 
-将生成的 Base64 密钥填入 `docker/.env` 的 `SM4_KEY_BASE64`，并设置 `MYSQL_ROOT_PASSWORD`。密钥必须稳定并妥善备份；丢失或更换密钥后，已有加密邮箱和手机号将无法解密。不要提交真实的 `docker/.env`。
+推荐使用 Python 3 的标准库生成随机值，无需安装依赖或使用 OpenSSL：
+
+```bash
+python3 -c 'import base64, secrets; print("SM4_KEY_BASE64=" + base64.b64encode(secrets.token_bytes(16)).decode("ascii")); print("APP_DB_PASSWORD=" + secrets.token_hex(32)); print("JWT_SECRET=" + secrets.token_hex(32))'
+```
+
+将三行结果分别填入 `docker/.env` 对应变量。该命令使用操作系统提供的安全随机数；SM4 密钥生成 16 个随机字节再编码为 Base64，数据库密码和 JWT 密钥各由 32 个随机字节编码为 64 位十六进制。也可以使用可信密码管理器生成值：SM4 必须是 16 个随机字节的 Base64 编码，数据库密码建议用 64 位十六进制字符，JWT 至少 32 个随机字节（建议 64 位十六进制字符）。本地 Docker 的 root 初始密码默认为 `123456`；正式部署应设置独立强密码。密钥必须稳定并妥善备份；丢失或更换 SM4 密钥会导致已有加密联系方式无法解密，更换 JWT 密钥会让现有令牌失效。不要提交真实的 `docker/.env`。
 
 启动服务：
 
@@ -153,7 +158,7 @@ Docker 初始管理员账号为 `admin`，密码为 `xiaoer`，首次登录必�
 
 - 数据库保存带随机盐的 PBKDF2-HMAC-SM3 口令哈希，不保存明文密码。
 - 邮箱和手机号使用 SM4-GCM 加密，密钥通过 `SM4_KEY_BASE64` 提供；生产密钥须与数据库分开保存。
-- 当前 JWT 签名密钥仍配置在 `backend/src/main/resources/application.yml`，尚未从 Docker `.env` 外置；生产打包前必须替换该默认值。添加 `JWT_SECRET` 环境变量目前不会覆盖它。
+- 生产 JWT 签名密钥通过 `JWT_SECRET` 外部注入；不要将密钥提交到仓库或镜像。生产 Compose 使用 `students_manager_app` 数据库账号，不以 MySQL root 连接应用。
 - 部分业务 API 目前只要求登录，尚未全部按管理员/教师/学生角色细分；前端路由权限不等同于后端授权。
 - 目前没有为所有个人信息字段、数据库数据卷或 JDBC 连接启用额外加密。生产部署应使用专用数据库账号、强密码，并按部署环境配置数据库 TLS 和磁盘加密。
 - 不要将 `backend/.env.local`、`docker/.env`、密钥或生产数据提交到仓库。

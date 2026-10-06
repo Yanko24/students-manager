@@ -9,9 +9,10 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:-false}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-1800000}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in docker/.env}
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/students_manager?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      SPRING_DATASOURCE_USERNAME: ${APP_DB_USER:-students_manager_app}
+      SPRING_DATASOURCE_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in docker/.env}
       SM4_KEY_BASE64: ${SM4_KEY_BASE64:?Set SM4_KEY_BASE64 in docker/.env}
     depends_on:
       mysql:
@@ -61,6 +62,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       MYSQL_DATABASE: students_manager
+      MYSQL_USER: ${APP_DB_USER:-students_manager_app}
+      MYSQL_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in docker/.env}
       TZ: Asia/Shanghai
       LANG: C.UTF-8
     volumes:

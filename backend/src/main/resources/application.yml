@@ -18,7 +18,6 @@ spring:
 
 # JWT配置
 jwt:
-  secret: your-secret-key-must-be-at-least-256-bits-long-for-HS256-algorithm
   expiration: ${JWT_EXPIRATION:1800000} # 默认30分钟，单位毫秒
   header: Authorization
   prefix: "Bearer "

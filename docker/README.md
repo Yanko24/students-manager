@@ -18,7 +18,7 @@ nginx（入口代理） ── /api/* ──► backend（Spring Boot :8080）
 backend ── JDBC ──► mysql（容器 :3306，宿主机 MYSQL_PORT）
 ```
 
-`nginx` 和 `frontend` 是两个职责不同的容器：前者对宿主机发布端口并路由请求，后者只负责静态文件。前端镜像使用 Nginx 1.25.4 Alpine；外部入口使用 Nginx 1.25.4。`/api/` 由入口 Nginx 转发至 Spring Boot，其余路径转发至前端静态站点。
+`nginx` 和 `frontend` 是两个职责不同的容器：前者对宿主机发布端口并路由请求，后者只负责静态文件。前端构建使用 Node 24 LTS，静态站点和外部入口均使用 Nginx 1.30 Alpine。`/api/` 由入口 Nginx 转发至 Spring Boot，其余路径转发至前端静态站点。
 
 ## 文件职责
 
@@ -26,7 +26,7 @@ backend ── JDBC ──► mysql（容器 :3306，宿主机 MYSQL_PORT）
 | --- | --- |
 | `docker-compose.yml` | 编排四个容器、端口、网络、健康检查、环境变量和 MySQL 卷 |
 | `backend.Dockerfile` | 使用 Maven/Java 17 构建并运行 Spring Boot JAR |
-| `frontend.Dockerfile` | 使用 Node 20 构建 Vue 静态文件，再复制到 Nginx 镜像 |
+| `frontend.Dockerfile` | 使用 Node 24 LTS 构建 Vue 静态文件，再复制到 Nginx 镜像 |
 | `nginx.conf` | 将 `/api/` 转给后端，其余请求转给前端 |
 | `backend/src/main/resources/db/migration/` | Flyway 版本化 schema 迁移；首次启动建表并创建初始管理员 |
 | `.env.example` | 数据库密码、SM4 密钥、JWT 有效期及宿主机端口模板 |
@@ -48,16 +48,48 @@ Compose 中两个 Dockerfile 的 `build.context` 均为项目根目录（`..`）
 ```bash
 cd docker
 cp .env.example .env
-openssl rand -base64 16
 ```
 
-编辑 `docker/.env`，至少替换以下值：
+#### 方法一：Python 标准库（推荐）
+
+安装 Python 3 即可，无需安装额外包或使用 OpenSSL。在项目根目录或 `docker` 目录执行：
+
+```bash
+python3 -c 'import base64, secrets; print("SM4_KEY_BASE64=" + base64.b64encode(secrets.token_bytes(16)).decode("ascii")); print("APP_DB_PASSWORD=" + secrets.token_hex(32)); print("JWT_SECRET=" + secrets.token_hex(32)); print("MYSQL_ROOT_PASSWORD=" + secrets.token_hex(32))'
+```
+
+将输出的四行分别复制到 `docker/.env` 中同名变量。脚本调用 Python `secrets` 模块，从操作系统的安全随机数源取值，不依赖 OpenSSL。不要把命令输出粘贴到聊天、工单或提交记录中。
+
+| 变量 | 随机材料与格式 | 用途 |
+| --- | --- | --- |
+| `SM4_KEY_BASE64` | 16 个随机字节的 Base64 编码；解码后必须恰好为 16 字节 | SM4-GCM 联系方式加密 |
+| `APP_DB_PASSWORD` | 32 个随机字节的十六进制编码，即 64 个 `[0-9a-f]` 字符 | 应用数据库账号密码；十六进制可避免 SQL 引号转义问题 |
+| `JWT_SECRET` | 32 个随机字节的十六进制编码，即 64 个 `[0-9a-f]` 字符 | JWT 签名；至少 32 字节随机材料 |
+| `MYSQL_ROOT_PASSWORD` | 32 个随机字节的十六进制编码，即 64 个 `[0-9a-f]` 字符 | 正式部署的 MySQL root 密码；仅本地开发可保留示例值 `123456` |
+
+如果系统命令名是 `python` 而不是 `python3`，将上面的 `python3` 替换为 `python`。Windows PowerShell 若已安装 Python，也可运行同一条 `python -c '...'` 命令。
+
+#### 方法二：密码管理器
+
+可信密码管理器也可以生成和保存这些值。SM4 密钥要选择“生成随机字节/密钥”并生成恰好 16 字节，然后以 Base64 表示；不要直接把普通密码文本填入 `SM4_KEY_BASE64`。`APP_DB_PASSWORD` 和 `MYSQL_ROOT_PASSWORD` 建议使用 64 个十六进制字符（或确保只使用字母、数字、下划线和连字符，避免 SQL 特殊字符）；`JWT_SECRET` 使用至少 32 字节的高强度随机值，推荐 64 位十六进制字符。每个变量都应使用单独生成的随机值，不能互相复用。
+
+#### 校验配置格式
+
+保存 `.env` 后，可运行下面的检查。它只读取并校验长度/编码，不会输出密钥本身：
+
+```bash
+python3 -c 'from pathlib import Path; import base64; values = dict(line.split("=", 1) for line in Path(".env").read_text().splitlines() if line and not line.lstrip().startswith("#") and "=" in line); assert len(base64.b64decode(values["SM4_KEY_BASE64"], validate=True)) == 16, "SM4_KEY_BASE64 必须解码为 16 字节"; assert len(values["APP_DB_PASSWORD"]) >= 32, "APP_DB_PASSWORD 太短"; assert len(values["JWT_SECRET"].encode("utf-8")) >= 32, "JWT_SECRET 少于 32 字节"; print("密钥格式检查通过")'
+```
+
+如果使用 `python` 命令而不是 `python3`，也相应替换检查命令开头的 `python3`。
 
 ```dotenv
-SM4_KEY_BASE64=填入openssl生成的16字节Base64密钥
+SM4_KEY_BASE64=填入第一条命令生成的Base64值
+APP_DB_PASSWORD=填入第二条命令生成的64位十六进制值
+JWT_SECRET=填入第三条命令生成的64位十六进制值
 ```
 
-本地开发可保留 `.env.example` 中的 MySQL root 初始密码 `123456`。正式部署时，必须另行设置 `MYSQL_ROOT_PASSWORD` 为独立强随机密码；例如用 `openssl rand -base64 32` 生成，再填入 `.env`。
+`APP_DB_USER` 默认是 `students_manager_app`，无需额外添加变量。本地 Docker 可保留 root 初始密码 `123456`；正式部署应为 `MYSQL_ROOT_PASSWORD` 配置独立强随机值。应用通过 `APP_DB_USER` / `APP_DB_PASSWORD` 使用受限数据库账号，不以 root 连接。Compose 会将 `APP_DB_USER` 和 `APP_DB_PASSWORD` 映射为 MySQL 容器所需的 `MYSQL_USER` 和 `MYSQL_PASSWORD`；后两者不是 `.env` 中需要配置的变量。
 
 SM4 密钥必须 Base64 解码为**恰好 16 字节**。将它作为秘密材料妥善备份，并与数据库备份分开保管；不能随意更换或丢失，否则之前加密的手机号和邮箱无法解密。不要把真实 `.env` 提交到仓库或放入镜像。
 
@@ -66,13 +98,16 @@ SM4 密钥必须 Base64 解码为**恰好 16 字节**。将它作为秘密材料
 | 变量 | 默认值/要求 | 说明 |
 | --- | --- | --- |
 | `MYSQL_ROOT_PASSWORD` | `.env.example` 本地初始化默认值为 `123456`；Compose 未设置时也使用 `123456` | 本地开发使用；正式部署必须覆盖为强密码。仅首次初始化数据卷时生效 |
+| `APP_DB_USER` | `students_manager_app` | 后端专用账号；权限限定在 `students_manager` 数据库 |
+| `APP_DB_PASSWORD` | 必填，推荐 Python `secrets.token_hex(32)` 生成 | MySQL 首次初始化会创建该账号；已有数据卷需按下文升级步骤创建 |
+| `JWT_SECRET` | 必填，推荐 Python `secrets.token_hex(32)` 生成 | 至少 32 字节随机密钥；更换后所有登录令牌失效 |
 | `SM4_KEY_BASE64` | 必填，无默认值 | `backend` 服务启动必需；16 字节密钥的 Base64 |
 | `JWT_EXPIRATION` | `1800000` | JWT 有效期，单位毫秒，默认 30 分钟 |
 | `SPRING_FLYWAY_BASELINE_ON_MIGRATE` | `false` | 仅在接入经核对的既有数据库时，首次启动临时设为 `true`；成功后恢复 `false` |
 | `HTTP_PORT` | `80` | 浏览器访问端口；端口冲突时修改 |
 | `MYSQL_PORT` | `3308` | 主机连接 MySQL 的映射端口；容器内部仍为 3306 |
 
-**JWT 签名密钥：** 当前后端将 `jwt.secret` 配置在 `backend/src/main/resources/application.yml`，还没有从 Docker `.env` 读取 `JWT_SECRET` 的配置。正式部署前需在构建后端镜像前，将该配置替换为强随机值（至少 256 位）并安全保管；仅在 `.env` 中添加 `JWT_SECRET` 不会生效。此配置外置能力需要后端代码支持后才能通过 Compose 注入。
+**权限说明：** MySQL 官方镜像仅在空数据目录首次初始化时，根据 Compose 映射进去的 `MYSQL_USER` / `MYSQL_PASSWORD` 创建应用账号。现有数据卷升级时，先备份，再按下一节创建账号并授权，然后重建后端；不要删除或重建数据库卷。
 
 ## 启动与访问
 
@@ -96,7 +131,7 @@ Compose 使用 `app-network` 网络，容器间通过 `mysql`、`backend`、`fro
 
 ## 数据库初始化与持久化
 
-MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_manager` 数据库。空库第一次由后端启动时，Flyway 运行 `V1` 建表，再由 `V2` 插入唯一初始管理员 `admin`。不包含演示学生、教师、学院、专业或课程。迁移文件随 Spring Boot JAR 打包，不需要 MySQL 初始化 SQL 挂载。
+MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_manager` 数据库；空数据卷首次初始化时，MySQL 镜像会创建 `students_manager_app` 并授予该库权限。后端以此账号连接和运行 Flyway，不使用 root。Flyway 运行 `V1` 建表，再由 `V2` 插入唯一初始管理员 `admin`。不包含演示学生、教师、学院、专业或课程。迁移文件随 Spring Boot JAR 打包，不需要 MySQL 初始化 SQL 挂载。
 
 数据库保存在 Compose 命名卷 `students-manager-mysql-data`。Docker Compose 通常会在实际卷名中添加项目名前缀，可通过 `docker volume ls` 确认。以下行为不会清空数据卷：
 
@@ -105,6 +140,31 @@ MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_m
 - `docker compose up -d --build` 重建容器或镜像
 
 Flyway 在每次后端启动时检查 `flyway_schema_history`，只执行尚未成功的版本迁移。首次接入既有数据卷时必须先备份并核对 schema；只有符合旧版标准结构时，才在 `.env` 临时设 `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true`，并执行 `docker compose up -d --force-recreate backend`。成功 baseline 并执行 V2 后，恢复为 `false` 并再次重建后端。V2 会补已知缺失的 `courses.course_type` 和 `scores` 表；其它 schema 差异需先人工核对并单独迁移。不要删除数据卷作为升级手段。
+
+#### 给已有数据卷创建应用账号
+
+更改 Compose 环境变量不会修改已有 MySQL 用户。对现有数据卷升级时，先备份数据库，然后启动 MySQL 服务；使用 root 在该容器中执行一次以下命令创建/更新专用账号，再启动后端：
+
+```bash
+docker compose up -d mysql
+docker compose exec -it mysql mysql -uroot -p
+```
+
+输入 root 密码后，在 MySQL 提示符执行以下语句。将密码占位文本替换为 `.env` 中 `APP_DB_PASSWORD` 的值：
+
+```sql
+CREATE USER IF NOT EXISTS 'students_manager_app'@'%' IDENTIFIED BY '替换为APP_DB_PASSWORD';
+ALTER USER 'students_manager_app'@'%' IDENTIFIED BY '替换为APP_DB_PASSWORD';
+GRANT ALL PRIVILEGES ON `students_manager`.* TO 'students_manager_app'@'%';
+```
+
+随后退出 MySQL 并启动服务：
+
+```bash
+docker compose up -d --build
+```
+
+账号主机部分为 `%`，用于兼容 Compose 网络地址变化；数据库标识符使用反引号精确限定到 `students_manager`，应用权限不会授予其它库。`APP_DB_PASSWORD` 使用十六进制随机值，避免 SQL 引号转义问题。新空卷不需要手工执行此步骤。
 
 ### 备份和恢复
 
