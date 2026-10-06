@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import javax.validation.ConstraintViolationException;
+import jakarta.validation.ConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -100,4 +100,4 @@ public class GlobalExceptionHandler {
         log.error("系统异常", e);
         return Result.error(ResultCode.INTERNAL_SERVER_ERROR, ResultMessage.INTERNAL_SERVER_ERROR);
     }
-} 
+}

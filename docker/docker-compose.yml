@@ -7,6 +7,7 @@ services:
     image: students-manager-backend:local
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:-false}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-1800000}
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/students_manager?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8
       SPRING_DATASOURCE_USERNAME: root
@@ -64,7 +65,6 @@ services:
       LANG: C.UTF-8
     volumes:
       - students-manager-mysql-data:/var/lib/mysql
-      - ./db:/docker-entrypoint-initdb.d:ro
     ports:
       - "${MYSQL_PORT:-3308}:3306"
     networks:

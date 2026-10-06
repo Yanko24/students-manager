@@ -1,7 +1,7 @@
 package com.example.studentsmanager.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.example.studentsmanager.model.vo.student.StudentVO;
 import com.example.studentsmanager.model.dto.student.StudentQueryDTO;
 import com.example.studentsmanager.model.entity.Student;
@@ -57,4 +57,4 @@ public interface StudentService extends IService<Student> {
      * @return 在读学生人数
      */
     Integer countClassEnrolledStudents(String majorCode, String grade, String classNo);
-} 
+}

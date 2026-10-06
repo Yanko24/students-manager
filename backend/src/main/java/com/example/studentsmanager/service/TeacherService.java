@@ -1,6 +1,6 @@
 package com.example.studentsmanager.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.studentsmanager.model.dto.teacher.TeacherQueryDTO;
 import com.example.studentsmanager.model.entity.Teacher;

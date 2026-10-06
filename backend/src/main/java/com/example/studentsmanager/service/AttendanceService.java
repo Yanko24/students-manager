@@ -7,7 +7,7 @@ import com.example.studentsmanager.model.entity.Attendance;
 import com.example.studentsmanager.model.vo.attendance.AttendanceStatsVO;
 import com.example.studentsmanager.model.vo.attendance.AttendanceTrendVO;
 import com.example.studentsmanager.model.vo.attendance.AttendanceVO;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 import java.util.List;
 

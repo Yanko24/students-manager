@@ -4,13 +4,14 @@
 
 ## 技术栈与运行要求
 
-- Java 11
-- Spring Boot 2.7.18、Spring MVC、Spring Security
-- MyBatis-Plus 3.5.3.1
+- Java 17
+- Spring Boot 4.1.1、Spring MVC、Spring Security 7
+- MyBatis-Plus 3.5.17（Spring Boot 4 starter）
+- Flyway 13.6.0（MySQL 支持模块单独引入）
 - MySQL Connector/J 8.4.0，目标数据库 MySQL 8.4
-- Maven 3.6 或更新版本
+- Maven 3.6.3 或更新版本
 - Bouncy Castle：SM3、SM4-GCM 算法实现
-- Springfox Swagger 3
+- springdoc-openapi 3（OpenAPI 3 / Swagger UI）
 
 ## 后端职责
 
@@ -29,8 +30,8 @@
 | 文件 | 用途 |
 | --- | --- |
 | `application.yml` | 公共配置、默认 Profile、端口、JWT 有效期和文件上传限制 |
-| `application-dev.yml` | 本地开发数据库连接、MyBatis SQL 日志和开发用 SM4 默认密钥 |
-| `application-prod.yml` | 生产日志配置及公共 MyBatis 设置；数据库连接和 SM4 密钥应通过环境变量提供 |
+| `application-dev.yml` | 本地开发数据库连接、MyBatis SQL 日志、开发用 SM4 默认密钥；允许旧开发库自动 baseline |
+| `application-prod.yml` | 生产日志配置及公共 MyBatis 设置；数据库连接、Flyway baseline 和 SM4 密钥按生产流程显式设置 |
 
 `application.yml` 当前默认激活 `dev` Profile。Docker Compose 会显式设置 `SPRING_PROFILES_ACTIVE=prod`。本机可在 IDEA 的运行配置中设置 Profile，也可在终端指定：
 
@@ -119,21 +120,34 @@ mvn -DskipTests compile
 
 ## 数据库初始化与样例
 
+Flyway 迁移位于 [`src/main/resources/db/migration/`](src/main/resources/db/migration/)；应用启动时自动按版本顺序执行，并在 `flyway_schema_history` 表记录结果。版本文件采用 `V版本号__说明.sql` 命名，已在任一环境执行的迁移不可编辑，应新增更高版本文件。
+
+- `V1__create_initial_schema.sql`：从空库创建当前标准表结构。
+- `V2__repair_legacy_schema_and_seed_admin.sql`：修补已知旧库缺少 `courses.course_type` 或 `scores` 表的情况；若没有管理员则创建默认管理员 `admin`（密码 `xiaoer`，首次登录必须修改）。
+- 后续表结构、索引或需要版本化的基础数据变更都新增 `V3__...sql`、`V4__...sql` 等迁移，不在应用代码启动时手动改表。
+
+Flyway 13 需要 Java 17，MySQL 支持通过单独的 `flyway-mysql` 模块提供。数据库迁移应先在独立的 MySQL 8.4 测试库验证，再用于生产；不要把 Maven 打包成功当成数据库兼容性验证。
+
 ### 本地开发
 
-[`db/init.sql`](db/init.sql) 在新数据库中创建完整表结构并初始化开发数据，包括用户、学院、专业、教师、学生、课程、选课、成绩和考勤。样例账号初始密码为 `xiaoer`，首次登录需修改。脚本适合本地开发和演示，不要将其当作生产升级脚本。
+[`db/init.sql`](db/init.sql) 仍用于建立本地开发演示数据，包括学院、专业、教师、学生、课程、选课、成绩和考勤。执行后以 `dev` Profile 启动时，Flyway 会将非空开发库记录为 V1 基线，再执行后续迁移；开发 Profile 默认允许自动 baseline。直接创建空数据库并启动后端时，Flyway 会从 V1 建表并创建初始管理员，但不会填充演示数据。
+
+如需让 Flyway 从空库建表而不导入演示数据，可先创建数据库，再从 `backend/` 启动应用：
+
+```bash
+mysql -u root -p -e "CREATE DATABASE students_manager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+mvn spring-boot:run
+```
 
 ### Docker/生产初始化
 
-[`../docker/db/init.sql`](../docker/db/init.sql) 用于 Docker MySQL 的空数据目录首次启动：创建表结构并插入首个管理员，不插入演示学生、教师、学院或课程。MySQL 官方镜像只会在数据目录为空时运行 `/docker-entrypoint-initdb.d/` 中的 SQL。
+Docker Compose 通过 `MYSQL_DATABASE` 创建空库；后端启动后 Flyway 从 V1 建表，再由 V2 创建初始管理员，不插入演示学生、教师、学院或课程。MySQL 卷只负责保存数据，不再挂载一份重复的生产建表 SQL。
 
-现有数据库不会自动升级；`CREATE TABLE IF NOT EXISTS` 不会为已有表补列。若应用报告 `Unknown column` 或 `Table doesn't exist`，应先比对实际库结构与当前初始化文件，再为已有库编写、备份并执行明确的升级脚本。直接重建数据卷会删除库中数据，不应作为常规升级方法。
+#### 接入已有生产数据库
 
-两个初始化文件的说明：
+先备份并核对实际 schema。若它符合 Flyway V1 代表的旧版标准结构（允许缺少 V2 明确修补的 `courses.course_type` 或 `scores` 表），再在 `docker/.env` 临时设置 `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true`，运行 `docker compose up -d --force-recreate backend`：Flyway 会将已有库记录为 V1，然后执行 V2。确认启动成功后立即将该值改回 `false`，再运行同一命令重建后端。默认关闭生产自动 baseline，是为了避免连错数据库时跳过整批初始迁移。
 
-- 开发：[`db/init.sql`](db/init.sql)
-- Docker 生产：[`../docker/db/init.sql`](../docker/db/init.sql)
-- 生产初始化文件由 Compose 挂载，不由后端应用自动执行。
+若已有库的表、列与 V1 有其他差异，不要直接 baseline；应先备份并按真实 schema 编写/执行专门的向前修复迁移，再进行 baseline。V2 只兼容上述两项已知差异，并不替代 schema 审核。不要删除 Docker 数据卷来“升级”数据库。
 
 ## API 与权限概览
 
@@ -182,7 +196,7 @@ Vite 输出在 `src/main/resources/static/`，IDEA 运行 classpath 常使用 `t
 
 ### 数据表或列缺失
 
-初始化脚本只作用于新建数据库。已有数据库不会自动套用最新结构；备份后按 schema 编写升级 SQL，不要为了升级直接删除数据卷。
+Flyway 只执行尚未成功的版本迁移。已有数据库接入前须按上文核对并 baseline；其它 schema 差异应在备份后新增向前迁移，不要为了升级直接删除数据卷。
 
 ## 相关文档
 

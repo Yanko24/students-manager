@@ -1,5 +1,8 @@
 package com.example.studentsmanager.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.studentsmanager.core.response.Result;
 import com.example.studentsmanager.model.dto.score.ScoreQueryDTO;
@@ -11,8 +14,6 @@ import com.example.studentsmanager.model.vo.score.ScoreDistributionResponse;
 import com.example.studentsmanager.service.CourseService;
 import com.example.studentsmanager.service.ScoreService;
 import com.example.studentsmanager.service.StudentService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -34,7 +35,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/scores")
 @RequiredArgsConstructor
-@Api(tags = "成绩管理")
+@Tag(name = "成绩管理")
 public class ScoreController {
     private static final long MAX_IMPORT_FILE_BYTES = 5L * 1024 * 1024;
     private static final int MAX_IMPORT_ROWS = 5000;
@@ -43,34 +44,34 @@ public class ScoreController {
     private final CourseService courseService;
 
     @GetMapping
-    @ApiOperation(value = "分页查询成绩", notes = "根据查询条件分页获取成绩列表")
+    @Operation(summary = "分页查询成绩", description = "根据查询条件分页获取成绩列表")
     public Result<Page<ScoreVO>> getScores(ScoreQueryDTO query) { return Result.success(scoreService.getScorePage(query)); }
 
     @GetMapping("/distribution")
-    @ApiOperation(value = "查询成绩分布", notes = "按时间范围统计成绩分布情况")
+    @Operation(summary = "查询成绩分布", description = "按时间范围统计成绩分布情况")
     public Result<ScoreDistributionResponse> getScoreDistribution(
             @RequestParam(defaultValue = "semester") String period) {
         return Result.success(scoreService.getScoreDistribution(period));
     }
 
     @GetMapping("/{id}")
-    @ApiOperation(value = "查询成绩详情", notes = "根据成绩编号获取成绩信息")
+    @Operation(summary = "查询成绩详情", description = "根据成绩编号获取成绩信息")
     public Result<ScoreVO> getScore(@PathVariable Long id) { return Result.success(scoreService.getScore(id)); }
 
     @PostMapping
-    @ApiOperation(value = "新增成绩", notes = "创建一条学生成绩记录")
+    @Operation(summary = "新增成绩", description = "创建一条学生成绩记录")
     public Result<ScoreVO> createScore(@RequestBody ScoreUpdateDTO dto) { return Result.success(scoreService.createScore(dto)); }
 
     @PutMapping("/{id}")
-    @ApiOperation(value = "更新成绩", notes = "根据成绩编号更新成绩信息")
+    @Operation(summary = "更新成绩", description = "根据成绩编号更新成绩信息")
     public Result<ScoreVO> updateScore(@PathVariable Long id, @RequestBody ScoreUpdateDTO dto) { return Result.success(scoreService.updateScore(id, dto)); }
 
     @DeleteMapping("/{id}")
-    @ApiOperation(value = "删除成绩", notes = "根据成绩编号删除成绩记录")
+    @Operation(summary = "删除成绩", description = "根据成绩编号删除成绩记录")
     public Result<Void> deleteScore(@PathVariable Long id) { scoreService.deleteScore(id); return Result.success(); }
 
     @PostMapping("/import")
-    @ApiOperation(value = "导入成绩", notes = "通过CSV文件批量导入成绩记录")
+    @Operation(summary = "导入成绩", description = "通过CSV文件批量导入成绩记录")
     @Transactional(rollbackFor = Exception.class)
     public Result<Map<String, Integer>> importScores(@RequestParam("file") MultipartFile file) throws Exception {
         if (file.isEmpty()) throw new IllegalArgumentException("请选择CSV文件");
@@ -145,7 +146,7 @@ public class ScoreController {
     }
 
     @GetMapping("/export")
-    @ApiOperation(value = "导出成绩", notes = "根据查询条件导出成绩CSV文件")
+    @Operation(summary = "导出成绩", description = "根据查询条件导出成绩CSV文件")
     public ResponseEntity<byte[]> exportScores(ScoreQueryDTO query) {
         query.setPage(1); query.setSize(100000);
         Page<ScoreVO> page = scoreService.getScorePage(query);

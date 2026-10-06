@@ -10,6 +10,9 @@ server:
     max-connections: 10000
 
 spring:
+  flyway:
+    # Production upgrades require an explicit, reviewed baseline for an existing database.
+    baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:false}
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/students_manager?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai

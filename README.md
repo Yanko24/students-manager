@@ -15,8 +15,9 @@
 ## 技术栈
 
 - 前端：Vue 3、Vite、Vue Router、Pinia、Element Plus、ECharts
-- 后端：Java 11、Spring Boot 2.7、Spring Security、JWT、MyBatis-Plus
+- 后端：Java 17、Spring Boot 4.1、Spring Security、JWT、MyBatis-Plus
 - 数据库：MySQL 8.4
+- 数据库变更：Flyway 13
 - 安全：密码使用 PBKDF2-HMAC-SM3 哈希存储；手机号和邮箱使用 SM4-GCM 加密
 
 ## 目录结构
@@ -26,6 +27,7 @@ students-manager/
 ├── backend/
 │   ├── db/init.sql                 # 本地开发数据库结构与演示数据
 │   ├── src/main/java/              # Spring Boot 源码
+│   ├── src/main/resources/db/migration/ # Flyway 版本化数据库迁移
 │   ├── src/main/resources/         # 应用配置、Mapper 配置及前端构建输出
 │   ├── .env.local.example          # 可选的本地环境变量模板
 │   └── pom.xml
@@ -39,7 +41,6 @@ students-manager/
 │   ├── vite.config.js
 │   └── package.json
 ├── docker/
-│   ├── db/init.sql                 # 生产数据库初始化结构及首个管理员
 │   ├── backend.Dockerfile
 │   ├── frontend.Dockerfile
 │   ├── docker-compose.yml
@@ -52,8 +53,8 @@ students-manager/
 
 ### 环境要求
 
-- Java 11
-- Maven 3.6+
+- Java 17
+- Maven 3.6.3+
 - Node.js 20、npm
 - MySQL 8.4
 
@@ -130,14 +131,14 @@ docker compose down
 
 `docker compose down` 会保留命名卷中的数据库数据。仅在确认备份后，才使用 `docker compose down -v` 删除数据卷。完整说明见 [Docker 部署文档](docker/README.md)。
 
-## 初始化数据与账号
+## 数据库初始化与账号
 
 | 场景 | 初始化文件 | 数据内容 |
 | --- | --- | --- |
-| 本地开发 | [`backend/db/init.sql`](backend/db/init.sql) | 表结构及演示业务数据 |
-| Docker 部署 | [`docker/db/init.sql`](docker/db/init.sql) | 表结构及首个管理员，不含演示学生、教师、课程等数据 |
+| 本地开发演示 | [`backend/db/init.sql`](backend/db/init.sql) | 表结构及演示业务数据；本地启动时 Flyway 自动 baseline 并应用后续迁移 |
+| 新建空库 | Flyway migrations | 自动建表并创建首个管理员，不含演示学生、教师、课程等数据 |
 
-Docker MySQL 只会在**空数据目录首次初始化**时执行 `docker/db/init.sql`；已存在的数据卷不会因重建容器而重新初始化。两个 SQL 文件都是初始化脚本，不是数据库升级脚本。
+Docker MySQL 使用 `MYSQL_DATABASE` 创建空数据库；后端启动时 Flyway 应用 `backend/src/main/resources/db/migration/` 中尚未执行的迁移。已有生产数据卷不会被清空；接入时须备份、检查 schema，并按 [后端数据库迁移说明](backend/README.md#数据库初始化与样例) 完成一次 baseline。
 
 Docker 初始管理员账号为 `admin`，密码为 `xiaoer`，首次登录必须修改密码。本地开发初始化脚本中的演示用户初始密码也为 `xiaoer`，用户名分别是管理员账号、教师工号或学生学号；首次登录同样需要修改。生产环境不会自动生成演示账号。CSV 模板位于 `frontend/public/templates/`；学生批量导入前需先建立对应学院及专业班级。
 

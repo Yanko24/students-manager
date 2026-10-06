@@ -1,24 +1,26 @@
 package com.example.studentsmanager.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import com.example.studentsmanager.constant.ResultCode;
 import com.example.studentsmanager.core.response.Result;
 import com.example.studentsmanager.exception.BusinessException;
 import com.example.studentsmanager.model.entity.User;
 import com.example.studentsmanager.service.UserService;
-import io.swagger.annotations.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.List;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "http://localhost:3000")
-@Api(tags = "用户管理")
+@Tag(name = "用户管理")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -26,11 +28,8 @@ public class UserController {
     private UserService userService;
 
     @GetMapping
-    @ApiOperation(value = "获取所有用户", notes = "返回系统中所有用户的信息列表")
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "成功获取用户列表")
-    })
-    public Result<List<User>> getAllUsers() {
+    @Operation(summary = "获取所有用户", description = "返回系统中所有用户的信息列表")
+public Result<List<User>> getAllUsers() {
         log.info("收到获取所有用户请求");
         try {
             List<User> users = userService.list();
@@ -43,12 +42,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @ApiOperation(value = "获取用户详情", notes = "根据ID获取指定用户的详细信息")
-    @ApiImplicitParam(name = "id", value = "用户ID", required = true, type = "integer", paramType = "path", example = "1", dataTypeClass = Long.class)
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "成功获取用户信息"),
-            @ApiResponse(code = 404, message = "用户不存在")
-    })
+    @Operation(summary = "获取用户详情", description = "根据ID获取指定用户的详细信息")
     public Result<User> getUserById(@PathVariable Long id) {
         log.info("收到获取用户详情请求，ID: {}", id);
         try {
@@ -68,12 +62,7 @@ public class UserController {
     }
 
     @PostMapping
-    @ApiOperation(value = "创建用户", notes = "创建新的用户信息")
-    @ApiImplicitParam(name = "user", value = "用户信息", required = true, type = "object", dataTypeClass = User.class)
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "用户创建成功"),
-            @ApiResponse(code = 400, message = "用户创建失败")
-    })
+    @Operation(summary = "创建用户", description = "创建新的用户信息")
     public Result<User> createUser(@Valid @RequestBody User user) {
         log.info("收到创建用户请求，用户名: {}", user.getUsername());
         try {
@@ -93,16 +82,8 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @ApiOperation(value = "更新用户", notes = "更新指定用户的信息")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "id", value = "用户ID", required = true, type = "integer", paramType = "path", example = "1", dataTypeClass = Long.class),
-            @ApiImplicitParam(name = "user", value = "用户信息", required = true, type = "object", dataTypeClass = User.class)
-    })
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "用户更新成功"),
-            @ApiResponse(code = 404, message = "用户不存在")
-    })
-    public Result<User> updateUser(@PathVariable Long id, @Valid @RequestBody User user) {
+    @Operation(summary = "更新用户", description = "更新指定用户的信息")
+public Result<User> updateUser(@PathVariable Long id, @Valid @RequestBody User user) {
         log.info("收到更新用户请求，ID: {}", id);
         try {
             User existingUser = userService.getById(id);
@@ -127,12 +108,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @ApiOperation(value = "删除用户", notes = "删除指定的用户信息")
-    @ApiImplicitParam(name = "id", value = "用户ID", required = true, type = "integer", paramType = "path", example = "1", dataTypeClass = Long.class)
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "用户删除成功"),
-            @ApiResponse(code = 404, message = "用户不存在")
-    })
+    @Operation(summary = "删除用户", description = "删除指定的用户信息")
     public Result<Void> deleteUser(@PathVariable Long id) {
         log.info("收到删除用户请求，ID: {}", id);
         try {
@@ -150,4 +126,4 @@ public class UserController {
             throw e; // 让GlobalExceptionHandler处理异常
         }
     }
-} 
+}

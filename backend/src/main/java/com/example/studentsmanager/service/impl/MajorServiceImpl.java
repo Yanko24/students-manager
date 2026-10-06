@@ -1,7 +1,7 @@
 package com.example.studentsmanager.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.example.studentsmanager.constant.ResultMessage;
 import com.example.studentsmanager.exception.BusinessException;
 import com.example.studentsmanager.mapper.MajorMapper;
@@ -86,7 +86,7 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements
             Major existingMajor = getMajorByCodeAndGradeAndClassNo(
                 majorUpdateDTO.getCode(), majorUpdateDTO.getGrade(), majorUpdateDTO.getClassNo());
             if (existingMajor != null) {
-                log.warn("创建专业信息失败，专业代码：{}，年级：{}，班级号：{}，原因：专业已存在", 
+                log.warn("创建专业信息失败，专业代码：{}，年级：{}，班级号：{}，原因：专业已存在",
                     majorUpdateDTO.getCode(), majorUpdateDTO.getGrade(), majorUpdateDTO.getClassNo());
                 throw new BusinessException(ResultMessage.MAJOR_ALREADY_EXISTS);
             }
@@ -97,7 +97,7 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements
             setCreateInfo(major);
             this.save(major);
 
-            log.info("创建专业信息成功，专业代码：{}，年级：{}，班级号：{}", 
+            log.info("创建专业信息成功，专业代码：{}，年级：{}，班级号：{}",
                 major.getCode(), major.getGrade(), major.getClassNo());
             return convertToDTO(major);
         } catch (BusinessException e) {
@@ -111,7 +111,7 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MajorVO updateMajor(String code, String grade, String classNo, MajorUpdateDTO updateDTO) {
-        log.info("开始更新专业信息，专业代码：{}，年级：{}，班级号：{}，更新内容：{}", 
+        log.info("开始更新专业信息，专业代码：{}，年级：{}，班级号：{}，更新内容：{}",
             code, grade, classNo, updateDTO);
         try {
             // 检查是否存在
@@ -131,7 +131,7 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("更新专业信息异常，专业代码：{}，年级：{}，班级号：{}，错误信息：{}", 
+            log.error("更新专业信息异常，专业代码：{}，年级：{}，班级号：{}，错误信息：{}",
                 code, grade, classNo, e.getMessage(), e);
             throw new BusinessException(ResultMessage.MAJOR_UPDATE_FAILED);
         }
@@ -155,7 +155,7 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("删除专业信息异常，专业代码：{}，年级：{}，班级号：{}，错误信息：{}", 
+            log.error("删除专业信息异常，专业代码：{}，年级：{}，班级号：{}，错误信息：{}",
                 code, grade, classNo, e.getMessage(), e);
             throw new BusinessException(ResultMessage.MAJOR_DELETE_FAILED);
         }
@@ -187,7 +187,7 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements
             BeanUtils.copyProperties(majorVO, major);
             setCreateInfo(major);
             this.save(major);
-            log.info("添加专业信息成功，专业代码：{}，年级：{}，班级号：{}", 
+            log.info("添加专业信息成功，专业代码：{}，年级：{}，班级号：{}",
                 major.getCode(), major.getGrade(), major.getClassNo());
         } catch (Exception e) {
             log.error("添加专业信息异常，错误信息：{}", e.getMessage(), e);
@@ -282,4 +282,4 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements
 
         return majorVO;
     }
-} 
+}

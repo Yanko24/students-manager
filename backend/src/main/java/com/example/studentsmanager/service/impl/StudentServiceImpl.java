@@ -1,7 +1,7 @@
 package com.example.studentsmanager.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.example.studentsmanager.constant.ResultMessage;
 import com.example.studentsmanager.exception.BusinessException;
 import com.example.studentsmanager.mapper.StudentMapper;
@@ -26,7 +26,7 @@ import java.util.List;
 @Slf4j
 @Service
 public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> implements StudentService {
-    
+
     private final UserService userService;
     private final MajorService majorService;
 
@@ -240,14 +240,14 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         try {
             StudentVO vo = new StudentVO();
             BeanUtils.copyProperties(student, vo);
-            
+
             // 从用户表获取真实姓名和性别
             User user = userService.getById(student.getUserId());
             if (user != null) {
                 vo.setRealName(user.getRealName());
                 vo.setGender(user.getGender());
             }
-            
+
             // 设置状态文字描述
             if (student.getStatus() != null) {
                 switch (student.getStatus()) {
@@ -267,7 +267,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
                         vo.setStatusText("未知");
                 }
             }
-            
+
             log.debug("转换学生信息为VO完成，学生ID：{}", student.getId());
             return vo;
         } catch (Exception e) {
@@ -275,4 +275,4 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
             throw new BusinessException(ResultMessage.STUDENT_CONVERT_FAILED);
         }
     }
-} 
+}

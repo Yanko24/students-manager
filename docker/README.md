@@ -25,10 +25,10 @@ backend ── JDBC ──► mysql（容器 :3306，宿主机 MYSQL_PORT）
 | 文件 | 职责 |
 | --- | --- |
 | `docker-compose.yml` | 编排四个容器、端口、网络、健康检查、环境变量和 MySQL 卷 |
-| `backend.Dockerfile` | 使用 Maven/Java 11 构建并运行 Spring Boot JAR |
+| `backend.Dockerfile` | 使用 Maven/Java 17 构建并运行 Spring Boot JAR |
 | `frontend.Dockerfile` | 使用 Node 20 构建 Vue 静态文件，再复制到 Nginx 镜像 |
 | `nginx.conf` | 将 `/api/` 转给后端，其余请求转给前端 |
-| `db/init.sql` | 空 MySQL 数据目录的生产初始化 SQL，仅含表结构和首个管理员 |
+| `backend/src/main/resources/db/migration/` | Flyway 版本化 schema 迁移；首次启动建表并创建初始管理员 |
 | `.env.example` | 数据库密码、SM4 密钥、JWT 有效期及宿主机端口模板 |
 | 项目根目录 `.dockerignore` | 排除 Git、node_modules、target、env、日志等构建上下文文件 |
 
@@ -67,6 +67,7 @@ SM4 密钥必须 Base64 解码为**恰好 16 字节**。将它作为秘密材料
 | `MYSQL_ROOT_PASSWORD` | `.env.example` 中是占位符；Compose 未设置时的回退值为 `root` | 必须替换为强密码 |
 | `SM4_KEY_BASE64` | 必填，无默认值 | `backend` 服务启动必需；16 字节密钥的 Base64 |
 | `JWT_EXPIRATION` | `1800000` | JWT 有效期，单位毫秒，默认 30 分钟 |
+| `SPRING_FLYWAY_BASELINE_ON_MIGRATE` | `false` | 仅在接入经核对的既有数据库时，首次启动临时设为 `true`；成功后恢复 `false` |
 | `HTTP_PORT` | `80` | 浏览器访问端口；端口冲突时修改 |
 | `MYSQL_PORT` | `3308` | 主机连接 MySQL 的映射端口；容器内部仍为 3306 |
 
@@ -94,7 +95,7 @@ Compose 使用 `app-network` 网络，容器间通过 `mysql`、`backend`、`fro
 
 ## 数据库初始化与持久化
 
-MySQL 镜像为 `mysql:8.4`。首次启动时将 [`db/init.sql`](db/init.sql) 只读挂载到 MySQL 初始化目录；当 `/var/lib/mysql` 是空目录时，MySQL 创建 `students_manager` 数据库、表结构并插入唯一初始管理员 `admin`。不包含演示学生、教师、学院、专业或课程。
+MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_manager` 数据库。空库第一次由后端启动时，Flyway 运行 `V1` 建表，再由 `V2` 插入唯一初始管理员 `admin`。不包含演示学生、教师、学院、专业或课程。迁移文件随 Spring Boot JAR 打包，不需要 MySQL 初始化 SQL 挂载。
 
 数据库保存在 Compose 命名卷 `students-manager-mysql-data`。Docker Compose 通常会在实际卷名中添加项目名前缀，可通过 `docker volume ls` 确认。以下行为不会清空数据卷：
 
@@ -102,7 +103,7 @@ MySQL 镜像为 `mysql:8.4`。首次启动时将 [`db/init.sql`](db/init.sql) �
 - `docker compose down` 后再次 `docker compose up`
 - `docker compose up -d --build` 重建容器或镜像
 
-初始化 SQL **不会**在已有数据目录上自动重跑，也不会给已有表补列。升级现有数据库须另行备份、编写并执行迁移 SQL；`init.sql` 不是升级脚本。
+Flyway 在每次后端启动时检查 `flyway_schema_history`，只执行尚未成功的版本迁移。首次接入既有数据卷时必须先备份并核对 schema；只有符合旧版标准结构时，才在 `.env` 临时设 `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true`，并执行 `docker compose up -d --force-recreate backend`。成功 baseline 并执行 V2 后，恢复为 `false` 并再次重建后端。V2 会补已知缺失的 `courses.course_type` 和 `scores` 表；其它 schema 差异需先人工核对并单独迁移。不要删除数据卷作为升级手段。
 
 ### 备份和恢复
 
@@ -120,16 +121,7 @@ docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroo
 
 数据库备份不包含 SM4 密钥。恢复加密的联系方式前，必须同时持有与数据匹配的 `SM4_KEY_BASE64`。
 
-### 给已有空业务库补入首个管理员
-
-如果 MySQL 卷创建时没有管理员数据，确认数据库已备份后，可从 `docker/` 目录将初始化 SQL 幂等地执行到现有库，再重启后端：
-
-```bash
-docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot' < db/init.sql
-docker compose restart backend
-```
-
-此命令会执行当前初始化文件中的建表语句（已存在的表不会被修改）以及 `INSERT IGNORE` 管理员记录；它不会迁移已有表结构或导入开发演示数据。请在确认 SQL 内容适合目标数据库后再执行。
+管理员由 Flyway V2 在新库初始化时建立；若管理员后来被删除，可走受控的账号恢复流程，不要重跑整个 schema 初始化。
 
 ## 初始账号和导入数据
 
@@ -183,7 +175,7 @@ docker compose logs --tail=200 backend mysql frontend nginx
 
 ### 数据库缺表或缺列
 
-初始化 SQL 只在空数据目录执行。先确认应用连接到哪个数据库和卷，再比对实际 schema 与当前版本。不要因为构建升级而运行 `docker compose down -v`；应编写经过备份和核对的数据库升级 SQL。
+检查后端启动日志和 `flyway_schema_history`，确认应用连接到预期的数据库。不要手工修改已执行的迁移文件；新增迁移版本，并先在备份/测试库验证。不要因为构建升级而运行 `docker compose down -v`。
 
 ### Docker Hub 访问失败、镜像拉取 403
 

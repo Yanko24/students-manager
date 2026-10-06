@@ -13,10 +13,10 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -36,9 +36,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
         // 检查是否是公开接口
         String path = request.getRequestURI();
-        if (path.startsWith("/api/auth/login") || path.startsWith("/api/health/") || 
-            path.startsWith("/swagger-ui/") || path.startsWith("/swagger-resources/") || 
-            path.startsWith("/v2/api-docs") || path.startsWith("/v3/api-docs") || 
+        if (path.startsWith("/api/auth/login") || path.startsWith("/api/health/") ||
+            path.startsWith("/swagger-ui/") || path.startsWith("/swagger-resources/") ||
+            path.startsWith("/v2/api-docs") || path.startsWith("/v3/api-docs") ||
             path.startsWith("/webjars/")) {
             filterChain.doFilter(request, response);
             return;
@@ -56,16 +56,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 提取 JWT token
         jwt = authHeader.substring(jwtConfig.getPrefix().length());
-        
+
         try {
             // 从 token 中提取用户名
             username = jwtService.extractUsername(jwt);
-            
+
             // 如果有用户名且当前没有认证
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 // 加载用户详情
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                
+
                 // 验证 token
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     boolean passwordChangeRequired = userDetails.getAuthorities().contains(
@@ -84,10 +84,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             null,
                             userDetails.getAuthorities()
                     );
-                    
+
                     // 设置认证详情
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    
+
                     // 更新 SecurityContext
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
@@ -112,4 +112,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"code\":401,\"message\":\"" + message + "\"}");
     }
-} 
+}

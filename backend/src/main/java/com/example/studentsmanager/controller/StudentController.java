@@ -1,5 +1,8 @@
 package com.example.studentsmanager.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.studentsmanager.constant.ResultCode;
 import com.example.studentsmanager.core.response.Result;
@@ -8,30 +11,25 @@ import com.example.studentsmanager.model.vo.student.StudentVO;
 import com.example.studentsmanager.model.dto.student.StudentQueryDTO;
 import com.example.studentsmanager.model.dto.student.StudentUpdateDTO;
 import com.example.studentsmanager.service.StudentService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.List;
 
 @Slf4j
-@Api(tags = "学生管理")
+@Tag(name = "学生管理")
 @RestController
 @RequestMapping("/api/students")
 @RequiredArgsConstructor
 public class StudentController {
-    
+
     @Autowired
     private StudentService studentService;
 
-    @ApiOperation(value = "分页查询学生信息", notes = "根据查询条件分页获取学生信息列表")
+    @Operation(summary = "分页查询学生信息", description = "根据查询条件分页获取学生信息列表")
     @GetMapping("")
     public Result<Page<StudentVO>> getStudentPage(StudentQueryDTO queryDTO) {
         log.info("收到分页查询学生信息请求，查询条件：{}", queryDTO);
@@ -48,7 +46,7 @@ public class StudentController {
         }
     }
 
-    @ApiOperation(value = "获取所有学生信息", notes = "获取所有学生的详细信息列表")
+    @Operation(summary = "获取所有学生信息", description = "获取所有学生的详细信息列表")
     @GetMapping("/list")
     public Result<List<StudentVO>> getAllStudentsWithInfo() {
         log.info("收到获取所有学生信息请求");
@@ -65,8 +63,7 @@ public class StudentController {
         }
     }
 
-    @ApiOperation(value = "获取学生详情", notes = "根据学生ID获取学生的详细信息")
-    @ApiParam(name = "id", value = "学生ID", required = true, example = "1", type = "integer")
+    @Operation(summary = "获取学生详情", description = "根据学生ID获取学生的详细信息")
     @GetMapping("/{id}")
     public Result<StudentVO> getStudentById(@PathVariable Long id) {
         log.info("收到获取学生信息请求，ID：{}", id);
@@ -87,8 +84,7 @@ public class StudentController {
         }
     }
 
-    @ApiOperation(value = "更新学生信息", notes = "根据学生ID更新学生的详细信息")
-    @ApiParam(name = "id", value = "学生ID", required = true, example = "1", type = "integer")
+    @Operation(summary = "更新学生信息", description = "根据学生ID更新学生的详细信息")
     @PutMapping("/{id}")
     public Result<StudentVO> updateStudent(@PathVariable Long id, @Valid @RequestBody StudentUpdateDTO updateDTO) {
         log.info("收到更新学生信息请求，ID：{}，更新内容：{}", id, updateDTO);
@@ -109,7 +105,7 @@ public class StudentController {
         }
     }
 
-    @ApiOperation(value = "添加学生", notes = "添加新的学生信息")
+    @Operation(summary = "添加学生", description = "添加新的学生信息")
     @PostMapping
     public Result<StudentVO> addStudent(@Valid @RequestBody StudentUpdateDTO updateDTO) {
         log.info("收到添加学生请求，学生信息：{}", updateDTO);
@@ -130,8 +126,7 @@ public class StudentController {
         }
     }
 
-    @ApiOperation(value = "删除学生", notes = "根据学生ID删除学生信息")
-    @ApiParam(name = "id", value = "学生ID", required = true, example = "1", type = "integer")
+    @Operation(summary = "删除学生", description = "根据学生ID删除学生信息")
     @DeleteMapping("/{id}")
     public Result<Void> deleteStudent(@PathVariable Long id) {
         log.info("收到删除学生请求，ID：{}", id);
@@ -152,15 +147,12 @@ public class StudentController {
         }
     }
 
-    @ApiOperation(value = "统计班级总人数", notes = "统计指定班级的总人数（包括所有状态）")
-    @ApiResponses({
-        @ApiResponse(code = 200, message = "成功", response = Integer.class)
-    })
+    @Operation(summary = "统计班级总人数", description = "统计指定班级的总人数（包括所有状态）")
     @GetMapping("/count/total")
     public Result<Integer> countClassTotalStudents(
-            @ApiParam(value = "专业代码", required = true, example = "CS") @RequestParam String majorCode,
-            @ApiParam(value = "年级", required = true, example = "2023") @RequestParam String grade,
-            @ApiParam(value = "班级号", required = true, example = "01") @RequestParam String classNo) {
+            @RequestParam String majorCode,
+            @RequestParam String grade,
+            @RequestParam String classNo) {
         log.info("收到统计班级总人数请求，专业代码：{}，年级：{}，班级号：{}", majorCode, grade, classNo);
         try {
             Integer result = studentService.countClassTotalStudents(majorCode, grade, classNo);
@@ -175,15 +167,12 @@ public class StudentController {
         }
     }
 
-    @ApiOperation(value = "统计班级在读学生人数", notes = "统计指定班级的在读学生人数")
-    @ApiResponses({
-        @ApiResponse(code = 200, message = "成功", response = Integer.class)
-    })
+    @Operation(summary = "统计班级在读学生人数", description = "统计指定班级的在读学生人数")
     @GetMapping("/count/enrolled")
     public Result<Integer> countClassEnrolledStudents(
-            @ApiParam(value = "专业代码", required = true, example = "CS") @RequestParam String majorCode,
-            @ApiParam(value = "年级", required = true, example = "2023") @RequestParam String grade,
-            @ApiParam(value = "班级号", required = true, example = "01") @RequestParam String classNo) {
+            @RequestParam String majorCode,
+            @RequestParam String grade,
+            @RequestParam String classNo) {
         log.info("收到统计班级在读学生人数请求，专业代码：{}，年级：{}，班级号：{}", majorCode, grade, classNo);
         try {
             Integer result = studentService.countClassEnrolledStudents(majorCode, grade, classNo);
@@ -197,4 +186,4 @@ public class StudentController {
             throw new BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "系统异常");
         }
     }
-} 
+}

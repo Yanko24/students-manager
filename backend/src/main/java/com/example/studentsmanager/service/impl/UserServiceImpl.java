@@ -1,6 +1,6 @@
 package com.example.studentsmanager.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.example.studentsmanager.constant.ResultMessage;
 import com.example.studentsmanager.exception.BusinessException;
 import com.example.studentsmanager.mapper.UserMapper;
@@ -21,7 +21,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Autowired
     private PasswordEncoder passwordEncoder;
-    
+
     @Override
     public User findByUsername(String username) {
         log.debug("开始查询用户信息，用户名：{}", username);
@@ -154,4 +154,4 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ResultMessage.USER_DELETE_FAILED);
         }
     }
-} 
+}

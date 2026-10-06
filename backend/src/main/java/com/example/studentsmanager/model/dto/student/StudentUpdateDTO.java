@@ -1,10 +1,10 @@
 package com.example.studentsmanager.model.dto.student;
 
 import lombok.Data;
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import java.time.LocalDate;
 
 @Data
@@ -46,4 +46,4 @@ public class StudentUpdateDTO {
 
     @NotNull(message = "状态不能为空")
     private Integer status;         // 状态：0-在读，1-休学，2-退学，3-毕业
-} 
+}

@@ -1,7 +1,7 @@
 package com.example.studentsmanager.service;
 
 import com.example.studentsmanager.model.entity.User;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 public interface UserService extends IService<User> {
     User findByUsername(String username);
@@ -9,4 +9,4 @@ public interface UserService extends IService<User> {
     boolean updateUser(User user);
     boolean deleteUser(Long id);
     boolean softDeleteUser(Long id, String updateBy);
-} 
+}

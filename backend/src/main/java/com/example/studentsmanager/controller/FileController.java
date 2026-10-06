@@ -1,13 +1,11 @@
 package com.example.studentsmanager.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import com.example.studentsmanager.config.web.FileUploadConfig;
 import com.example.studentsmanager.core.response.Result;
 import com.example.studentsmanager.exception.BusinessException;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +19,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 @Slf4j
-@Api(tags = "文件管理")
+@Tag(name = "文件管理")
 @RestController
 @RequestMapping("/api/files")
 @RequiredArgsConstructor
@@ -29,13 +27,7 @@ public class FileController {
 
     private final FileUploadConfig fileUploadConfig;
 
-    @ApiOperation(value = "文件上传", notes = "上传文件到服务器，支持文件类型验证和大小限制")
-    @ApiParam(name = "file", value = "要上传的文件", required = true)
-    @ApiResponses({
-        @ApiResponse(code = 200, message = "文件上传成功", response = String.class),
-        @ApiResponse(code = 400, message = "文件为空或类型不支持"),
-        @ApiResponse(code = 500, message = "文件上传失败")
-    })
+    @Operation(summary = "文件上传", description = "上传文件到服务器，支持文件类型验证和大小限制")
     @PostMapping("/upload")
     public Result<String> uploadFile(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
@@ -87,4 +79,4 @@ public class FileController {
             return Long.parseLong(size);
         }
     }
-} 
+}

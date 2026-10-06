@@ -1,5 +1,8 @@
 package com.example.studentsmanager.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import com.example.studentsmanager.constant.ResultCode;
 import com.example.studentsmanager.constant.ResultMessage;
 import com.example.studentsmanager.core.response.Result;
@@ -8,7 +11,6 @@ import com.example.studentsmanager.model.entity.Teacher;
 import com.example.studentsmanager.model.vo.teacher.TeacherListVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.studentsmanager.service.TeacherService;
-import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/teachers")
 @CrossOrigin(origins = "http://localhost:3000")
-@Api(tags = "教师管理")
+@Tag(name = "教师管理")
 @RequiredArgsConstructor
 public class TeacherController {
 
@@ -27,11 +29,8 @@ public class TeacherController {
     private TeacherService teacherService;
 
     @GetMapping
-    @ApiOperation(value = "获取所有教师", notes = "返回系统中所有教师的信息列表")
-    @ApiResponses({
-        @ApiResponse(code = 200, message = "成功获取教师列表")
-    })
-    public Result<Page<TeacherListVO>> getAllTeachers(TeacherQueryDTO queryDTO) {
+    @Operation(summary = "获取所有教师", description = "返回系统中所有教师的信息列表")
+public Result<Page<TeacherListVO>> getAllTeachers(TeacherQueryDTO queryDTO) {
         log.info("分页查询教师列表，查询条件：{}", queryDTO);
         try {
             Page<TeacherListVO> teachers = teacherService.getTeacherPage(queryDTO);
@@ -44,12 +43,7 @@ public class TeacherController {
     }
 
     @GetMapping("/{id}")
-    @ApiOperation(value = "获取教师详情", notes = "根据ID获取指定教师的详细信息")
-    @ApiImplicitParam(name = "id", value = "教师ID", required = true, type = "integer", paramType = "path", example = "1", dataTypeClass = Long.class)
-    @ApiResponses({
-        @ApiResponse(code = 200, message = "成功获取教师信息"),
-        @ApiResponse(code = 404, message = "教师不存在")
-    })
+    @Operation(summary = "获取教师详情", description = "根据ID获取指定教师的详细信息")
     public Result<Teacher> getTeacherById(@PathVariable Long id) {
         log.info("获取教师详情，ID: {}", id);
         try {
@@ -67,12 +61,7 @@ public class TeacherController {
     }
 
     @PostMapping
-    @ApiOperation(value = "创建教师", notes = "创建新的教师信息")
-    @ApiImplicitParam(name = "teacher", value = "教师信息", required = true, type = "object", dataTypeClass = Teacher.class)
-    @ApiResponses({
-        @ApiResponse(code = 200, message = "教师创建成功"),
-        @ApiResponse(code = 400, message = "教师创建失败")
-    })
+    @Operation(summary = "创建教师", description = "创建新的教师信息")
     public Result<Teacher> createTeacher(@RequestBody Teacher teacher) {
         log.info("创建教师，工号: {}", teacher.getTeacherNumber());
         try {
@@ -86,16 +75,8 @@ public class TeacherController {
     }
 
     @PutMapping("/{id}")
-    @ApiOperation(value = "更新教师", notes = "更新指定教师的信息")
-    @ApiImplicitParams({
-        @ApiImplicitParam(name = "id", value = "教师ID", required = true, type = "integer", paramType = "path", example = "1", dataTypeClass = Long.class),
-        @ApiImplicitParam(name = "teacher", value = "教师信息", required = true, type = "object", dataTypeClass = Teacher.class)
-    })
-    @ApiResponses({
-        @ApiResponse(code = 200, message = "教师更新成功"),
-        @ApiResponse(code = 404, message = "教师不存在")
-    })
-    public Result<Boolean> updateTeacher(@PathVariable Long id, @RequestBody Teacher teacher) {
+    @Operation(summary = "更新教师", description = "更新指定教师的信息")
+public Result<Boolean> updateTeacher(@PathVariable Long id, @RequestBody Teacher teacher) {
         log.info("更新教师，ID: {}", id);
         try {
             teacher.setId(id);
@@ -113,12 +94,7 @@ public class TeacherController {
     }
 
     @DeleteMapping("/{id}")
-    @ApiOperation(value = "删除教师", notes = "删除指定的教师信息")
-    @ApiImplicitParam(name = "id", value = "教师ID", required = true, type = "integer", paramType = "path", example = "1", dataTypeClass = Long.class)
-    @ApiResponses({
-        @ApiResponse(code = 200, message = "教师删除成功"),
-        @ApiResponse(code = 404, message = "教师不存在")
-    })
+    @Operation(summary = "删除教师", description = "删除指定的教师信息")
     public Result<Boolean> deleteTeacher(@PathVariable Long id) {
         log.info("删除教师，ID: {}", id);
         try {

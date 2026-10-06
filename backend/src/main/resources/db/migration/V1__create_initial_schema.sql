@@ -1,29 +1,7 @@
--- Production schema and bootstrap administrator for a fresh deployment.
--- Docker MySQL runs this file only when initializing an empty data directory.
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+-- Flyway V1 baseline schema for a new database. Existing databases are baselined separately.
+-- Table definitions are aligned with the pre-Flyway canonical Docker schema.
 
--- 创建数据库
-CREATE DATABASE IF NOT EXISTS students_manager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- 使用数据库
-USE students_manager;
-
--- 设置数据库连接的字符集
-SET character_set_client = utf8mb4;
-SET character_set_connection = utf8mb4;
-SET character_set_results = utf8mb4;
-SET character_set_server = utf8mb4;
-SET collation_connection = utf8mb4_unicode_ci;
-SET collation_server = utf8mb4_unicode_ci;
-
--- 创建用户表
-CREATE TABLE IF NOT EXISTS users
+CREATE TABLE users
 (
     id         BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     username   VARCHAR(50)                          NOT NULL UNIQUE COMMENT '用户名',
@@ -45,7 +23,7 @@ CREATE TABLE IF NOT EXISTS users
   COLLATE = utf8mb4_unicode_ci COMMENT ='用户表';
 
 -- 创建学院表
-CREATE TABLE IF NOT EXISTS colleges
+CREATE TABLE colleges
 (
     id         BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     name       VARCHAR(50) NOT NULL COMMENT '学院名称',
@@ -62,7 +40,7 @@ CREATE TABLE IF NOT EXISTS colleges
   COLLATE = utf8mb4_unicode_ci COMMENT ='学院表';
 
 -- 创建专业表（包含班级信息）
-CREATE TABLE IF NOT EXISTS majors
+CREATE TABLE majors
 (
     code       VARCHAR(20) NOT NULL COMMENT '专业代码',
     grade      VARCHAR(4)  NOT NULL COMMENT '年级',
@@ -83,7 +61,7 @@ CREATE TABLE IF NOT EXISTS majors
   COLLATE = utf8mb4_unicode_ci COMMENT ='专业表';
 
 -- 创建教师信息表
-CREATE TABLE IF NOT EXISTS teachers
+CREATE TABLE teachers
 (
     id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     user_id        BIGINT      NOT NULL COMMENT '用户ID',
@@ -103,7 +81,7 @@ CREATE TABLE IF NOT EXISTS teachers
   COLLATE = utf8mb4_unicode_ci COMMENT ='教师信息表';
 
 -- 创建学生信息表
-CREATE TABLE IF NOT EXISTS students
+CREATE TABLE students
 (
     id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     user_id        BIGINT      NOT NULL COMMENT '用户ID',
@@ -127,7 +105,7 @@ CREATE TABLE IF NOT EXISTS students
   COLLATE = utf8mb4_unicode_ci COMMENT ='学生信息表';
 
 -- 创建课程表
-CREATE TABLE IF NOT EXISTS courses
+CREATE TABLE courses
 (
     id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     course_name VARCHAR(100) NOT NULL COMMENT '课程名称',
@@ -151,7 +129,7 @@ CREATE TABLE IF NOT EXISTS courses
   COLLATE = utf8mb4_unicode_ci COMMENT ='课程表';
 
 -- 创建选课表
-CREATE TABLE IF NOT EXISTS course_selections
+CREATE TABLE course_selections
 (
     id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     student_id     BIGINT   NOT NULL COMMENT '学生ID',
@@ -170,7 +148,7 @@ CREATE TABLE IF NOT EXISTS course_selections
   COLLATE = utf8mb4_unicode_ci COMMENT ='选课表';
 
 -- 创建成绩表
-CREATE TABLE IF NOT EXISTS scores
+CREATE TABLE scores
 (
     id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     student_id  BIGINT        NOT NULL COMMENT '学生ID',
@@ -195,7 +173,7 @@ CREATE TABLE IF NOT EXISTS scores
   COLLATE = utf8mb4_unicode_ci COMMENT ='学生成绩表';
 
 -- 创建考勤记录表
-CREATE TABLE IF NOT EXISTS attendance_records
+CREATE TABLE attendance_records
 (
     id              BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     student_id      BIGINT      NOT NULL COMMENT '学生ID',
@@ -217,18 +195,3 @@ CREATE TABLE IF NOT EXISTS attendance_records
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='学生考勤记录表';
-
--- 首次登录管理员：默认密码 xiaoer，登录后必须立即修改。
--- 口令为 PBKDF2-HMAC-SM3 哈希；联系方式留空，应用启动时会按 SM4-GCM 规则加密。
-INSERT IGNORE INTO users
-    (username, password, role, real_name, gender, phone, email, status, must_change_password, create_by, update_by)
-VALUES
-    ('admin', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA',
-     'admin', '系统管理员', 1, '', '', 0, 1, 'bootstrap', 'bootstrap');
-
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
