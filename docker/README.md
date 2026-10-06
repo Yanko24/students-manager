@@ -179,7 +179,7 @@ docker compose logs --tail=200 backend mysql frontend nginx
 
 ### Docker Hub 访问失败、镜像拉取 403
 
-这通常发生在基础镜像拉取阶段，而不是应用代码构建阶段。检查 Docker Engine 的镜像仓库网络/代理配置，确认 `mysql:8.4`、`nginx:1.25.4`、`nginx:1.25.4-alpine`、Node 与 Maven 基础镜像可访问。重新运行 `docker compose up -d --build` 前先检查 Docker Desktop 的镜像下载状态。
+这通常发生在基础镜像拉取阶段，而不是应用代码构建阶段。检查 Docker Engine 的镜像仓库网络/代理配置，确认 `mysql:8.4`、`nginx:1.30.5-alpine3.24`、`node:24.21.0-alpine3.24` 与 Maven/Temurin 基础镜像可访问。重新运行 `docker compose up -d --build` 前先检查 Docker Desktop 的镜像下载状态。
 
 ## 安全边界
 

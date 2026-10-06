@@ -42,7 +42,7 @@ services:
       retries: 3
 
   nginx:
-    image: nginx:1.25.4
+    image: nginx:1.30.5-alpine3.24
     ports:
       - "${HTTP_PORT:-80}:80"
     volumes:
