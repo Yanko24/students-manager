@@ -54,9 +54,10 @@ openssl rand -base64 16
 编辑 `docker/.env`，至少替换以下值：
 
 ```dotenv
-MYSQL_ROOT_PASSWORD=替换为独立的强随机密码
 SM4_KEY_BASE64=填入openssl生成的16字节Base64密钥
 ```
+
+本地开发可保留 `.env.example` 中的 MySQL root 初始密码 `123456`。正式部署时，必须另行设置 `MYSQL_ROOT_PASSWORD` 为独立强随机密码；例如用 `openssl rand -base64 32` 生成，再填入 `.env`。
 
 SM4 密钥必须 Base64 解码为**恰好 16 字节**。将它作为秘密材料妥善备份，并与数据库备份分开保管；不能随意更换或丢失，否则之前加密的手机号和邮箱无法解密。不要把真实 `.env` 提交到仓库或放入镜像。
 
@@ -64,7 +65,7 @@ SM4 密钥必须 Base64 解码为**恰好 16 字节**。将它作为秘密材料
 
 | 变量 | 默认值/要求 | 说明 |
 | --- | --- | --- |
-| `MYSQL_ROOT_PASSWORD` | `.env.example` 中是占位符；Compose 未设置时的回退值为 `root` | 必须替换为强密码 |
+| `MYSQL_ROOT_PASSWORD` | `.env.example` 本地初始化默认值为 `123456`；Compose 未设置时也使用 `123456` | 本地开发使用；正式部署必须覆盖为强密码。仅首次初始化数据卷时生效 |
 | `SM4_KEY_BASE64` | 必填，无默认值 | `backend` 服务启动必需；16 字节密钥的 Base64 |
 | `JWT_EXPIRATION` | `1800000` | JWT 有效期，单位毫秒，默认 30 分钟 |
 | `SPRING_FLYWAY_BASELINE_ON_MIGRATE` | `false` | 仅在接入经核对的既有数据库时，首次启动临时设为 `true`；成功后恢复 `false` |

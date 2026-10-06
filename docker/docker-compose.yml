@@ -11,7 +11,7 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION:-1800000}
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/students_manager?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       SM4_KEY_BASE64: ${SM4_KEY_BASE64:?Set SM4_KEY_BASE64 in docker/.env}
     depends_on:
       mysql:
@@ -59,7 +59,7 @@ services:
   mysql:
     image: mysql:8.4
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
       MYSQL_DATABASE: students_manager
       TZ: Asia/Shanghai
       LANG: C.UTF-8
