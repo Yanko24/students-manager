@@ -78,6 +78,12 @@
             <version>${mybatis-plus.version}</version>
         </dependency>
 
+        <!-- Spring Boot 4 provides Flyway auto-configuration through its dedicated starter. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+
         <!-- Flyway 13 uses Java 17 and separates MySQL support into its own module. -->
         <dependency>
             <groupId>org.flywaydb</groupId>
