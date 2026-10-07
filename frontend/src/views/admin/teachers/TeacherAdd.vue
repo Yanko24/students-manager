@@ -10,6 +10,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { createTeacher } from '@/api/teacher'
@@ -24,7 +25,7 @@
             router.push('/admin/teachers')
         } catch (error) {
             console.error('添加教师失败:', error)
-            ElMessage.error('添加教师失败')
+            showApiError(error, '添加教师失败')
         }
     }
 

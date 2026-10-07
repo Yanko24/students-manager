@@ -96,9 +96,9 @@
 
   // 基本设置
   const basicSettings = reactive({
-    systemName: '学生管理系统',
+    systemName: '知行教务',
     logo: '',
-    description: '一个现代化的学生信息管理系统'
+    description: '面向高校教学运行与学生培养的教务管理系统'
   })
 
   // 邮件设置

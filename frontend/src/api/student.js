@@ -128,6 +128,18 @@ export function getStudentCourses(params) {
 	});
 }
 
+export function getAvailableCourses(params) {
+	return request({ url: "/student-portal/available-courses", method: "get", params });
+}
+
+export function selectStudentCourse(courseId) {
+	return request({ url: `/student-portal/courses/${courseId}/selection`, method: "post" });
+}
+
+export function dropStudentCourse(courseId) {
+	return request({ url: `/student-portal/courses/${courseId}/selection`, method: "delete" });
+}
+
 export function getMyCourseById(id) {
 	return request({ url: `/student-portal/courses/${id}`, method: "get" });
 }

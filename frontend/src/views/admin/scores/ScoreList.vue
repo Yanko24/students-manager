@@ -85,6 +85,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { ref } from 'vue'
     import { useRouter } from 'vue-router'
     import { ElMessage, ElMessageBox } from 'element-plus'
@@ -148,7 +149,7 @@
             }
         } catch (error) {
             console.error('获取成绩列表失败：', error);
-            ElMessage.error('获取成绩列表失败');
+            showApiError(error, '获取成绩列表失败');
         } finally {
             loading.value = false;
         }
@@ -185,7 +186,7 @@
             handleSearch();
         } catch (error) {
             if (error === 'cancel' || error === 'close') return;
-            ElMessage.error('删除失败');
+            showApiError(error, '删除失败');
         }
     };
 
@@ -200,7 +201,7 @@
             importDialogVisible.value = false
             handleSearch()
         } catch (error) {
-            ElMessage.error(error?.message || '导入失败，请检查文件内容')
+            showApiError(error, error?.message || '导入失败，请检查文件内容')
         } finally {
             importing.value = false
         }
@@ -220,7 +221,7 @@
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('导出成绩失败：', error);
-            ElMessage.error('导出失败');
+            showApiError(error, '导出失败');
         }
     };
 

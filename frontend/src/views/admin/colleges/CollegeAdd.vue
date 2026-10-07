@@ -25,6 +25,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { ref } from 'vue'
     import { useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
@@ -56,7 +57,7 @@
             router.push('/admin/colleges')
         } catch (error) {
             console.error('添加失败：', error)
-            ElMessage.error('添加失败')
+            showApiError(error, '添加失败')
         }
     }
 </script>

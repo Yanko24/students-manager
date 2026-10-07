@@ -11,7 +11,7 @@ server:
 
 spring:
   flyway:
-    # Existing local databases are baselined as V1; V2 repairs the known score/course schema gaps.
+    # A pre-release development database matching backend/db/init.sql is baselined at V1.
     baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:true}
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver

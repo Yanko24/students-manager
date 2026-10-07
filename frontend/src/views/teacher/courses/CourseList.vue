@@ -23,6 +23,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -62,7 +63,7 @@ const loadCourses = async () => {
     courseList.value = []
     total.value = 0
     errorMessage.value = error?.message || '获取教师课程失败'
-    ElMessage.error(errorMessage.value)
+    showApiError(error, errorMessage.value)
   } finally {
     loading.value = false
   }

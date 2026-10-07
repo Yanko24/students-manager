@@ -11,6 +11,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { useRoute, useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { updateMajor } from '@/api/major'
@@ -27,7 +28,7 @@
             router.push('/admin/majors')
         } catch (error) {
             console.error('更新专业失败:', error)
-            ElMessage.error('更新专业失败')
+            showApiError(error, '更新专业失败')
         }
     }
 

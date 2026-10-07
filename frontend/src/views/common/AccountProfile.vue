@@ -55,6 +55,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -138,7 +139,7 @@ const loadProfile = async () => {
       username: response.data.username,
     })
   } catch (error) {
-    ElMessage.error(error?.message || '读取个人档案失败')
+    showApiError(error, error?.message || '读取个人档案失败')
   } finally {
     loading.value = false
   }
@@ -163,7 +164,7 @@ const submitPassword = async () => {
     ElMessage.success('登录密码已更新')
     passwordDialogVisible.value = false
   } catch (error) {
-    if (error?.message) ElMessage.error(error.message)
+    if (error?.message) showApiError(error, error.message)
   } finally {
     savingPassword.value = false
   }

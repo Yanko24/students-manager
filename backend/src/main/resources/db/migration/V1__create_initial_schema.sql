@@ -116,6 +116,12 @@ CREATE TABLE courses
     semester    VARCHAR(20)  NOT NULL DEFAULT '2026-2027-1' COMMENT '开课学期',
     hours       INT          NOT NULL DEFAULT 48 COMMENT '学时',
     status      TINYINT      NOT NULL DEFAULT 0 COMMENT '状态：0-未开课，1-已开课，2-已结课',
+    selection_open TINYINT NOT NULL DEFAULT 1 COMMENT '是否开放选课：0-关闭，1-开放',
+    max_students INT NOT NULL DEFAULT 60 COMMENT '最大选课人数',
+    selection_scope VARCHAR(16) NOT NULL DEFAULT 'ALL' COMMENT '选课范围：ALL全校、COLLEGE学院、MAJOR专业',
+    selection_college_id BIGINT NULL COMMENT '限定学院ID',
+    selection_major_code VARCHAR(20) NULL COMMENT '限定专业代码',
+    selection_grade VARCHAR(4) NULL COMMENT '限定入学年级，空表示不限',
     description TEXT COMMENT '课程描述',
     objectives  TEXT COMMENT '教学目标',
     create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -123,7 +129,9 @@ CREATE TABLE courses
     create_by   VARCHAR(50)  DEFAULT NULL COMMENT '创建人',
     update_by   VARCHAR(50)  DEFAULT NULL COMMENT '更新人',
     is_deleted  TINYINT      NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
-    FOREIGN KEY (teacher_id) REFERENCES teachers (id)
+    KEY idx_courses_selection_scope (selection_scope, selection_college_id, selection_major_code, selection_grade),
+    FOREIGN KEY (teacher_id) REFERENCES teachers (id),
+    FOREIGN KEY (selection_college_id) REFERENCES colleges (id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='课程表';
@@ -141,6 +149,8 @@ CREATE TABLE course_selections
     create_by      VARCHAR(50) DEFAULT NULL COMMENT '创建人',
     update_by      VARCHAR(50) DEFAULT NULL COMMENT '更新人',
     is_deleted     TINYINT  NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+    KEY idx_course_selections_course_active (course_id, is_deleted, status),
+    KEY idx_course_selections_student_course_active (student_id, course_id, is_deleted, status),
     FOREIGN KEY (student_id) REFERENCES students (id),
     FOREIGN KEY (course_id) REFERENCES courses (id)
 ) ENGINE = InnoDB
@@ -195,3 +205,10 @@ CREATE TABLE attendance_records
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='学生考勤记录表';
+
+-- Bootstrap administrator for an empty database. Demo data is only in backend/db/init.sql.
+INSERT INTO users
+    (username, password, role, real_name, gender, phone, email, status, must_change_password, create_by, update_by)
+VALUES
+    ('admin', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA',
+     'admin', '系统管理员', 1, '', '', 0, 1, 'bootstrap', 'bootstrap');

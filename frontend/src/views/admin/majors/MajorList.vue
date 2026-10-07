@@ -59,6 +59,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { ref, computed, nextTick, onUnmounted } from 'vue'
     import { useRouter } from 'vue-router'
     import { ElMessage, ElMessageBox } from 'element-plus'
@@ -120,7 +121,7 @@
             }
         } catch (error) {
             console.error('获取专业列表失败：', error);
-            ElMessage.error('获取专业列表失败');
+            showApiError(error, '获取专业列表失败');
         } finally {
             loading.value = false;
         }
@@ -156,7 +157,7 @@
         } catch (error) {
             if (error === 'cancel' || error === 'close') return
             console.error('删除专业失败：', error);
-            ElMessage.error('删除失败');
+            showApiError(error, '删除失败');
         }
     };
 

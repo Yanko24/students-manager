@@ -139,6 +139,12 @@ const router = createRouter({
 					meta: { title: "课程详情", requiresAuth: true, role: "admin" },
 				},
 				{
+					path: "courses/:id/students",
+					name: "CourseStudents",
+					component: () => import("@/views/admin/courses/CourseStudents.vue"),
+					meta: { title: "选课学生", requiresAuth: true, role: "admin" },
+				},
+				{
 					path: "attendance",
 					name: "AttendanceList",
 					component: () => import("@/views/admin/attendance/AttendanceList.vue"),
@@ -269,6 +275,12 @@ const router = createRouter({
 					redirect: "/student/dashboard",
 				},
 				{
+					path: "course-selection",
+					name: "StudentCourseSelection",
+					component: () => import("@/views/student/courses/CourseSelection.vue"),
+					meta: { title: "选课中心", requiresAuth: true, role: "student" },
+				},
+				{
 					path: "courses",
 					name: "StudentCourseList",
 					component: () => import("@/views/student/courses/CourseList.vue"),
@@ -327,8 +339,8 @@ router.beforeEach((to, from, next) => {
 	const requiredRole = to.matched.find((record) => record.meta.role)?.meta.role;
 
 	document.title = to.meta.title
-		? `${to.meta.title} - 学生管理系统`
-		: "学生管理系统";
+		? `${to.meta.title} - 知行教务`
+		: "知行教务";
 
 	if (to.path === "/login") {
 		if (userStore.isLoggedIn) {

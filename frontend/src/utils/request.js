@@ -53,6 +53,19 @@ request.interceptors.response.use(
 			) {
 				window.dispatchEvent(new Event("auth:expired"));
 			}
+			// Session-expiry handling clears the token synchronously. Mark any in-flight
+			// request made with that old token so pages can avoid a second error toast.
+			const isExpiredSessionRequest = Boolean(
+				responseToken && responseToken !== localStorage.getItem("token")
+			);
+			if (isExpiredSessionRequest) {
+				const responseData = error.response.data;
+				return Promise.reject(
+					responseData && typeof responseData === "object"
+						? { ...responseData, authSessionExpired: true }
+						: { message: String(responseData || ""), authSessionExpired: true }
+				);
+			}
 			// 直接返回错误响应，让调用方处理具体的错误信息
 			return Promise.reject(error.response.data);
 		} else {

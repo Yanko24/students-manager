@@ -28,6 +28,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -51,7 +52,7 @@ async function fetchCourses() {
   } catch (error) {
     courses.value = []
     total.value = 0
-    ElMessage.error(error?.response?.data?.message || '获取课程列表失败')
+    showApiError(error, error?.response?.data?.message || '获取课程列表失败')
   } finally { loading.value = false }
 }
 function search() { page.value = 1; fetchCourses() }

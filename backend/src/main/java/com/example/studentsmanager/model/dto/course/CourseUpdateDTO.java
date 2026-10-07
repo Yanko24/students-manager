@@ -14,6 +14,12 @@ public class CourseUpdateDTO {
     private String semester;
     private Integer hours;
     private Integer status;
+    private Integer selectionOpen;
+    private Integer maxStudents;
+    private String selectionScope;
+    private Long selectionCollegeId;
+    private String selectionMajorCode;
+    private String selectionGrade;
     private String description;
     private String objectives;
 }

@@ -10,6 +10,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { createScore } from '@/api/score'
@@ -24,7 +25,7 @@
             router.push('/admin/scores')
         } catch (error) {
             console.error('录入失败：', error)
-            ElMessage.error('录入失败')
+            showApiError(error, '录入失败')
         }
     }
 

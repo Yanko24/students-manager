@@ -138,6 +138,12 @@ CREATE TABLE IF NOT EXISTS courses
     semester    VARCHAR(20)  NOT NULL DEFAULT '2026-2027-1' COMMENT '开课学期',
     hours       INT          NOT NULL DEFAULT 48 COMMENT '学时',
     status      TINYINT      NOT NULL DEFAULT 0 COMMENT '状态：0-未开课，1-已开课，2-已结课',
+    selection_open TINYINT NOT NULL DEFAULT 1 COMMENT '是否开放选课：0-关闭，1-开放',
+    max_students INT NOT NULL DEFAULT 60 COMMENT '最大选课人数',
+    selection_scope VARCHAR(16) NOT NULL DEFAULT 'ALL' COMMENT '选课范围：ALL全校、COLLEGE学院、MAJOR专业',
+    selection_college_id BIGINT NULL COMMENT '限定学院ID',
+    selection_major_code VARCHAR(20) NULL COMMENT '限定专业代码',
+    selection_grade VARCHAR(4) NULL COMMENT '限定入学年级，空表示不限',
     description TEXT COMMENT '课程描述',
     objectives  TEXT COMMENT '教学目标',
     create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -145,7 +151,9 @@ CREATE TABLE IF NOT EXISTS courses
     create_by   VARCHAR(50)  DEFAULT NULL COMMENT '创建人',
     update_by   VARCHAR(50)  DEFAULT NULL COMMENT '更新人',
     is_deleted  TINYINT      NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
-    FOREIGN KEY (teacher_id) REFERENCES teachers (id)
+    KEY idx_courses_selection_scope (selection_scope, selection_college_id, selection_major_code, selection_grade),
+    FOREIGN KEY (teacher_id) REFERENCES teachers (id),
+    FOREIGN KEY (selection_college_id) REFERENCES colleges (id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='课程表';
@@ -163,6 +171,8 @@ CREATE TABLE IF NOT EXISTS course_selections
     create_by      VARCHAR(50) DEFAULT NULL COMMENT '创建人',
     update_by      VARCHAR(50) DEFAULT NULL COMMENT '更新人',
     is_deleted     TINYINT  NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+    KEY idx_course_selections_course_active (course_id, is_deleted, status),
+    KEY idx_course_selections_student_course_active (student_id, course_id, is_deleted, status),
     FOREIGN KEY (student_id) REFERENCES students (id),
     FOREIGN KEY (course_id) REFERENCES courses (id)
 ) ENGINE = InnoDB
@@ -250,7 +260,7 @@ INSERT INTO users (username, password, role, real_name, gender, phone, email, st
 -- 物理与电子信息学院教师
 ('T2024004', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA', 'teacher', '赵教授', 0, '13811111004', 'teacher04@example.com', 0, 'system', 'system'),
 ('T2024005', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA', 'teacher', '钱教授', 1, '13811111005', 'teacher05@example.com', 0, 'system', 'system'),
-('T2024006', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA', 'teacher', '孙教授', 0, 'system', 'system'),
+('T2024006', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA', 'teacher', '孙教授', 0, '13811111006', 'teacher06@example.com', 0, 'system', 'system'),
 -- 化学与材料科学学院教师
 ('T2024007', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA', 'teacher', '周教授', 1, '13811111007', 'teacher07@example.com', 0, 'system', 'system'),
 ('T2024008', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA', 'teacher', '吴教授', 0, '13811111008', 'teacher08@example.com', 0, 'system', 'system'),
@@ -267,10 +277,10 @@ SELECT id,
            WHEN 2 THEN '讲师'
            WHEN 3 THEN '助教'
            END,
-       CASE 
-           WHEN id BETWEEN 1 AND 3 THEN '数学与计算机科学学院'
-           WHEN id BETWEEN 4 AND 6 THEN '物理与电子信息学院'
-           WHEN id BETWEEN 7 AND 10 THEN '化学与材料科学学院'
+       CASE
+           WHEN username BETWEEN 'T2024001' AND 'T2024003' THEN '数学与计算机科学学院'
+           WHEN username BETWEEN 'T2024004' AND 'T2024006' THEN '物理与电子信息学院'
+           WHEN username BETWEEN 'T2024007' AND 'T2024010' THEN '化学与材料科学学院'
            END,
        DATE_SUB(CURRENT_DATE, INTERVAL FLOOR(RAND() * 3650) DAY),
        0, -- 状态：0-在职
@@ -415,8 +425,20 @@ VALUES ('Java程序设计', 'CS101', 1, 4, 'Java语言基础与面向对象程�
        ('人工智能导论', 'AI101', 7, 3, '人工智能基础理论与应用', NOW(), NOW(), 'system', 'system'),
        ('机器学习', 'AI102', 8, 4, '机器学习算法与实践', NOW(), NOW(), 'system', 'system');
 
+INSERT INTO courses (course_name, course_code, teacher_id, credits, course_type, semester, hours, status,
+                     selection_open, max_students, selection_scope, selection_college_id, selection_major_code,
+                     selection_grade, description, create_time, update_time, create_by, update_by)
+VALUES ('大学心理健康', 'GE201', 1, 2, '公共课', '2026-2027-1', 32, 1, 1, 200, 'ALL', NULL, NULL, '2023',
+        '面向全校2023级学生开放的心理健康通识选修课。', NOW(), NOW(), 'eligibility-demo', 'eligibility-demo'),
+       ('中国传统文化概论', 'GE202', 2, 2, '选修课', '2026-2027-1', 32, 1, 1, 150, 'ALL', NULL, NULL, '2023',
+        '面向全校2023级学生开放的传统文化选修课。', NOW(), NOW(), 'eligibility-demo', 'eligibility-demo'),
+       ('数据可视化', 'CS206', 3, 3, '选修课', '2026-2027-1', 48, 1, 1, 60, 'COLLEGE', 1, NULL, '2023',
+        '面向数学与计算机科学学院2023级学生开放。', NOW(), NOW(), 'eligibility-demo', 'eligibility-demo'),
+       ('机器学习实践', 'CS207', 4, 3, '选修课', '2026-2027-1', 48, 1, 1, 50, 'MAJOR', 1, 'CS', '2023',
+        '面向计算机科学与技术专业2023级学生开放。', NOW(), NOW(), 'eligibility-demo', 'eligibility-demo');
+
 -- 初始化少量成绩样例：前10名学生的3门示例课程，共最多30条；重复执行不会重复插入。
-INSERT IGNORE INTO scores (student_id, course_id, score, grade, grade_point, semester, exam_time, remarks, create_by, update_by)
+INSERT IGNORE INTO scores (student_id, course_id, score, grade, grade_point, semester, exam_time, remarks, create_time, update_time, create_by, update_by)
 SELECT seed.student_id,
        seed.course_id,
        seed.score,
@@ -436,7 +458,7 @@ SELECT seed.student_id,
             WHEN seed.score >= 68 THEN 2.00
             WHEN seed.score >= 64 THEN 1.50
             WHEN seed.score >= 60 THEN 1.00 ELSE 0.00 END,
-       '2026-2027-1', DATE_SUB(NOW(), INTERVAL 1 DAY), '本地开发初始化演示成绩', 'system', 'system'
+       '2026-2027-1', DATE_SUB(NOW(), INTERVAL 1 DAY), '本地开发初始化演示成绩', NOW(), NOW(), 'system', 'system'
 FROM (
     SELECT s.id AS student_id, c.id AS course_id,
            60 + MOD(s.id + c.id * 3, 41) AS score
@@ -482,22 +504,22 @@ WHERE NOT EXISTS (
       AND existing.is_deleted = 0
 );
 
--- 7. 插入选课数据
+-- 7. 插入少量、确定性的选课演示数据，避免初始化后超过默认选课容量
 INSERT INTO course_selections (student_id, course_id, status, create_time, update_time, create_by, update_by)
 SELECT s.id,
        c.id,
-       CASE FLOOR(RAND() * 3)
+       CASE MOD(s.id + c.id, 3)
            WHEN 0 THEN 'pending'
            WHEN 1 THEN 'approved'
-           WHEN 2 THEN 'rejected'
-           END,
+           ELSE 'rejected'
+       END,
        NOW(),
        NOW(),
        'system',
        'system'
-FROM students s
-         CROSS JOIN courses c
-WHERE RAND() < 0.3; -- 30%的概率选课
+FROM (SELECT id FROM students WHERE is_deleted = 0 AND status = 0 ORDER BY id LIMIT 30) s
+CROSS JOIN courses c
+WHERE c.is_deleted = 0 AND MOD(s.id + c.id, 2) = 0;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

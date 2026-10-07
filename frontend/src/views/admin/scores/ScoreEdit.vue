@@ -11,6 +11,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { useRoute, useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { updateScore } from '@/api/score'
@@ -27,7 +28,7 @@
             router.push('/admin/scores')
         } catch (error) {
             console.error('更新失败：', error)
-            ElMessage.error('更新失败')
+            showApiError(error, '更新失败')
         }
     }
 

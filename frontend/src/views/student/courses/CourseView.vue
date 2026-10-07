@@ -24,6 +24,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -42,7 +43,7 @@ onMounted(async () => {
     const response = await getMyCourseById(route.params.id)
     course.value = response?.data || null
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || '获取课程详情失败')
+    showApiError(error, error?.response?.data?.message || '获取课程详情失败')
   } finally { loading.value = false }
 })
 </script>

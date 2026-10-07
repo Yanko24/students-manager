@@ -20,6 +20,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -53,7 +54,7 @@ const submit = async () => {
     ElMessage.success('密码已修改')
     await router.replace(`/${userStore.role}/dashboard`)
   } catch (error) {
-    if (error?.message) ElMessage.error(error.message)
+    if (error?.message) showApiError(error, error.message)
   } finally {
     loading.value = false
   }

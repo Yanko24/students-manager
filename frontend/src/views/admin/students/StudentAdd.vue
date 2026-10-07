@@ -17,6 +17,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { ref } from 'vue'
     import { useRouter } from 'vue-router'
     import { Back } from '@element-plus/icons-vue'
@@ -41,7 +42,7 @@
             }
         } catch (error) {
             console.error('创建学生失败:', error)
-            ElMessage.error('创建学生失败')
+            showApiError(error, '创建学生失败')
         } finally {
             loading.value = false
         }

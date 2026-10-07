@@ -44,6 +44,18 @@
                 <el-table-column prop="teacher" label="授课教师" :width="columnWidth.teacher" align="center"
                     show-overflow-tooltip />
                 <el-table-column prop="semester" label="学期" :width="columnWidth.semester" align="center" />
+                <el-table-column label="名额占用" :width="columnWidth.capacity" align="center" class-name="capacity-column">
+                    <template #default="{ row }">
+                        <span class="capacity-cell">{{ row.selectedCount || 0 }} / {{ row.maxStudents || 60 }} 人</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="选课状态" :width="columnWidth.selection" align="center">
+                    <template #default="{ row }">
+                        <el-tag :type="row.selectionOpen === 1 ? 'success' : 'info'" size="small">
+                            {{ row.selectionOpen === 1 ? '开放' : '关闭' }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
                 <el-table-column prop="statusText" label="状态" :width="columnWidth.status" align="center">
                     <template #default="{ row }">
                         <el-tag :type="row.status === 0 ? 'info' : row.status === 1 ? 'success' : 'warning'" size="small">
@@ -54,6 +66,9 @@
                 <el-table-column label="操作" :width="columnWidth.operation" fixed="right" align="center">
                     <template #default="{ row }">
                         <record-view-link :to="{ name: 'CourseView', params: { id: row.id } }" />
+                        <el-button type="success" link @click.stop="router.push({ name: 'CourseStudents', params: { id: row.id } })">
+                            选课审核
+                        </el-button>
                         <el-button type="primary" link @click.stop="router.push({ name: 'CourseEdit', params: { id: row.id } })">
                             编辑
                         </el-button>
@@ -70,6 +85,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { ref } from 'vue'
     import { useRouter } from 'vue-router'
     import RecordViewLink from '@/components/common/RecordViewLink.vue'
@@ -92,8 +108,10 @@
         type: 110,
         teacher: 120,
         semester: 140,
+        capacity: 150,
+        selection: 100,
         status: 100,
-        operation: 180
+        operation: 280
     }
     const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths)
 
@@ -126,11 +144,13 @@
             } else {
                 courseList.value = []
                 total.value = 0
+                if (!localStorage.getItem('token')) return
                 ElMessage.error(response?.message || '获取课程列表失败')
             }
         } catch (error) {
             console.error('获取课程列表失败：', error)
-            ElMessage.error('获取课程列表失败')
+            if (error?.authSessionExpired || !localStorage.getItem('token')) return
+            showApiError(error, '获取课程列表失败')
         } finally {
             loading.value = false
         }
@@ -163,7 +183,7 @@
             handleSearch()
         } catch (error) {
             if (error === 'cancel' || error === 'close') return
-            ElMessage.error('删除失败')
+            showApiError(error, '删除失败')
         }
     }
 
@@ -250,6 +270,16 @@
         white-space: nowrap !important;
         word-break: keep-all;
         overflow-wrap: normal;
+    }
+
+    .table-card :deep(.capacity-column .cell) {
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    .capacity-cell {
+        display: inline-block;
+        white-space: nowrap;
     }
 
     .table-card :deep(.el-table__fixed-right) {

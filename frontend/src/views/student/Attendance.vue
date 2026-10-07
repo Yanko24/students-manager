@@ -41,6 +41,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getStudentAttendance, getStudentAttendanceStatistics } from '@/api/attendance'
@@ -70,7 +71,7 @@ const fetchList = async () => {
     console.error('查询学生考勤失败：', error)
     attendanceList.value = []
     total.value = 0
-    ElMessage.error(error?.message || '查询考勤失败')
+    showApiError(error, error?.message || '查询考勤失败')
   } finally {
     loading.value = false
   }
@@ -84,7 +85,7 @@ const fetchStats = async () => {
   } catch (error) {
     console.error('读取学生考勤汇总失败：', error)
     Object.assign(stats, { totalCount: 0, presentCount: 0, lateCount: 0, earlyLeaveCount: 0, absentCount: 0, leaveCount: 0 })
-    ElMessage.error(error?.message || '读取考勤汇总失败')
+    showApiError(error, error?.message || '读取考勤汇总失败')
   }
 }
 

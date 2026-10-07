@@ -3,6 +3,7 @@
         <header class="page-header">
             <h2>{{ title }}</h2>
             <div class="header-actions">
+                <slot name="actions" />
                 <el-button @click="router.push(backPath)">返回列表</el-button>
             </div>
         </header>

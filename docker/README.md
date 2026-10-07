@@ -131,7 +131,7 @@ Compose 使用 `app-network` 网络，容器间通过 `mysql`、`backend`、`fro
 
 ## 数据库初始化与持久化
 
-MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_manager` 数据库；空数据卷首次初始化时，MySQL 镜像会创建 `students_manager_app` 并授予该库权限。后端以此账号连接和运行 Flyway，不使用 root。Flyway 运行 `V1` 建表，再由 `V2` 插入唯一初始管理员 `admin`。不包含演示学生、教师、学院、专业或课程。迁移文件随 Spring Boot JAR 打包，不需要 MySQL 初始化 SQL 挂载。
+MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_manager` 数据库；空数据卷首次初始化时，MySQL 镜像会创建 `students_manager_app` 并授予该库权限。后端以此账号连接和运行 Flyway，不使用 root。当前预发布迁移由单个 `V1` 建立完整 schema 并插入唯一初始管理员 `admin`。不包含演示学生、教师、学院、专业或课程。迁移文件随 Spring Boot JAR 打包，不需要 MySQL 初始化 SQL 挂载。
 
 数据库保存在 Compose 命名卷 `students-manager-mysql-data`。Docker Compose 通常会在实际卷名中添加项目名前缀，可通过 `docker volume ls` 确认。以下行为不会清空数据卷：
 
@@ -139,7 +139,7 @@ MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_m
 - `docker compose down` 后再次 `docker compose up`
 - `docker compose up -d --build` 重建容器或镜像
 
-Flyway 在每次后端启动时检查 `flyway_schema_history`，只执行尚未成功的版本迁移。首次接入既有数据卷时必须先备份并核对 schema；只有符合旧版标准结构时，才在 `.env` 临时设 `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true`，并执行 `docker compose up -d --force-recreate backend`。成功 baseline 并执行 V2 后，恢复为 `false` 并再次重建后端。V2 会补已知缺失的 `courses.course_type` 和 `scores` 表；其它 schema 差异需先人工核对并单独迁移。不要删除数据卷作为升级手段。
+Flyway 在每次后端启动时检查 `flyway_schema_history`。本项目尚未正式发布，当前在收敛预发布迁移历史；已有 V2–V5 记录的数据卷不能直接交给仅包含 V1 的新版本校验。使用已有数据卷前先备份并核对 Flyway 历史及 schema，再由维护者决定是否保留旧迁移兼容文件或重建数据库。不要用普通容器重启替代数据库迁移，也不要在未备份时删除数据卷。
 
 #### 给已有数据卷创建应用账号
 
@@ -182,7 +182,7 @@ docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroo
 
 数据库备份不包含 SM4 密钥。恢复加密的联系方式前，必须同时持有与数据匹配的 `SM4_KEY_BASE64`。
 
-管理员由 Flyway V2 在新库初始化时建立；若管理员后来被删除，可走受控的账号恢复流程，不要重跑整个 schema 初始化。
+管理员由 Flyway V1 在新库初始化时建立；若管理员后来被删除，可走受控的账号恢复流程，不要重跑整个 schema 初始化。
 
 ## 初始账号和导入数据
 

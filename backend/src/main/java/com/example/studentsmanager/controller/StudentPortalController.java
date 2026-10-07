@@ -19,6 +19,25 @@ import java.security.Principal;
 public class StudentPortalController {
     private final StudentPortalService studentPortalService;
 
+    @GetMapping("/available-courses")
+    public Result<Page<CourseVO>> getAvailableCourses(Principal principal,
+            @RequestParam(defaultValue = "1") long page, @RequestParam(defaultValue = "10") long size,
+            @RequestParam(required = false) String courseName, @RequestParam(required = false) String semester) {
+        return Result.success(studentPortalService.getAvailableCourses(principal.getName(), page, size, courseName, semester));
+    }
+
+    @PostMapping("/courses/{courseId}/selection")
+    public Result<Void> selectCourse(Principal principal, @PathVariable Long courseId) {
+        studentPortalService.selectCourse(principal.getName(), courseId);
+        return Result.success();
+    }
+
+    @DeleteMapping("/courses/{courseId}/selection")
+    public Result<Void> dropCourse(Principal principal, @PathVariable Long courseId) {
+        studentPortalService.dropCourse(principal.getName(), courseId);
+        return Result.success();
+    }
+
     @GetMapping("/courses")
     public Result<Page<CourseVO>> getCourses(Principal principal,
             @RequestParam(defaultValue = "1") long page, @RequestParam(defaultValue = "10") long size,

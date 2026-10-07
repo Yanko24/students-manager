@@ -7,10 +7,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.studentsmanager.core.response.Result;
 import com.example.studentsmanager.model.dto.course.CourseQueryDTO;
 import com.example.studentsmanager.model.dto.course.CourseUpdateDTO;
+import com.example.studentsmanager.model.dto.course.CourseSelectionReviewDTO;
 import com.example.studentsmanager.model.vo.course.CourseVO;
+import com.example.studentsmanager.model.vo.course.CourseSelectionStudentVO;
 import com.example.studentsmanager.service.CourseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/courses")
@@ -26,6 +31,31 @@ public class CourseController {
     @GetMapping("/{id}")
     @Operation(summary = "查询课程详情", description = "根据课程编号获取课程信息")
     public Result<CourseVO> getCourse(@PathVariable Long id) { return Result.success(courseService.getCourse(id)); }
+
+    @GetMapping("/{id}/students")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "分页查询课程选课学生", description = "查询已选该课程的学生名单")
+    public Result<Page<CourseSelectionStudentVO>> getSelectedStudents(@PathVariable Long id,
+            @RequestParam(defaultValue = "1") long page, @RequestParam(defaultValue = "10") long size) {
+        return Result.success(courseService.getSelectedStudents(id, page, size));
+    }
+
+    @GetMapping("/{id}/selections")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "分页查询选课申请", description = "按审核状态分页查询课程申请")
+    public Result<Page<CourseSelectionStudentVO>> getCourseSelections(@PathVariable Long id,
+            @RequestParam(defaultValue = "1") long page, @RequestParam(defaultValue = "10") long size,
+            @RequestParam(defaultValue = "pending") String status) {
+        return Result.success(courseService.getCourseSelections(id, page, size, status));
+    }
+
+    @PostMapping("/{id}/selections/review")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "批量审核选课申请", description = "批量通过或拒绝待审核申请")
+    public Result<Integer> reviewCourseSelections(@PathVariable Long id, @Valid @RequestBody CourseSelectionReviewDTO request,
+                                                   Principal principal) {
+        return Result.success(courseService.reviewCourseSelections(id, request.getSelectionIds(), request.getAction(), principal.getName()));
+    }
 
     @PostMapping
     @Operation(summary = "新增课程", description = "创建课程信息")

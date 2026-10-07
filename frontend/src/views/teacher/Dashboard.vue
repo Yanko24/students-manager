@@ -61,6 +61,7 @@ import { useRouter } from 'vue-router'
 import { ArrowRight, Calendar, Reading, User, Tickets, WarningFilled, Collection } from '@element-plus/icons-vue'
 import { getTeacherAttendance } from '@/api/attendance'
 import { formatDate } from '@/utils/dateUtils'
+import { isAuthSessionExpiredError } from '@/utils/errorHandler'
 
 const router = useRouter()
 const loading = ref(false)
@@ -88,7 +89,9 @@ const loadDashboard = async () => {
     total.value = Number(response.data?.total || 0)
     anomalies.value = records.filter((record) => ['迟到', '早退', '缺勤'].includes(record.status)).length
   } catch (error) {
-    errorMessage.value = error?.message || '获取教师工作台数据失败'
+    if (!isAuthSessionExpiredError(error)) {
+      errorMessage.value = error?.message || '获取教师工作台数据失败'
+    }
   } finally {
     loading.value = false
   }

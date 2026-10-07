@@ -26,6 +26,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { ref, onMounted } from 'vue'
     import { useRoute } from 'vue-router'
     import { ElMessage } from 'element-plus'
@@ -48,7 +49,7 @@
             }
         } catch (error) {
             console.error('获取学生详情失败:', error)
-            ElMessage.error('获取学生详情失败')
+            showApiError(error, '获取学生详情失败')
         } finally {
             loading.value = false
         }

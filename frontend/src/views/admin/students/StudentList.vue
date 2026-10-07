@@ -80,6 +80,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { ref, computed, nextTick, onUnmounted } from 'vue'
     import { useRouter } from 'vue-router'
     import { ElMessage, ElMessageBox } from 'element-plus'
@@ -149,7 +150,7 @@
             }
         } catch (error) {
             console.error('获取学生列表失败：', error);
-            ElMessage.error('获取学生列表失败');
+            showApiError(error, '获取学生列表失败');
         } finally {
             loading.value = false;
         }
@@ -190,7 +191,7 @@
         } catch (error) {
             if (error === 'cancel' || error === 'close') return
             console.error('删除学生失败：', error);
-            ElMessage.error(error.response?.data?.message || '删除失败');
+            showApiError(error, error.response?.data?.message || '删除失败');
         } finally {
             loading.value = false;
         }
@@ -210,7 +211,7 @@
             importDialogVisible.value = false
             await fetchStudents(1, pageSize.value)
         } catch (error) {
-            ElMessage.error(error?.message || '导入失败，请检查文件内容')
+            showApiError(error, error?.message || '导入失败，请检查文件内容')
         } finally {
             importing.value = false
         }

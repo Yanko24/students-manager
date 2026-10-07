@@ -23,6 +23,18 @@ public class Course {
     private String semester;
     private Integer hours;
     private Integer status;
+    @TableField("selection_open")
+    private Integer selectionOpen;
+    @TableField("max_students")
+    private Integer maxStudents;
+    @TableField("selection_scope")
+    private String selectionScope;
+    @TableField("selection_college_id")
+    private Long selectionCollegeId;
+    @TableField("selection_major_code")
+    private String selectionMajorCode;
+    @TableField("selection_grade")
+    private String selectionGrade;
     private String description;
     private String objectives;
     @TableField(fill = FieldFill.INSERT)

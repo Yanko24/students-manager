@@ -1,5 +1,14 @@
 import { ElMessage } from "element-plus";
 
+export const isAuthSessionExpiredError = (error) =>
+	Boolean(error?.authSessionExpired);
+
+export const showApiError = (error, fallbackMessage = "操作失败") => {
+	if (isAuthSessionExpiredError(error)) return false;
+	ElMessage.error(fallbackMessage);
+	return true;
+};
+
 /**
  * 统一处理API错误
  * @param {Error} error - 错误对象
@@ -12,6 +21,7 @@ export const handleApiError = (
 	defaultMessage = "操作失败",
 	showMessage = true
 ) => {
+	if (isAuthSessionExpiredError(error)) return "";
 	let errorMessage = defaultMessage;
 
 	if (error.response) {

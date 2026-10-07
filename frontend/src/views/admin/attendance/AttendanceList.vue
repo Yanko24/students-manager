@@ -76,6 +76,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { ref, onMounted } from 'vue'
     import { useRouter } from 'vue-router'
     import { ElMessage, ElMessageBox } from 'element-plus'
@@ -117,7 +118,7 @@
             }
         } catch (error) {
             console.error('获取考勤列表失败：', error)
-            ElMessage.error('获取考勤列表失败')
+            showApiError(error, '获取考勤列表失败')
         } finally {
             loading.value = false
         }
@@ -155,7 +156,7 @@
         } catch (error) {
             if (error !== 'cancel' && error !== 'close') {
                 console.error('删除失败：', error)
-                ElMessage.error('删除失败')
+                showApiError(error, '删除失败')
             }
         }
     }

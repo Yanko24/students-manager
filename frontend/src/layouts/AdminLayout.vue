@@ -4,7 +4,7 @@
             <el-aside width="220px" class="sidebar">
                 <div class="logo">
                     <img src="@/assets/images/logo.png" alt="Logo" />
-                    <h1>学生管理系统</h1>
+                    <h1>知行教务</h1>
                 </div>
                 <el-menu :default-active="activeMenu" class="sidebar-menu" @select="handleMenuSelect">
                     <el-menu-item index="/admin/dashboard">

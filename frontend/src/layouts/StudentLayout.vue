@@ -4,7 +4,7 @@
             <el-aside width="220px" class="sidebar" :class="{ 'is-collapse': isSidebarCollapsed }">
                 <div class="logo">
                     <img src="@/assets/images/logo.png" alt="Logo" />
-                    <h1>学生管理系统</h1>
+                    <h1>知行教务</h1>
                 </div>
                 <el-menu :default-active="activeMenu" class="sidebar-menu" :collapse="isSidebarCollapsed"
                     background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF" @select="navigate">
@@ -19,6 +19,12 @@
                             <Reading />
                         </el-icon>
                         <template #title>我的课程</template>
+                    </el-menu-item>
+                    <el-menu-item index="/student/course-selection">
+                        <el-icon>
+                            <Reading />
+                        </el-icon>
+                        <template #title>选课中心</template>
                     </el-menu-item>
                     <el-menu-item index="/student/scores">
                         <el-icon>

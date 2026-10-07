@@ -1,6 +1,6 @@
 # 前端说明
 
-学生管理系统前端使用 Vue 3、Vite、Vue Router、Pinia、Element Plus 和 ECharts。开发时由 Vite 提供页面并代理 `/api` 请求；本地生产构建默认输出到 Spring Boot classpath 静态目录；Docker 构建则单独输出 `dist/` 并由 Nginx 提供服务。
+知行教务前端使用 Vue 3、Vite、Vue Router、Pinia、Element Plus 和 ECharts。开发时由 Vite 提供页面并代理 `/api` 请求；本地生产构建默认输出到 Spring Boot classpath 静态目录；Docker 构建则单独输出 `dist/` 并由 Nginx 提供服务。
 
 ## 环境要求
 

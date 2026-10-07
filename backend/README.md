@@ -1,6 +1,6 @@
 # 后端说明
 
-后端为学生管理系统提供 REST API、身份认证、数据库访问和 Spring Boot 静态页面托管能力。Docker 部署时后端只负责 API，前端文件由独立的 Nginx 容器提供。
+后端为知行教务提供 REST API、身份认证、数据库访问和 Spring Boot 静态页面托管能力。Docker 部署时后端只负责 API，前端文件由独立的 Nginx 容器提供。
 
 ## 技术栈与运行要求
 
@@ -17,7 +17,7 @@
 
 - 管理员 API：学生、教师、学院、专业、课程、成绩、考勤和统计数据。
 - 教师 API：查询授课课程和本人负责课程的考勤信息。
-- 学生 API：当前学生的个人档案、已确认课程、个人成绩和考勤。
+- 学生 API：当前学生的个人档案、开放课程查询、选课与退选、已确认课程、个人成绩和考勤。
 - JWT 登录、当前账号查询、修改密码及会话有效性检查；登出由前端清除本地令牌，当前没有服务端 logout API。
 - 联系方式（手机号、邮箱）在数据库读写时进行 SM4-GCM 加解密。
 - 首次登录强制修改初始密码；密码存储为 PBKDF2-HMAC-SM3 哈希，并兼容旧 BCrypt 格式登录。
@@ -121,17 +121,13 @@ mvn -DskipTests compile
 
 ## 数据库初始化与样例
 
-Flyway 迁移位于 [`src/main/resources/db/migration/`](src/main/resources/db/migration/)；应用启动时自动按版本顺序执行，并在 `flyway_schema_history` 表记录结果。版本文件采用 `V版本号__说明.sql` 命名，已在任一环境执行的迁移不可编辑，应新增更高版本文件。
-
-- `V1__create_initial_schema.sql`：从空库创建当前标准表结构。
-- `V2__repair_legacy_schema_and_seed_admin.sql`：修补已知旧库缺少 `courses.course_type` 或 `scores` 表的情况；若没有管理员则创建默认管理员 `admin`（密码 `xiaoer`，首次登录必须修改）。
-- 后续表结构、索引或需要版本化的基础数据变更都新增 `V3__...sql`、`V4__...sql` 等迁移，不在应用代码启动时手动改表。
+当前尚未正式发布，Flyway 已收敛为单个 [`V1__create_initial_schema.sql`](src/main/resources/db/migration/V1__create_initial_schema.sql)，包含完整 schema、课程容量与选课范围字段、索引，以及空库所需的管理员账号。预发布数据库可按本地开发流程重新初始化；正式发布后，已执行的迁移不可编辑，后续变更必须新增更高版本。
 
 Flyway 13 需要 Java 17，MySQL 支持通过单独的 `flyway-mysql` 模块提供。数据库迁移应先在独立的 MySQL 8.4 测试库验证，再用于生产；不要把 Maven 打包成功当成数据库兼容性验证。
 
 ### 本地开发
 
-[`db/init.sql`](db/init.sql) 仍用于建立本地开发演示数据，包括学院、专业、教师、学生、课程、选课、成绩和考勤。执行后以 `dev` Profile 启动时，Flyway 会将非空开发库记录为 V1 基线，再执行后续迁移；开发 Profile 默认允许自动 baseline。直接创建空数据库并启动后端时，Flyway 会从 V1 建表并创建初始管理员，但不会填充演示数据。
+[`db/init.sql`](db/init.sql) 用于建立本地开发演示数据，包括完整 schema、学院、专业、教师、学生、课程、选课、成绩和考勤。执行后以 `dev` Profile 启动时，Flyway 会将非空开发库记录为 V1 基线；开发 Profile 默认允许自动 baseline。直接创建空数据库并启动后端时，Flyway 会从 V1 建表并创建初始管理员，但不会填充演示数据。
 
 如需让 Flyway 从空库建表而不导入演示数据，可先创建数据库，再从 `backend/` 启动应用：
 
@@ -142,13 +138,13 @@ mvn spring-boot:run
 
 ### Docker/生产初始化
 
-Docker Compose 通过 `MYSQL_DATABASE` 创建空库；后端启动后 Flyway 从 V1 建表，再由 V2 创建初始管理员，不插入演示学生、教师、学院或课程。MySQL 卷只负责保存数据，不再挂载一份重复的生产建表 SQL。
+Docker Compose 通过 `MYSQL_DATABASE` 创建空库；后端启动后 Flyway 从 V1 建表并创建初始管理员，不插入演示学生、教师、学院或课程。MySQL 卷只负责保存数据，不再挂载一份重复的生产建表 SQL。
 
 #### 接入已有生产数据库
 
-先备份并核对实际 schema。若它符合 Flyway V1 代表的旧版标准结构（允许缺少 V2 明确修补的 `courses.course_type` 或 `scores` 表），再在 `docker/.env` 临时设置 `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true`，运行 `docker compose up -d --force-recreate backend`：Flyway 会将已有库记录为 V1，然后执行 V2。确认启动成功后立即将该值改回 `false`，再运行同一命令重建后端。默认关闭生产自动 baseline，是为了避免连错数据库时跳过整批初始迁移。
+预发布阶段接入既有数据库时，先备份并逐项核对实际 schema。只有数据库结构与当前 V1 完全匹配时，才可 baseline 到 V1。不要对旧结构直接 baseline，也不要在正式环境删除数据卷。
 
-若已有库的表、列与 V1 有其他差异，不要直接 baseline；应先备份并按真实 schema 编写/执行专门的向前修复迁移，再进行 baseline。V2 只兼容上述两项已知差异，并不替代 schema 审核。不要删除 Docker 数据卷来“升级”数据库。
+若已有库的表、列与 V1 有差异，不要直接 baseline；应先备份并核对数据，再决定是否重建或编写兼容迁移。不要删除正式环境 Docker 数据卷来“升级”数据库。
 
 ## API 与权限概览
 
@@ -162,11 +158,11 @@ Swagger UI：<http://localhost:8080/swagger-ui/index.html>。受保护接口在 
 | `/api/colleges`、`/api/majors` | 学院与专业 | 需登录；当前未统一按角色细分 |
 | `/api/courses`、`/api/scores`、`/api/users` | 课程、成绩和用户管理 | 需登录；当前未统一按角色细分 |
 | `/api/attendance` | 管理端、教师端、学生端考勤和统计 | 按角色分路径限制 |
-| `/api/student-portal` | 当前学生本人课程、课程详情、成绩及成绩统计 | 学生角色；服务端按登录账号限定数据 |
+| `/api/student-portal` | 开放课程查询、选课与退选、本人课程、成绩及成绩统计 | 学生角色；服务端按登录账号限定数据 |
 | `/api/admin/students` | 学生 CSV 批量导入 | 管理员 |
 | `/api/health` | 服务与数据库健康检查 | 健康检查接口公开 |
 
-接口清单和字段以 Swagger、控制器 DTO/VO 为准。学生课程仅显示已通过的选课记录；目前没有课程时间/教室排课数据表。
+接口清单和字段以 Swagger、控制器 DTO/VO 为准。学生提交选课后进入待审核状态；待审核申请和已通过记录都会占用课程名额，学生可在审核前退选。管理员可按课程查看待审核、已通过和已拒绝记录，并批量通过或拒绝待审核申请。批量通过会再次检查名额、学生学籍状态、重复申请及当前专业/年级范围。课程满额时不接受新申请，也不创建候补记录。选课仍校验课程开放状态、重复选择及课程设定的范围：全校、指定学院或指定专业，可再限定入学年级。当前范围规则每门课程指定一个全校/学院/专业对象及一个可选年级；尚未支持候补队列、多学院/多专业组合、课程时间/教室冲突、培养方案和先修课限制。
 
 **权限现状：** `SecurityConfig` 对管理员导入、学生本人数据、教师考勤及学生考勤等部分接口实施了角色限制；其他没有匹配专用规则或方法级授权的接口目前只要求用户已登录。不要把“前端页面隐藏/限制入口”当作后端权限边界。公网部署前应进一步为未细分的业务 Controller 增加角色级授权。
 

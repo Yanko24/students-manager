@@ -36,6 +36,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -67,7 +68,7 @@ const fetchList = async () => {
     total.value = response.data?.total || 0
   } catch (error) {
     console.error('查询教师考勤失败：', error)
-    ElMessage.error(error?.message || '查询考勤失败')
+    showApiError(error, error?.message || '查询考勤失败')
   } finally {
     loading.value = false
   }

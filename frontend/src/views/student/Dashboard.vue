@@ -2,6 +2,7 @@
   <div class="dashboard" v-loading="loading">
     <section class="welcome-card">
       <div><span class="eyebrow">学生服务中心</span><h2>欢迎回来，{{ profile.realName || '同学' }}</h2><p>{{ todayLabel }} · 学业信息一目了然</p></div>
+      <el-button type="primary" plain class="course-selection-button" @click="router.push('/student/course-selection')">进入选课中心</el-button>
       <el-avatar :size="68">{{ (profile.realName || '同').slice(0, 1) }}</el-avatar>
     </section>
 
@@ -45,6 +46,7 @@ import { getCurrentUser } from '@/api/auth'
 import { getMyScoreStatistics, getMyScores, getStudentCourses } from '@/api/student'
 import { getStudentAttendance, getStudentAttendanceStatistics } from '@/api/attendance'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
+import { isAuthSessionExpiredError } from '@/utils/errorHandler'
 
 const router = useRouter()
 const loading = ref(false)
@@ -76,7 +78,10 @@ async function loadDashboard() {
   if (scoreStatsResult.status === 'fulfilled') scoreStats.value = scoreStatsResult.value?.data || { averageScore: 0 }
   if (attendanceResult.status === 'fulfilled') attendance.value = attendanceResult.value?.data?.records || []
   if (attendanceStatsResult.status === 'fulfilled') attendanceStats.value = attendanceStatsResult.value?.data || { attendanceRate: 0 }
-  if (results.some(item => item.status === 'rejected')) ElMessage.warning('部分首页数据暂时无法加载，可进入相应页面重试')
+  const sessionExpired = results.some(item => item.status === 'rejected' && isAuthSessionExpiredError(item.reason))
+  if (!sessionExpired && results.some(item => item.status === 'rejected')) {
+    ElMessage.warning('部分首页数据暂时无法加载，可进入相应页面重试')
+  }
   loading.value = false
 }
 onMounted(loadDashboard)
@@ -85,8 +90,10 @@ onMounted(loadDashboard)
 <style scoped>
 .dashboard { display: grid; gap: 18px; }
 .welcome-card { display: flex; justify-content: space-between; align-items: center; padding: 28px 32px; color: #fff; border-radius: 12px; background: linear-gradient(120deg, #3478f6, #55a6f8); }
+.course-selection-button { flex-shrink: 0; }
 .welcome-card .eyebrow { font-size: 13px; opacity: .82; }.welcome-card h2 { margin: 8px 0; font-size: 25px; }.welcome-card p { margin: 0; opacity: .85; }
 .summary-row,.content-row { row-gap: 16px; }.summary-card { height: 100%; }.summary-label { color: var(--el-text-color-secondary); }.summary-value { margin: 10px 0; font-size: 30px; font-weight: 700; color: var(--el-text-color-primary); }.summary-value small { font-size: 14px; font-weight: 400; color: var(--el-text-color-secondary); }
 .card-heading { display: flex; justify-content: space-between; align-items: center; }.card-heading div { display: grid; gap: 5px; }.card-heading span { color: var(--el-text-color-secondary); font-size: 12px; }
 .list-card { height: 100%; }.list-row { display: flex; justify-content: space-between; align-items: center; min-height: 62px; gap: 16px; border-bottom: 1px solid var(--el-border-color-lighter); }.list-row:last-child { border-bottom: 0; }.row-main { display: grid; gap: 6px; min-width: 0; }.row-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.row-main span { color: var(--el-text-color-secondary); font-size: 13px; }.list-card .list-row { cursor: pointer; }.list-card .list-row:hover .row-main strong { color: var(--el-color-primary); }.score { font-size: 20px; }.pass { color: var(--el-color-success); }.fail { color: var(--el-color-danger); }
+@media (max-width: 640px) { .welcome-card { flex-wrap: wrap; gap: 16px; padding: 22px; }.course-selection-button { order: 3; width: 100%; } }
 </style>

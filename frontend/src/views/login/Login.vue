@@ -3,7 +3,8 @@
         <el-card class="login-card">
             <div class="login-header">
                 <img src="@/assets/images/logo.png" alt="Logo" class="logo" />
-                <h2>学生管理系统</h2>
+                <h2>知行教务</h2>
+                <p class="login-tagline">让教学管理更清晰</p>
             </div>
             <el-form ref="loginFormRef" :model="loginForm" :rules="rules" label-width="0" @submit.prevent="handleLogin">
                 <el-form-item prop="username">
@@ -180,6 +181,13 @@
                     font-size: 23px;
                     color: #23334b;
                     letter-spacing: .4px;
+                }
+
+                .login-tagline {
+                    margin: 8px 0 0;
+                    color: #718096;
+                    font-size: 14px;
+                    letter-spacing: 1px;
                 }
             }
 

@@ -17,6 +17,33 @@ export function getCourseById(id) {
 	});
 }
 
+// 获取课程已选学生名单
+export function getCourseSelectedStudents(id, params) {
+	return request({
+		url: `/courses/${id}/students`,
+		method: "get",
+		params,
+	});
+}
+
+// 获取课程选课申请及审核状态
+export function getCourseSelections(id, params) {
+	return request({
+		url: `/courses/${id}/selections`,
+		method: "get",
+		params,
+	});
+}
+
+// 批量通过或拒绝选课申请
+export function reviewCourseSelections(id, data) {
+	return request({
+		url: `/courses/${id}/selections/review`,
+		method: "post",
+		data,
+	});
+}
+
 // 创建课程
 export function createCourse(data) {
 	return request({

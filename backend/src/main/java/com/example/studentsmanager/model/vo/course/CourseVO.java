@@ -18,6 +18,15 @@ public class CourseVO {
     private String type;
     private String semester;
     private Integer status;
+    private Integer selectionOpen;
+    private Integer maxStudents;
+    private Integer selectedCount;
+    private String selectionScope;
+    private Long selectionCollegeId;
+    private String selectionCollegeName;
+    private String selectionMajorCode;
+    private String selectionMajorName;
+    private String selectionGrade;
     private String statusText;
     private String description;
     private String objectives;

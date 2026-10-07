@@ -104,6 +104,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { ref, reactive, onMounted, watch } from 'vue'
     import { useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
@@ -199,7 +200,7 @@
             }
         } catch (error) {
             console.error('获取专业列表失败:', error)
-            ElMessage.error('获取专业列表失败')
+            showApiError(error, '获取专业列表失败')
         }
     }
 
@@ -233,7 +234,7 @@
                     }
                 } catch (error) {
                     console.error('生成学号失败:', error)
-                    ElMessage.error('生成学号失败')
+                    showApiError(error, '生成学号失败')
                 }
             }
         } else {
@@ -330,7 +331,7 @@
             emit('submit', submitData)
         } catch (error) {
             console.error('表单验证失败:', error)
-            ElMessage.error('请检查表单填写是否正确')
+            showApiError(error, '请检查表单填写是否正确')
         }
     }
 </script>

@@ -36,6 +36,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { ref, reactive, onMounted } from 'vue'
     import { ElMessage } from 'element-plus'
     import { getStudentList } from '@/api/student'
@@ -66,7 +67,7 @@
             const response = await getStudentList(params)
             if (response?.code === 200) students.value = response.data?.records || []
         } catch (error) {
-            ElMessage.error(error.message || '加载学生列表失败')
+            showApiError(error, error.message || '加载学生列表失败')
         } finally {
             studentLoading.value = false
         }
@@ -80,7 +81,7 @@
             const response = await getCourseList(params)
             if (response?.code === 200) courses.value = response.data?.records || []
         } catch (error) {
-            ElMessage.error(error.message || '加载课程列表失败')
+            showApiError(error, error.message || '加载课程列表失败')
         } finally {
             courseLoading.value = false
         }
@@ -110,7 +111,7 @@
                 await Promise.all([searchStudents(''), searchCourses('')])
             }
         } catch (error) {
-            ElMessage.error(error.message || '加载成绩信息失败')
+            showApiError(error, error.message || '加载成绩信息失败')
         }
     })
 </script>

@@ -24,6 +24,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { ref, defineProps, defineEmits, onMounted } from 'vue'
     import { ElMessage } from 'element-plus'
     import { getMajorById, updateMajor, createMajor } from '@/api/major'
@@ -72,7 +73,7 @@
             Object.assign(formData.value, response.data)
         } catch (error) {
             console.error('获取专业信息失败:', error)
-            ElMessage.error('获取专业信息失败')
+            showApiError(error, '获取专业信息失败')
         }
     }
 
@@ -94,7 +95,7 @@
                     emit('success');
                 } catch (error) {
                     console.error('提交专业表单失败：', error);
-                    ElMessage.error('操作失败');
+                    showApiError(error, '操作失败');
                 }
             }
         });

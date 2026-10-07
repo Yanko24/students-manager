@@ -11,6 +11,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
     import { useRoute, useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { updateCourse } from '@/api/course'
@@ -27,7 +28,7 @@
             router.push('/admin/courses')
         } catch (error) {
             console.error('更新课程失败:', error)
-            ElMessage.error('更新课程失败')
+            showApiError(error, '更新课程失败')
         }
     }
 

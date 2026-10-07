@@ -44,6 +44,7 @@
 </template>
 
 <script setup>
+import { showApiError } from "@/utils/errorHandler";
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getMyScores, getMyScoreStatistics } from '@/api/student'
@@ -68,7 +69,7 @@ async function fetchScores() {
     total.value = data?.total || 0
   } catch (error) {
     scores.value = []; total.value = 0
-    ElMessage.error(error?.message || '获取成绩列表失败')
+    showApiError(error, error?.message || '获取成绩列表失败')
   } finally { loading.value = false }
 }
 async function fetchStats() {
@@ -78,7 +79,7 @@ async function fetchStats() {
     Object.assign(stats, data || {})
   } catch (error) {
     Object.assign(stats, { scoreCount: 0, averageScore: 0, passRate: 0, excellentRate: 0, earnedCredits: 0 })
-    ElMessage.error(error?.message || '获取成绩统计失败')
+    showApiError(error, error?.message || '获取成绩统计失败')
   } finally { statsLoading.value = false }
 }
 function search() { page.value = 1; fetchScores(); fetchStats() }
