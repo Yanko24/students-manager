@@ -12,7 +12,7 @@
       </el-form>
 
       <el-table :data="attendanceList" v-loading="loading" border>
-        <el-table-column prop="date" label="日期" width="130">
+        <el-table-column prop="date" label="日期" width="130" fixed="left">
           <template #default="{ row }">{{ formatDate(row.date) }}</template>
         </el-table-column>
         <el-table-column prop="courseName" label="课程名称" min-width="170" />

@@ -5,9 +5,16 @@ import com.example.studentsmanager.model.entity.Course;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface CourseMapper extends BaseMapper<Course> {
+    @Update("UPDATE courses SET course_name = #{courseName}, credits = #{credits}, course_type = #{courseType}, hours = #{hours}, description = #{description}, objectives = #{objectives} WHERE catalog_id = #{catalogId} AND id <> #{excludeCourseId}")
+    int synchronizeCatalogFields(@Param("catalogId") Long catalogId, @Param("excludeCourseId") Long excludeCourseId,
+                                 @Param("courseName") String courseName, @Param("credits") java.math.BigDecimal credits,
+                                 @Param("courseType") String courseType, @Param("hours") Integer hours,
+                                 @Param("description") String description, @Param("objectives") String objectives);
+
     @Select("SELECT * FROM courses WHERE id = #{id} AND is_deleted = 0 FOR UPDATE")
     Course selectForUpdate(@Param("id") Long id);
 

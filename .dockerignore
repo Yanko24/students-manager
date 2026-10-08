@@ -25,3 +25,4 @@ backend/.env.local
 
 # The Docker backend image serves the API only; frontend has its own image.
 backend/src/main/resources/static
+/target

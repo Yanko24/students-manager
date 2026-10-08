@@ -29,7 +29,8 @@
         <el-card class="table-card">
             <el-table ref="tableRef" :data="courseList" v-loading="loading" border stripe
                 :style="{ width: tableWidth + 'px' }">
-                <el-table-column prop="code" label="课程代码" :width="columnWidth.code" align="center" />
+                <el-table-column prop="code" label="课程代码" :width="columnWidth.code" align="center" fixed="left" />
+                <el-table-column prop="sectionCode" label="教学班号" :width="columnWidth.section" align="center" />
                 <el-table-column prop="name" label="课程名称" :width="columnWidth.name" align="center"
                     show-overflow-tooltip />
                 <el-table-column prop="college" label="所属学院" :width="columnWidth.college" align="center"
@@ -101,6 +102,7 @@ import { showApiError } from "@/utils/errorHandler";
 
     const minColumnWidths = {
         code: 120,
+        section: 100,
         name: 180,
         college: 280,
         credit: 80,
@@ -113,7 +115,7 @@ import { showApiError } from "@/utils/errorHandler";
         status: 100,
         operation: 280
     }
-    const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths)
+    const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths, courseList, { section: 'sectionCode', capacity: row => `${row.selectedCount || 0} / ${row.maxStudents || 60} 人`, status: 'statusText' })
 
     const filterForm = ref({
         code: '',
@@ -125,19 +127,12 @@ import { showApiError } from "@/utils/errorHandler";
     const fetchCourses = async (page, size) => {
         loading.value = true
         try {
-            console.log('开始获取课程列表，参数：', {
-                page,
-                size,
-                ...filterForm.value
-            })
-
             const response = await getCourseList({
                 page,
                 size,
                 ...filterForm.value
             })
 
-            console.log('获取课程列表响应：', response)
             if (response?.code === 200 && response.data) {
                 courseList.value = response.data.records || []
                 total.value = response.data.total || 0

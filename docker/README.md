@@ -28,7 +28,7 @@ backend ── JDBC ──► mysql（容器 :3306，宿主机 MYSQL_PORT）
 | `backend.Dockerfile` | 使用 Maven/Java 17 构建并运行 Spring Boot JAR |
 | `frontend.Dockerfile` | 使用 Node 24 LTS 构建 Vue 静态文件，再复制到 Nginx 镜像 |
 | `nginx.conf` | 将 `/api/` 转给后端，其余请求转给前端 |
-| `backend/src/main/resources/db/migration/` | Flyway 版本化 schema 迁移；首次启动建表并创建初始管理员 |
+| `backend/src/main/resources/db/migration/V1__create_initial_schema.sql` | 唯一预发布基线，创建完整业务表及初始管理员，随 JAR 打包 |
 | `.env.example` | 数据库密码、SM4 密钥、JWT 有效期及宿主机端口模板 |
 | 项目根目录 `.dockerignore` | 排除 Git、node_modules、target、env、日志等构建上下文文件 |
 
@@ -131,7 +131,7 @@ Compose 使用 `app-network` 网络，容器间通过 `mysql`、`backend`、`fro
 
 ## 数据库初始化与持久化
 
-MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_manager` 数据库；空数据卷首次初始化时，MySQL 镜像会创建 `students_manager_app` 并授予该库权限。后端以此账号连接和运行 Flyway，不使用 root。当前预发布迁移由单个 `V1` 建立完整 schema 并插入唯一初始管理员 `admin`。不包含演示学生、教师、学院、专业或课程。迁移文件随 Spring Boot JAR 打包，不需要 MySQL 初始化 SQL 挂载。
+MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_manager` 空数据库；空数据卷首次初始化时，MySQL 镜像创建 `students_manager_app` 并授予该库权限。后端以应用账号连接并运行 Flyway，执行 [`V1__create_initial_schema.sql`](../backend/src/main/resources/db/migration/V1__create_initial_schema.sql)，一次创建全部 16 张业务表和初始管理员 `admin`。不包含演示学生、教师、学院、专业或课程。SQL 随 Spring Boot JAR 打包，运行位置为 `classpath:db/migration/`，因此不需要 MySQL 初始化 SQL 挂载。
 
 数据库保存在 Compose 命名卷 `students-manager-mysql-data`。Docker Compose 通常会在实际卷名中添加项目名前缀，可通过 `docker volume ls` 确认。以下行为不会清空数据卷：
 
@@ -139,7 +139,7 @@ MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_m
 - `docker compose down` 后再次 `docker compose up`
 - `docker compose up -d --build` 重建容器或镜像
 
-Flyway 在每次后端启动时检查 `flyway_schema_history`。本项目尚未正式发布，当前在收敛预发布迁移历史；已有 V2–V5 记录的数据卷不能直接交给仅包含 V1 的新版本校验。使用已有数据卷前先备份并核对 Flyway 历史及 schema，再由维护者决定是否保留旧迁移兼容文件或重建数据库。不要用普通容器重启替代数据库迁移，也不要在未备份时删除数据卷。
+Flyway 在每次后端启动时检查 `flyway_schema_history`。尚未正式发布的 V1–V8 已合并为唯一 V1，旧库的 V1 校验和及后续版本历史与新基线不兼容，普通容器重启不会重置这些记录。需要保留数据时先备份并规划导入新库；需要全新初始化时由维护者在备份后重建数据库或数据卷。不要只清空 Flyway 历史表或用 `repair` 掩盖结构差异，也不要在未备份时删除数据卷。
 
 #### 给已有数据卷创建应用账号
 
@@ -190,7 +190,7 @@ docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroo
 - 首次登录后必须立即修改密码。数据库中存储 PBKDF2-HMAC-SM3 哈希，不存密码明文。
 - 新建学生由管理员在“学生管理”页面用 CSV 批量导入；学生账号为学号，初始密码 `xiaoer`，首次登录必须改密。
 - 导入学生前先建学院、专业、年级和班级。模板位于 [`../frontend/public/templates/student-import-template.csv`](../frontend/public/templates/student-import-template.csv)。
-- 成绩 CSV 模板位于 [`../frontend/public/templates/score-import-template.csv`](../frontend/public/templates/score-import-template.csv)，采用中文表头，考试时间格式为 `YYYY-MM-DDTHH:mm:ss`。开发演示数据请在本地使用 [`../backend/db/init.sql`](../backend/db/init.sql)，不要挂载到生产数据库。
+- 成绩 CSV 模板位于 [`../frontend/public/templates/score-import-template.csv`](../frontend/public/templates/score-import-template.csv)，采用中文表头，考试时间格式为 `YYYY-MM-DDTHH:mm:ss`。开发演示数据请在本地使用 [`../backend/db/seed-dev.sql`](../backend/db/seed-dev.sql)，不要挂载到生产数据库。
 
 ## 常用运维命令
 

@@ -89,7 +89,7 @@
 
 <script setup>
   import { ref, reactive } from 'vue'
-  import { ElMessage } from 'element-plus'
+  import { ElMessage, ElMessageBox } from 'element-plus'
   import { Plus } from '@element-plus/icons-vue'
 
   const activeTab = ref('basic')
@@ -139,18 +139,41 @@
   }
 
   const testEmailSettings = () => {
-    // TODO: 实现邮件测试功能
-    ElMessage.success('测试邮件发送成功')
+    ElMessage.info('邮件发送服务尚未接入，当前无法测试 SMTP 配置。')
   }
 
   const saveSettings = () => {
-    // TODO: 实现保存设置功能
-    ElMessage.success('设置保存成功')
+    ElMessage.info('设置保存接口尚未接入，当前修改不会持久化。')
   }
 
-  const resetSettings = () => {
-    // TODO: 实现重置设置功能
-    ElMessage.warning('确定要重置所有设置吗？')
+  const resetSettings = async () => {
+    try {
+      await ElMessageBox.confirm('将当前页面的设置恢复为默认值，确定继续吗？', '重置设置', {
+        confirmButtonText: '恢复默认值',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      Object.assign(basicSettings, {
+        systemName: '知行教务',
+        logo: '',
+        description: '面向高校教学运行与学生培养的教务管理系统'
+      })
+      Object.assign(emailSettings, {
+        smtpServer: 'smtp.example.com',
+        smtpPort: '587',
+        senderEmail: 'admin@example.com',
+        emailPassword: ''
+      })
+      Object.assign(securitySettings, {
+        minPasswordLength: 8,
+        passwordRules: ['uppercase', 'lowercase', 'numbers'],
+        maxLoginAttempts: 5,
+        lockoutDuration: 30
+      })
+      ElMessage.success('当前页面已恢复默认值；设置尚未保存到服务器。')
+    } catch (error) {
+      if (error !== 'cancel' && error !== 'close') ElMessage.error('重置设置失败')
+    }
   }
 </script>
 

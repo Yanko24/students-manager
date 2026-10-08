@@ -6,22 +6,11 @@
 
 | 角色 | 主要功能 |
 | --- | --- |
-| 管理员 | 数据总览；学生、教师、学院、专业、课程、选课容量/范围/开放状态、选课申请审核与名单、成绩和考勤管理；学生及成绩 CSV 导入/导出 |
+| 管理员 | 数据总览；学生、教师、学院、专业、课程、选课容量/范围/开放状态、选课申请审核与名单、成绩和考勤管理；学生及成绩 CSV 导入/导出；培养方案配置、学籍异动审批、成绩发布、操作审计与站内通知 |
 | 教师 | 查看授课课程与相关考勤、查看和维护个人信息 |
-| 学生 | 浏览开放课程、提交选课申请与退选；查看个人主页、已确认课程、个人成绩及成绩统计、考勤记录和个人信息 |
+| 学生 | 浏览开放课程、提交选课申请与退选；查看个人主页、已确认课程、个人成绩及成绩统计、考勤记录和个人信息；培养学分进度、学籍异动申请与站内通知 |
 
-学生端课程和成绩接口按当前登录账号查询，不返回其他学生的数据。选课按课程设置的全校、指定学院或指定专业范围及适用年级筛选，并在提交及管理员审核时由后端校验；待审核申请会占用名额，课程满额后不接收新申请。具体课表、时段冲突、培养方案、候补队列和先修课规则需要后续接入排课与培养方案模块。旧的 `/student/schedule` 地址会转到“我的课程”。
-
-## 后续教务业务建设
-
-当前的课程记录同时承载课程与学期教学信息。后续按高校教务主流程逐步拆分并完善：
-
-1. **开课教学班与排课**：把课程目录和每学期教学班分开，维护教师、容量、周次、节次、教室及选课时间；选课时校验时间冲突。
-2. **考试管理**：安排考试时间、考场和监考教师，支持缓考、补考及成绩归档。
-3. **培养方案与学分审核**：维护专业课程要求、必修/选修学分和实践环节，提供学分进度与毕业预审核。
-4. **学籍业务**：支持注册、休学复学、转专业、退学和毕业等状态变更，并保留审批记录。
-
-这些模块依赖开课教学班和排课数据，按此顺序建设能让选课、成绩与毕业审核使用同一套教学数据。
+学生端课程和成绩接口按当前登录账号查询，不返回其他学生的数据。选课按课程设置的全校、指定学院或指定专业范围及适用年级筛选，并在提交及管理员审核时由后端校验；待审核申请占用名额，课程满额后可加入候补队列。名额释放时按申请顺序递补为待审核申请。课程可设置每周时段、单双周、周次和教室，系统会检查教师、教室以及学生的课程时间冲突。课程目录与学期教学班已分离，同一课程可跨学期和班号开设。旧的 `/student/schedule` 地址会转到“我的课程”。
 
 ## 技术栈
 
@@ -36,7 +25,7 @@
 ```text
 students-manager/
 ├── backend/
-│   ├── db/init.sql                 # 本地开发数据库结构与演示数据
+│   ├── db/seed-dev.sql             # 本地开发演示数据（表结构由 Flyway 创建）
 │   ├── src/main/java/              # Spring Boot 源码
 │   ├── src/main/resources/db/migration/ # Flyway 版本化数据库迁移
 │   ├── src/main/resources/         # 应用配置、Mapper 配置及前端构建输出
@@ -71,13 +60,20 @@ students-manager/
 
 ### 初始化本地数据库
 
-在**新数据库**上执行一次开发初始化脚本。脚本会创建 `students_manager` 数据库、表结构和演示数据，包括管理员、教师、学生、课程、少量成绩及近两周的考勤记录：
+本地数据库结构和初始管理员由 Flyway V1 创建。新建数据库后先启动一次后端，待 Flyway 完成迁移后停止后端；如需演示数据，再导入一次 `backend/db/seed-dev.sql` 并重启后端。该脚本只插入学院、专业、教师、学生、课程、选课、成绩和考勤等演示记录，不建表、不创建管理员，也不用于生产或重复执行。
 
 ```bash
-mysql -u root -p < backend/db/init.sql
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS students_manager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS 'students_manager_app'@'%' IDENTIFIED BY 'xiaoer'; ALTER USER 'students_manager_app'@'%' IDENTIFIED BY 'xiaoer'; GRANT ALL PRIVILEGES ON students_manager.* TO 'students_manager_app'@'%'"
+cd backend
+mvn spring-boot:run
+# 首次启动完成后按 Ctrl+C，再回到项目根目录执行：
+cd ..
+mysql -u students_manager_app -p students_manager < backend/db/seed-dev.sql
+cd backend
+mvn spring-boot:run
 ```
 
-本地默认连接 `localhost:3306`，数据库 `students_manager`，开发配置中的用户名和密码为 `root` / `xiaoer`。如本机 MySQL 凭据不同，请修改 `backend/src/main/resources/application-dev.yml`，或通过本地环境变量覆盖。初始化 SQL 不用于升级已有数据库；不会自动重建或迁移已有数据。
+本地默认连接 `localhost:3306`，数据库 `students_manager`，开发配置使用与 Docker 一致的专用账号 `students_manager_app`，默认密码为 `xiaoer`。首次配置时由 MySQL 管理员执行上面的建库和授权命令；账号只获得 `students_manager` 库权限，足以运行 Flyway 和导入演示数据。若本机 MySQL 凭据或账号策略不同，可调整 `backend/src/main/resources/application-dev.yml`，或用 `SPRING_DATASOURCE_USERNAME`、`SPRING_DATASOURCE_PASSWORD` 环境变量覆盖。`xiaoer` 仅供本地开发使用。
 
 ### 启动前后端
 
@@ -151,10 +147,12 @@ docker compose down
 
 | 场景 | 初始化文件 | 数据内容 |
 | --- | --- | --- |
-| 本地开发演示 | [`backend/db/init.sql`](backend/db/init.sql) | 当前完整表结构及演示业务数据；本地启动时 Flyway baseline 到 V1 |
-| 新建空库 | Flyway migrations | 自动建表并创建首个管理员，不含演示学生、教师、课程等数据 |
+| 本地开发演示 | [`backend/db/seed-dev.sql`](backend/db/seed-dev.sql) | 仅含演示业务数据；先由 Flyway V1 创建表和管理员，再导入演示记录 |
+| 新建空库 | [`V1__create_initial_schema.sql`](backend/src/main/resources/db/migration/V1__create_initial_schema.sql) | 一次创建全部 16 张业务表及初始管理员；不含演示学生、教师、课程等数据 |
 
-Docker MySQL 使用 `MYSQL_DATABASE` 创建空数据库；后端启动时 Flyway 从 V1 创建完整 schema。已有数据卷不会由应用自动清空；迁移说明见 [后端数据库迁移说明](backend/README.md#数据库初始化与样例)。
+Docker MySQL 通过 `MYSQL_DATABASE` 创建空数据库，通过 `MYSQL_USER` 和 `MYSQL_PASSWORD` 创建应用账号；后端启动时 Flyway 执行 JAR 中的 `classpath:db/migration/V1__create_initial_schema.sql`，创建完整表结构与管理员。因此无需 Docker 专用的数据库初始化 SQL。已有数据卷不会自动清空；迁移说明见 [后端数据库迁移说明](backend/README.md#数据库初始化与样例)。
+
+学籍异动与成绩发布：学生提交休学、复学、转专业或退学申请，管理员审核；新成绩先保存为草稿，发布后学生可见。关键操作有审计记录，审核与成绩发布结果通过站内通知送达。
 
 Docker 初始管理员账号为 `admin`，密码为 `xiaoer`，首次登录必须修改密码。本地开发初始化脚本中的演示用户初始密码也为 `xiaoer`，用户名分别是管理员账号、教师工号或学生学号；首次登录同样需要修改。生产环境不会自动生成演示账号。CSV 模板位于 `frontend/public/templates/`；学生批量导入前需先建立对应学院及专业班级。
 

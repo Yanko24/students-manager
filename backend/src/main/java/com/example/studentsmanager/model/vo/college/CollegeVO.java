@@ -22,9 +22,9 @@ public class CollegeVO extends BaseVO {
     @Schema(description = "学院描述")
     private String description;
     
-    @Schema(description = "学院状态：0-禁用，1-启用")
+    @Schema(description = "学院状态：0-正常，1-停用")
     private Integer status;
     
     @Schema(description = "状态文字描述")
     private String statusText;
-} 
+}

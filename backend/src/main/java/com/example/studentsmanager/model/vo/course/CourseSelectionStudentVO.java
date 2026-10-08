@@ -15,4 +15,5 @@ public class CourseSelectionStudentVO {
     private String classNo;
     private LocalDateTime selectionDate;
     private String selectionStatus;
+    private Long waitlistPosition;
 }

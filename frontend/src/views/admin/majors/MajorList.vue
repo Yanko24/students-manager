@@ -22,7 +22,7 @@
 
         <el-card class="table-card">
             <el-table ref="tableRef" :data="majorList" v-loading="loading" border stripe :style="{ width: tableWidth + 'px' }">
-                <el-table-column prop="code" label="专业代码" :width="columnWidth.code" align="center" />
+                <el-table-column prop="code" label="专业代码" :width="columnWidth.code" align="center" fixed="left" />
                 <el-table-column prop="name" label="专业名称" :width="columnWidth.name" align="center" />
                 <el-table-column prop="collegeName" label="所属学院" :width="columnWidth.collegeName" align="center"
                     show-overflow-tooltip />
@@ -91,7 +91,7 @@ import { showApiError } from "@/utils/errorHandler";
     }
 
     // 使用表格宽度计算组合式函数
-    const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths)
+    const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths, majorList)
     const filterForm = ref({
         code: '',
         name: ''
@@ -100,13 +100,6 @@ import { showApiError } from "@/utils/errorHandler";
     const fetchMajors = async (page, size) => {
         loading.value = true;
         try {
-            console.log('开始获取专业列表，参数：', {
-                page,
-                size,
-                code: filterForm.value.code,
-                name: filterForm.value.name
-            });
-
             const response = await getAllMajors({
                 page,
                 size,
@@ -114,7 +107,6 @@ import { showApiError } from "@/utils/errorHandler";
                 name: filterForm.value.name
             });
 
-            console.log('获取专业列表响应：', response);
             if (response && response.data) {
                 majorList.value = response.data.records || [];
                 total.value = response.data.total || 0;

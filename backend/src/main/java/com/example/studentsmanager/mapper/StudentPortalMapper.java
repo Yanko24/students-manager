@@ -12,21 +12,22 @@ import org.apache.ibatis.annotations.Select;
 public interface StudentPortalMapper {
     @Select({
             "<script>",
-            "SELECT c.id, c.course_code AS code, c.course_name AS name, c.teacher_id AS teacherId,",
+            "SELECT c.id, c.catalog_id AS catalogId, c.course_code AS code, c.section_code AS sectionCode, c.course_name AS name, c.teacher_id AS teacherId,",
             "u.real_name AS teacher, t.department AS college, c.credits AS credit, c.hours,",
             "c.course_type AS type, c.semester, c.status, c.selection_open AS selectionOpen, c.max_students AS maxStudents,",
             "c.selection_scope AS selectionScope, c.selection_college_id AS selectionCollegeId, c.selection_major_code AS selectionMajorCode, c.selection_grade AS selectionGrade,",
             "scope_college.name AS selectionCollegeName, (SELECT sm.name FROM majors sm WHERE sm.code = c.selection_major_code AND sm.is_deleted = 0 ORDER BY sm.grade DESC, sm.class_no ASC LIMIT 1) AS selectionMajorName,",
             "(SELECT COUNT(*) FROM course_selections active WHERE active.course_id = c.id AND active.status IN ('pending', 'approved') AND active.is_deleted = 0) AS selectedCount,",
             "CASE c.status WHEN 0 THEN '未开课' WHEN 1 THEN '已开课' WHEN 2 THEN '已结课' ELSE '未知' END AS statusText,",
-            "c.description, c.objectives, cs.selection_status AS selectionStatus, cs.selection_date AS selectionDate",
+            "c.description, c.objectives, cs.selection_status AS selectionStatus, cs.selection_date AS selectionDate,",
+            "CASE WHEN cs.selection_status = 'waitlisted' THEN (SELECT COUNT(*) FROM course_selections ahead WHERE ahead.course_id = c.id AND ahead.status = 'waitlisted' AND ahead.is_deleted = 0 AND (ahead.selection_date &lt; cs.selection_date OR (ahead.selection_date = cs.selection_date AND ahead.id &lt;= cs.waitlist_selection_id))) ELSE NULL END AS waitlistPosition",
             "FROM courses c",
             "JOIN students current_student ON current_student.id = #{studentId} AND current_student.is_deleted = 0",
             "LEFT JOIN majors current_major ON current_major.code = current_student.major_code AND current_major.grade = current_student.grade AND current_major.class_no = current_student.class_no AND current_major.is_deleted = 0",
             "LEFT JOIN colleges scope_college ON scope_college.id = c.selection_college_id AND scope_college.is_deleted = 0",
             "LEFT JOIN teachers t ON t.id = c.teacher_id AND t.is_deleted = 0",
             "LEFT JOIN users u ON u.id = t.user_id AND u.is_deleted = 0",
-            "LEFT JOIN (SELECT student_id, course_id, CASE WHEN SUM(status = 'approved') &gt; 0 THEN 'approved' WHEN SUM(status = 'pending') &gt; 0 THEN 'pending' ELSE 'rejected' END AS selection_status, MAX(selection_date) AS selection_date FROM course_selections WHERE is_deleted = 0 GROUP BY student_id, course_id) cs ON cs.course_id = c.id AND cs.student_id = #{studentId}",
+            "LEFT JOIN (SELECT student_id, course_id, CASE WHEN SUM(status = 'approved') &gt; 0 THEN 'approved' WHEN SUM(status = 'pending') &gt; 0 THEN 'pending' WHEN SUM(status = 'waitlisted') &gt; 0 THEN 'waitlisted' ELSE 'rejected' END AS selection_status, MAX(CASE WHEN status IN ('pending', 'approved', 'waitlisted') THEN selection_date END) AS selection_date, MAX(CASE WHEN status = 'waitlisted' THEN id END) AS waitlist_selection_id FROM course_selections WHERE is_deleted = 0 GROUP BY student_id, course_id) cs ON cs.course_id = c.id AND cs.student_id = #{studentId}",
             "WHERE c.is_deleted = 0 AND c.selection_open = 1 AND c.status &lt;&gt; 2",
             "AND ((c.selection_scope = 'ALL' AND (c.selection_grade IS NULL OR c.selection_grade = current_student.grade)) OR (c.selection_scope = 'COLLEGE' AND c.selection_college_id = current_major.college_id AND (c.selection_grade IS NULL OR c.selection_grade = current_student.grade)) OR (c.selection_scope = 'MAJOR' AND c.selection_major_code = current_student.major_code AND c.selection_college_id = current_major.college_id AND (c.selection_grade IS NULL OR c.selection_grade = current_student.grade)))",
             "<if test='courseName != null'>AND c.course_name LIKE CONCAT('%', #{courseName}, '%')</if>",
@@ -41,7 +42,7 @@ public interface StudentPortalMapper {
 
     @Select({
             "<script>",
-            "SELECT c.id, c.course_code AS code, c.course_name AS name, c.teacher_id AS teacherId,",
+            "SELECT c.id, c.catalog_id AS catalogId, c.course_code AS code, c.section_code AS sectionCode, c.course_name AS name, c.teacher_id AS teacherId,",
             "u.real_name AS teacher, t.department AS college, c.credits AS credit, c.hours,",
             "c.course_type AS type, c.semester, c.status,",
             "CASE c.status WHEN 0 THEN '未开课' WHEN 1 THEN '已开课' WHEN 2 THEN '已结课' ELSE '未知' END AS statusText,",
@@ -63,7 +64,7 @@ public interface StudentPortalMapper {
                                         @Param("semester") String semester);
 
     @Select({
-            "SELECT c.id, c.course_code AS code, c.course_name AS name, c.teacher_id AS teacherId,",
+            "SELECT c.id, c.catalog_id AS catalogId, c.course_code AS code, c.section_code AS sectionCode, c.course_name AS name, c.teacher_id AS teacherId,",
             "u.real_name AS teacher, t.department AS college, c.credits AS credit, c.hours,",
             "c.course_type AS type, c.semester, c.status,",
             "CASE c.status WHEN 0 THEN '未开课' WHEN 1 THEN '已开课' WHEN 2 THEN '已结课' ELSE '未知' END AS statusText,",
@@ -89,7 +90,7 @@ public interface StudentPortalMapper {
             "JOIN courses c ON c.id = sc.course_id AND c.is_deleted = 0",
             "LEFT JOIN teachers t ON t.id = c.teacher_id AND t.is_deleted = 0",
             "LEFT JOIN users tuser ON tuser.id = t.user_id AND tuser.is_deleted = 0",
-            "WHERE s.user_id = #{userId} AND sc.is_deleted = 0",
+            "WHERE s.user_id = #{userId} AND sc.is_deleted = 0 AND sc.publish_status = 'PUBLISHED'",
             "<if test='courseName != null'>AND c.course_name LIKE CONCAT('%', #{courseName}, '%')</if>",
             "<if test='semester != null'>AND sc.semester = #{semester}</if>",
             "ORDER BY sc.exam_time DESC, sc.id DESC",
@@ -108,7 +109,7 @@ public interface StudentPortalMapper {
             "COALESCE(SUM(CASE WHEN sc.score &gt;= 60 THEN c.credits ELSE 0 END), 0) AS earnedCredits",
             "FROM scores sc JOIN students s ON s.id = sc.student_id AND s.is_deleted = 0",
             "JOIN courses c ON c.id = sc.course_id AND c.is_deleted = 0",
-            "WHERE s.user_id = #{userId} AND sc.is_deleted = 0",
+            "WHERE s.user_id = #{userId} AND sc.is_deleted = 0 AND sc.publish_status = 'PUBLISHED'",
             "<if test='semester != null'>AND sc.semester = #{semester}</if>",
             "</script>"
     })

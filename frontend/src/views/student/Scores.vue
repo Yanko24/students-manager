@@ -13,7 +13,7 @@
         <el-card shadow="never">
           <template #header><span class="card-title">成绩记录</span></template>
           <el-table :data="scores" v-loading="loading" border>
-            <el-table-column prop="courseCode" label="课程代码" min-width="110" />
+            <el-table-column prop="courseCode" label="课程代码" min-width="110" fixed="left" />
             <el-table-column prop="courseName" label="课程名称" min-width="160" />
             <el-table-column prop="credit" label="学分" width="80" />
             <el-table-column prop="score" label="成绩" width="95"><template #default="{ row }"><strong :class="Number(row.score) >= 60 ? 'pass' : 'fail'">{{ row.score }}</strong></template></el-table-column>

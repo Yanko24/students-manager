@@ -20,3 +20,4 @@ frontend/coverage/
 
 # Logs
 *.log
+/target/

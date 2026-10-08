@@ -20,6 +20,9 @@ public class ScoreVO {
     private String grade;
     private BigDecimal gradePoint;
     private String semester;
+    private String attemptType;
+    private Integer attemptNo;
+    private String publishStatus;
     private LocalDateTime examTime;
     private String comment;
     private String remark;

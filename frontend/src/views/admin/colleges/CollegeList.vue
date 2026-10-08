@@ -22,7 +22,7 @@
 
         <el-card class="table-card">
             <el-table :data="collegeList" v-loading="loading" border stripe style="width: 100%">
-                <el-table-column prop="code" label="学院代码" min-width="120" align="center" />
+                <el-table-column prop="code" label="学院代码" min-width="120" align="center" fixed="left" />
                 <el-table-column prop="name" label="学院名称" min-width="150" align="center" />
                 <el-table-column prop="description" label="描述" min-width="200" align="center" show-overflow-tooltip />
                 <el-table-column prop="createTime" label="创建时间" min-width="180" align="center">
@@ -72,19 +72,12 @@ import { showApiError } from "@/utils/errorHandler";
     const fetchColleges = async (page, size) => {
         loading.value = true;
         try {
-            console.log('开始获取学院列表，参数：', {
-                page,
-                size,
-                ...filterForm.value
-            });
-
             const response = await getCollegeList({
                 page,
                 size,
                 ...filterForm.value
             });
 
-            console.log('获取学院列表响应：', response);
             if (response?.code !== 200 || !response.data) {
                 collegeList.value = [];
                 total.value = 0;

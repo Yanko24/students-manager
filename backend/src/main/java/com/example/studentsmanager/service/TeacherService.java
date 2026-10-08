@@ -8,6 +8,7 @@ import com.example.studentsmanager.model.vo.teacher.TeacherListVO;
 
 public interface TeacherService extends IService<Teacher> {
     Page<TeacherListVO> getTeacherPage(TeacherQueryDTO queryDTO);
+    TeacherListVO getTeacherDetail(Long id);
     // 根据教师编号查询教师
     Teacher getByTeacherNumber(String teacherNumber);
 

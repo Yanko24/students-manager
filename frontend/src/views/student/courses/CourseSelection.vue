@@ -25,7 +25,8 @@
 
     <el-card shadow="never" class="table-card">
       <el-table :data="courses" v-loading="loading" border>
-        <el-table-column prop="code" label="课程代码" min-width="120" />
+        <el-table-column prop="code" label="课程代码" min-width="120" fixed="left" />
+        <el-table-column prop="sectionCode" label="教学班号" width="100" />
         <el-table-column prop="name" label="课程名称" min-width="180" />
         <el-table-column prop="college" label="开课单位" min-width="170">
           <template #default="{ row }">{{ row.college || '暂未安排' }}</template>
@@ -36,6 +37,14 @@
         <el-table-column prop="credit" label="学分" width="80" />
         <el-table-column prop="type" label="课程类型" min-width="110" />
         <el-table-column prop="semester" label="学期" min-width="130" />
+        <el-table-column label="上课安排" min-width="250">
+          <template #default="{ row }">
+            <div v-if="row.schedules?.length" class="schedule-list">
+              <div v-for="(schedule, index) in row.schedules" :key="schedule.id || index">{{ scheduleText(schedule) }}</div>
+            </div>
+            <span v-else class="muted">暂未安排</span>
+          </template>
+        </el-table-column>
         <el-table-column label="适用范围" min-width="200">
           <template #default="{ row }">
             <div>{{ scopeName(row) }}</div>
@@ -51,20 +60,26 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="我的选课" min-width="115">
+        <el-table-column label="我的选课" min-width="145">
           <template #default="{ row }">
             <el-tag v-if="row.selectionStatus === 'approved'" type="success">已选</el-tag>
             <el-tag v-else-if="row.selectionStatus === 'pending'" type="warning">审核中</el-tag>
+            <div v-else-if="row.selectionStatus === 'waitlisted'" class="waitlist-status">
+              <el-tag type="info">候补中</el-tag>
+              <span v-if="row.waitlistPosition">第 {{ row.waitlistPosition }} 位</span>
+            </div>
             <el-tag v-else-if="row.selectionStatus === 'rejected'" type="danger">未通过</el-tag>
             <span v-else class="muted">未选择</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="125" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.selectionStatus === 'approved' || row.selectionStatus === 'pending'"
-              link type="danger" :loading="row.actionLoading" @click="drop(row)">退选</el-button>
-            <el-button v-else link type="primary" :disabled="isFull(row)" :loading="row.actionLoading"
-              @click="select(row)">{{ row.selectionStatus === 'rejected' ? '重新选课' : '选择课程' }}</el-button>
+            <el-button v-if="['approved', 'pending', 'waitlisted'].includes(row.selectionStatus)"
+              link type="danger" :loading="row.actionLoading" @click="drop(row)">
+              {{ row.selectionStatus === 'waitlisted' ? '退出候补' : '退选' }}
+            </el-button>
+            <el-button v-else link type="primary" :loading="row.actionLoading"
+              @click="select(row)">{{ isFull(row) ? '加入候补' : row.selectionStatus === 'rejected' ? '重新选课' : '选择课程' }}</el-button>
           </template>
         </el-table-column>
         <template #empty><el-empty description="当前没有开放选课的课程" /></template>
@@ -90,6 +105,12 @@ const loading = ref(false)
 const page = ref(1)
 const size = ref(10)
 const total = ref(0)
+
+const scheduleText = (schedule) => {
+  const day = ['一', '二', '三', '四', '五', '六', '日'][schedule.dayOfWeek - 1]
+  const parity = ({ ALL: '每周', ODD: '单周', EVEN: '双周' })[schedule.weekParity] || '每周'
+  return `周${day} ${schedule.startPeriod}-${schedule.endPeriod}节（${schedule.weekStart}-${schedule.weekEnd}周${parity}） ${schedule.classroom}`
+}
 
 const isFull = (course) => Number(course.selectedCount || 0) >= Number(course.maxStudents || 0)
 const capacityPercent = (course) => course.maxStudents > 0
@@ -136,8 +157,12 @@ function reset() {
 async function select(course) {
   course.actionLoading = true
   try {
-    await selectStudentCourse(course.id)
-    ElMessage.success(`《${course.name}》选课申请已提交，等待管理员审核`)
+    const response = await selectStudentCourse(course.id)
+    if (response?.data === 'waitlisted') {
+      ElMessage.success(`《${course.name}》已加入候补队列`)
+    } else {
+      ElMessage.success(`《${course.name}》选课申请已提交，等待管理员审核`)
+    }
     await fetchCourses()
   } catch (error) {
     showApiError(error, error?.response?.data?.message || error?.message || '选课失败')
@@ -147,15 +172,17 @@ async function select(course) {
 }
 
 async function drop(course) {
+  const leavingWaitlist = course.selectionStatus === 'waitlisted'
   try {
-    await ElMessageBox.confirm(`确定退选《${course.name}》吗？`, '确认退选', {
-      confirmButtonText: '确认退选',
+    const actionText = leavingWaitlist ? '退出候补' : '退选'
+    await ElMessageBox.confirm(`确定${actionText}《${course.name}》吗？`, `确认${actionText}`, {
+      confirmButtonText: `确认${actionText}`,
       cancelButtonText: '再想想',
       type: 'warning'
     })
     course.actionLoading = true
     await dropStudentCourse(course.id)
-    ElMessage.success('退选成功')
+    ElMessage.success(leavingWaitlist ? '已退出候补队列' : '退选成功')
     await fetchCourses()
   } catch (error) {
     if (error === 'cancel' || error === 'close') return
@@ -176,6 +203,9 @@ onMounted(fetchCourses)
 .filter-card :deep(.el-card__body) { padding-bottom: 2px; }
 .table-card :deep(.el-card__body) { overflow-x: auto; }
 .capacity-cell { display: grid; gap: 5px; min-width: 100px; }
+.schedule-list { display: grid; gap: 4px; white-space: nowrap; }
+.waitlist-status { display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+.waitlist-status span { color: var(--el-text-color-secondary); font-size: 12px; }
 .muted { color: var(--el-text-color-secondary); }
 .pagination { display: flex; justify-content: flex-end; margin-top: 18px; overflow-x: auto; }
 @media (max-width: 640px) {

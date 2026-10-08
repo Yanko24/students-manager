@@ -54,7 +54,6 @@ import { showApiError } from "@/utils/errorHandler";
                     gender: parseInt(response.data.gender)
                 }
                 studentInfo.value = data
-                console.log('获取学生详情成功:', data)
             }
         } catch (error) {
             console.error('获取学生详情失败:', error)

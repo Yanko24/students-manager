@@ -14,17 +14,21 @@
                         </el-icon>
                         <template #title>控制台</template>
                     </el-menu-item>
+                    <el-menu-item index="/student/course-selection">
+                        <el-icon>
+                            <Reading />
+                        </el-icon>
+                        <template #title>选课中心</template>
+                    </el-menu-item>
                     <el-menu-item index="/student/courses">
                         <el-icon>
                             <Reading />
                         </el-icon>
                         <template #title>我的课程</template>
                     </el-menu-item>
-                    <el-menu-item index="/student/course-selection">
-                        <el-icon>
-                            <Reading />
-                        </el-icon>
-                        <template #title>选课中心</template>
+                    <el-menu-item index="/student/curriculum-progress">
+                        <el-icon><Reading /></el-icon>
+                        <template #title>培养进度</template>
                     </el-menu-item>
                     <el-menu-item index="/student/scores">
                         <el-icon>
@@ -37,6 +41,14 @@
                             <Calendar />
                         </el-icon>
                         <template #title>我的考勤</template>
+                    </el-menu-item>
+                    <el-menu-item index="/student/status-changes">
+                        <el-icon><Document /></el-icon>
+                        <template #title>学籍异动</template>
+                    </el-menu-item>
+                    <el-menu-item index="/student/notifications">
+                        <el-icon><Document /></el-icon>
+                        <template #title>站内通知</template>
                     </el-menu-item>
                     <el-menu-item index="/student/profile">
                         <el-icon>

@@ -114,8 +114,12 @@ button, input, textarea {
 	height: 48px;
 }
 
-.el-table .cell {
+.el-table .el-table__cell .cell {
 	line-height: 1.45;
+	white-space: nowrap;
+	word-break: keep-all;
+	overflow: hidden;
+	text-overflow: clip;
 }
 
 .el-empty {

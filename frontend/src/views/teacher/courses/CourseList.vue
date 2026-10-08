@@ -10,7 +10,7 @@
     <el-card class="list-card" v-loading="loading">
       <el-table :data="courseList" stripe>
         <el-table-column prop="courseName" label="课程名称" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="courseCode" label="课程代码" width="130" />
+        <el-table-column prop="courseCode" label="课程代码" width="130" fixed="left" />
         <el-table-column prop="classCount" label="考勤班级数" width="120" align="center" />
         <el-table-column prop="attendanceCount" label="考勤记录数" width="120" align="center" />
         <el-table-column label="最近考勤日期" width="150"><template #default="{ row }">{{ formatDate(row.latestDate) || '—' }}</template></el-table-column>

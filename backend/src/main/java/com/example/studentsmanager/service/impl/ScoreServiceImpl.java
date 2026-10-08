@@ -5,10 +5,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.example.studentsmanager.exception.BusinessException;
 import com.example.studentsmanager.mapper.ScoreMapper;
+import com.example.studentsmanager.mapper.ScoreChangeLogMapper;
 import com.example.studentsmanager.model.dto.score.ScoreQueryDTO;
 import com.example.studentsmanager.model.dto.score.ScoreUpdateDTO;
 import com.example.studentsmanager.model.entity.*;
 import com.example.studentsmanager.model.vo.score.ScoreVO;
+import com.example.studentsmanager.model.vo.score.ScoreChangeLogVO;
 import com.example.studentsmanager.model.vo.score.ScoreDistributionResponse;
 import com.example.studentsmanager.model.vo.score.ScoreDistributionVO;
 import com.example.studentsmanager.service.*;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -28,11 +31,19 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
     private final StudentService studentService;
     private final CourseService courseService;
     private final UserService userService;
+    private final ScoreChangeLogMapper scoreChangeLogMapper;
+    private final OperationAuditService operationAuditService;
+    private final SystemNotificationService notificationService;
 
-    public ScoreServiceImpl(StudentService studentService, CourseService courseService, UserService userService) {
+    public ScoreServiceImpl(StudentService studentService, CourseService courseService, UserService userService,
+                            ScoreChangeLogMapper scoreChangeLogMapper, OperationAuditService operationAuditService,
+                            SystemNotificationService notificationService) {
         this.studentService = studentService;
         this.courseService = courseService;
         this.userService = userService;
+        this.scoreChangeLogMapper = scoreChangeLogMapper;
+        this.operationAuditService = operationAuditService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -107,38 +118,88 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ScoreVO createScore(ScoreUpdateDTO dto) {
+    public ScoreVO createScore(ScoreUpdateDTO dto, String actor) {
         validateReferences(dto);
         if (count(new LambdaQueryWrapper<Score>().eq(Score::getStudentId, dto.getStudentId())
-                .eq(Score::getCourseId, dto.getCourseId()).eq(Score::getSemester, dto.getSemester())) > 0) {
-            throw new BusinessException("该学生该学期的课程成绩已存在");
+                .eq(Score::getCourseId, dto.getCourseId()).eq(Score::getSemester, dto.getSemester())
+                .eq(Score::getAttemptNo, normalizeAttemptNo(dto.getAttemptNo()))) > 0) {
+            throw new BusinessException("该学生该课程的考试次数已存在");
         }
         Score score = new Score();
         apply(score, dto);
+        score.setPublishStatus("DRAFT");
         score.setIsDeleted(0);
+        score.setCreateBy(actor); score.setUpdateBy(actor);
         save(score);
+        writeChangeLog("CREATE", null, score, blankToDefault(dto.getChangeReason(), "新增成绩，待发布"), actor);
+        operationAuditService.record(actor, "SCORE_CREATE", "SCORE", score.getId(), "录入成绩，待发布");
         return getScore(score.getId());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ScoreVO updateScore(Long id, ScoreUpdateDTO dto) {
+    public ScoreVO updateScore(Long id, ScoreUpdateDTO dto, String actor) {
         Score score = getById(id);
         if (score == null) throw new BusinessException("成绩不存在");
+        if (dto.getChangeReason() == null || dto.getChangeReason().isBlank()) throw new BusinessException("成绩更正必须填写原因");
         validateReferences(dto);
         if (count(new LambdaQueryWrapper<Score>().eq(Score::getStudentId, dto.getStudentId())
                 .eq(Score::getCourseId, dto.getCourseId()).eq(Score::getSemester, dto.getSemester())
+                .eq(Score::getAttemptNo, normalizeAttemptNo(dto.getAttemptNo()))
                 .ne(Score::getId, id)) > 0) throw new BusinessException("该学生该学期的课程成绩已存在");
+        Score before = copy(score);
         apply(score, dto);
+        score.setPublishStatus("DRAFT");
+        score.setUpdateBy(actor);
         updateById(score);
+        writeChangeLog("UPDATE", before, score, dto.getChangeReason().trim(), actor);
+        operationAuditService.record(actor, "SCORE_UPDATE", "SCORE", score.getId(), "更正成绩：" + dto.getChangeReason().trim());
         return getScore(id);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteScore(Long id) {
+    public void deleteScore(Long id, String reason, String actor) {
+        Score score = getById(id);
+        if (score == null) throw new BusinessException("成绩不存在");
+        if (reason == null || reason.isBlank()) throw new BusinessException("删除成绩必须填写原因");
+        Score before = copy(score);
+        score.setUpdateBy(actor);
+        score.setIsDeleted(1);
+        updateById(score);
+        writeChangeLog("DELETE", before, null, reason.trim(), actor);
+        operationAuditService.record(actor, "SCORE_DELETE", "SCORE", id, "删除成绩：" + reason.trim());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int publishScores(List<Long> ids, String reason, String actor) {
+        if (ids == null || ids.isEmpty() || ids.size() > 500) throw new BusinessException("每次请选择1到500条成绩");
+        if (reason == null || reason.isBlank()) throw new BusinessException("发布成绩必须填写发布说明");
+        List<Long> uniqueIds = ids.stream().filter(id -> id != null).distinct().toList();
+        if (uniqueIds.size() != ids.size()) throw new BusinessException("成绩编号重复或无效");
+        List<Score> selected = listByIds(uniqueIds);
+        if (selected.size() != uniqueIds.size()) throw new BusinessException("部分成绩不存在或已删除，请刷新后重试");
+        if (selected.stream().anyMatch(score -> !"DRAFT".equals(score.getPublishStatus()))) {
+            throw new BusinessException("选中的成绩包含已发布记录，请刷新后重新选择待发布成绩");
+        }
+        for (Score score : selected) {
+            Score before = copy(score);
+            score.setPublishStatus("PUBLISHED"); score.setUpdateBy(actor);
+            updateById(score);
+            writeChangeLog("PUBLISH", before, score, reason.trim(), actor);
+            operationAuditService.record(actor, "SCORE_PUBLISH", "SCORE", score.getId(), "发布成绩：" + reason.trim());
+            Student student = studentService.getById(score.getStudentId());
+            if (student != null) notificationService.notifyUser(student.getUserId(), "SCORE_PUBLISHED", "成绩已发布",
+                    "你的" + score.getSemester() + "成绩已发布，请前往成绩查询查看。");
+        }
+        return selected.size();
+    }
+
+    @Override
+    public List<ScoreChangeLogVO> getScoreChangeLogs(Long id) {
         if (getById(id) == null) throw new BusinessException("成绩不存在");
-        removeById(id);
+        return scoreChangeLogMapper.selectByScoreId(id);
     }
 
     private void validateReferences(ScoreUpdateDTO dto) {
@@ -148,13 +209,42 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
             throw new BusinessException("成绩必须在0到100之间");
         }
         if (dto.getSemester() == null || dto.getSemester().trim().isEmpty()) throw new BusinessException("学期不能为空");
+        String attemptType = dto.getAttemptType() == null || dto.getAttemptType().isBlank() ? "REGULAR" : dto.getAttemptType().trim().toUpperCase();
+        if (!List.of("REGULAR", "MAKEUP", "RETAKE").contains(attemptType)) throw new BusinessException("考试类型无效");
+        if (normalizeAttemptNo(dto.getAttemptNo()) < 1 || normalizeAttemptNo(dto.getAttemptNo()) > 10) throw new BusinessException("考试次数必须在1到10之间");
     }
 
     private void apply(Score score, ScoreUpdateDTO dto) {
         score.setStudentId(dto.getStudentId()); score.setCourseId(dto.getCourseId()); score.setScore(dto.getScore());
         score.setGrade(letterGrade(dto.getScore()));
         score.setGradePoint(gradePoint(dto.getScore())); score.setSemester(dto.getSemester().trim());
+        score.setAttemptType(dto.getAttemptType() == null || dto.getAttemptType().isBlank() ? "REGULAR" : dto.getAttemptType().trim().toUpperCase());
+        score.setAttemptNo(normalizeAttemptNo(dto.getAttemptNo()));
         score.setExamTime(dto.getExamTime()); score.setComment(dto.getComment());
+    }
+
+    private int normalizeAttemptNo(Integer attemptNo) { return attemptNo == null ? 1 : attemptNo; }
+
+    private String blankToDefault(String value, String fallback) { return value == null || value.isBlank() ? fallback : value.trim(); }
+
+    private Score copy(Score source) {
+        Score copy = new Score(); copy.setId(source.getId()); copy.setScore(source.getScore());
+        copy.setAttemptType(source.getAttemptType()); copy.setAttemptNo(source.getAttemptNo());
+        copy.setPublishStatus(source.getPublishStatus()); return copy;
+    }
+
+    private void writeChangeLog(String action, Score before, Score after, String reason, String actor) {
+        ScoreChangeLog log = new ScoreChangeLog();
+        log.setScoreId(after != null ? after.getId() : before.getId()); log.setAction(action);
+        if (before != null) {
+            log.setOldScore(before.getScore()); log.setOldAttemptType(before.getAttemptType());
+            log.setOldPublishStatus(before.getPublishStatus());
+        }
+        if (after != null) {
+            log.setNewScore(after.getScore()); log.setNewAttemptType(after.getAttemptType());
+            log.setNewPublishStatus(after.getPublishStatus());
+        } else log.setNewPublishStatus("DELETED");
+        log.setReason(reason); log.setOperator(actor); scoreChangeLogMapper.insert(log);
     }
 
     private BigDecimal gradePoint(BigDecimal score) {
@@ -190,6 +280,7 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
             vo.setId(row.getId()); vo.setStudentId(row.getStudentId()); vo.setCourseId(row.getCourseId());
             vo.setScore(row.getScore()); vo.setGrade(row.getGrade()); vo.setGradePoint(row.getGradePoint());
             vo.setSemester(row.getSemester()); vo.setExamTime(row.getExamTime()); vo.setComment(row.getComment());
+            vo.setAttemptType(row.getAttemptType()); vo.setAttemptNo(row.getAttemptNo()); vo.setPublishStatus(row.getPublishStatus());
             vo.setRemark(row.getComment()); vo.setStatus(row.getScore().compareTo(BigDecimal.valueOf(60)) >= 0 ? "合格" : "不合格");
             vo.setCreateTime(row.getCreateTime()); vo.setUpdateTime(row.getUpdateTime());
             Student student = students.get(row.getStudentId());

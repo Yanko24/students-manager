@@ -5,6 +5,7 @@ import com.example.studentsmanager.core.response.Result;
 import com.example.studentsmanager.model.vo.course.CourseVO;
 import com.example.studentsmanager.model.vo.score.ScoreVO;
 import com.example.studentsmanager.model.vo.score.StudentScoreStatsVO;
+import com.example.studentsmanager.model.vo.curriculum.CurriculumProgressVO;
 import com.example.studentsmanager.service.StudentPortalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,9 +28,8 @@ public class StudentPortalController {
     }
 
     @PostMapping("/courses/{courseId}/selection")
-    public Result<Void> selectCourse(Principal principal, @PathVariable Long courseId) {
-        studentPortalService.selectCourse(principal.getName(), courseId);
-        return Result.success();
+    public Result<String> selectCourse(Principal principal, @PathVariable Long courseId) {
+        return Result.success(studentPortalService.selectCourse(principal.getName(), courseId));
     }
 
     @DeleteMapping("/courses/{courseId}/selection")
@@ -61,5 +61,10 @@ public class StudentPortalController {
     public Result<StudentScoreStatsVO> getScoreStats(Principal principal,
             @RequestParam(required = false) String semester) {
         return Result.success(studentPortalService.getMyScoreStats(principal.getName(), semester));
+    }
+
+    @GetMapping("/curriculum-progress")
+    public Result<CurriculumProgressVO> getCurriculumProgress(Principal principal) {
+        return Result.success(studentPortalService.getCurriculumProgress(principal.getName()));
     }
 }

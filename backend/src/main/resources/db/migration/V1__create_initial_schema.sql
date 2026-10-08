@@ -1,5 +1,5 @@
--- Flyway V1 baseline schema for a new database. Existing databases are baselined separately.
--- Table definitions are aligned with the pre-Flyway canonical Docker schema.
+-- Consolidated pre-release baseline: complete schema and bootstrap administrator.
+-- Database and application account are created outside Flyway.
 
 CREATE TABLE users
 (
@@ -22,7 +22,6 @@ CREATE TABLE users
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='用户表';
 
--- 创建学院表
 CREATE TABLE colleges
 (
     id         BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
@@ -39,7 +38,6 @@ CREATE TABLE colleges
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='学院表';
 
--- 创建专业表（包含班级信息）
 CREATE TABLE majors
 (
     code       VARCHAR(20) NOT NULL COMMENT '专业代码',
@@ -60,7 +58,6 @@ CREATE TABLE majors
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='专业表';
 
--- 创建教师信息表
 CREATE TABLE teachers
 (
     id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
@@ -80,7 +77,6 @@ CREATE TABLE teachers
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='教师信息表';
 
--- 创建学生信息表
 CREATE TABLE students
 (
     id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
@@ -104,12 +100,28 @@ CREATE TABLE students
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='学生信息表';
 
--- 创建课程表
+CREATE TABLE course_catalog
+(
+    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    course_code VARCHAR(20)  NOT NULL COMMENT '课程代码',
+    course_name VARCHAR(100) NOT NULL COMMENT '课程名称',
+    credits     DECIMAL(4,1) NOT NULL COMMENT '学分',
+    course_type VARCHAR(30)  NOT NULL DEFAULT '必修课' COMMENT '课程类型',
+    hours       INT          NOT NULL DEFAULT 48 COMMENT '学时',
+    description TEXT COMMENT '课程简介',
+    objectives  TEXT COMMENT '教学目标',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_course_catalog_code (course_code)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='课程目录';
+
 CREATE TABLE courses
 (
     id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    catalog_id  BIGINT NULL COMMENT '课程目录ID',
     course_name VARCHAR(100) NOT NULL COMMENT '课程名称',
-    course_code VARCHAR(20)  NOT NULL UNIQUE COMMENT '课程代码',
+    course_code VARCHAR(20)  NOT NULL COMMENT '课程代码',
+    section_code VARCHAR(10) NOT NULL DEFAULT '01' COMMENT '教学班编号',
     teacher_id  BIGINT COMMENT '授课教师ID',
     credits     DECIMAL(4,1) NOT NULL COMMENT '学分',
     course_type VARCHAR(30)  NOT NULL DEFAULT '必修课' COMMENT '课程类型',
@@ -130,20 +142,38 @@ CREATE TABLE courses
     update_by   VARCHAR(50)  DEFAULT NULL COMMENT '更新人',
     is_deleted  TINYINT      NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
     KEY idx_courses_selection_scope (selection_scope, selection_college_id, selection_major_code, selection_grade),
+    UNIQUE KEY uk_courses_offering (course_code, semester, section_code),
+    KEY idx_courses_catalog_id (catalog_id),
     FOREIGN KEY (teacher_id) REFERENCES teachers (id),
-    FOREIGN KEY (selection_college_id) REFERENCES colleges (id)
+    FOREIGN KEY (selection_college_id) REFERENCES colleges (id),
+    FOREIGN KEY (catalog_id) REFERENCES course_catalog (id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='课程表';
 
--- 创建选课表
+CREATE TABLE course_schedules
+(
+    id           BIGINT PRIMARY KEY AUTO_INCREMENT,
+    course_id    BIGINT       NOT NULL,
+    day_of_week  TINYINT      NOT NULL COMMENT '星期：1-7',
+    start_period TINYINT      NOT NULL COMMENT '开始节次：1-12',
+    end_period   TINYINT      NOT NULL COMMENT '结束节次：1-12',
+    week_start   TINYINT      NOT NULL COMMENT '开始周：1-30',
+    week_end     TINYINT      NOT NULL COMMENT '结束周：1-30',
+    week_parity  VARCHAR(8)   NOT NULL DEFAULT 'ALL' COMMENT '周次：ALL、ODD、EVEN',
+    classroom    VARCHAR(100) NOT NULL,
+    KEY idx_course_schedules_course (course_id, day_of_week, start_period),
+    KEY idx_course_schedules_classroom (classroom, day_of_week, start_period),
+    CONSTRAINT fk_course_schedules_course FOREIGN KEY (course_id) REFERENCES courses (id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='课程排课时段';
+
 CREATE TABLE course_selections
 (
     id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     student_id     BIGINT   NOT NULL COMMENT '学生ID',
     course_id      BIGINT   NOT NULL COMMENT '课程ID',
     selection_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '选课时间',
-    status         ENUM ('pending', 'approved', 'rejected') DEFAULT 'pending' COMMENT '状态：待审核、已通过、已拒绝',
+    status         ENUM ('pending', 'waitlisted', 'approved', 'rejected') NOT NULL DEFAULT 'pending' COMMENT '状态：待审核、候补中、已通过、已拒绝',
     create_time    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     create_by      VARCHAR(50) DEFAULT NULL COMMENT '创建人',
@@ -151,13 +181,31 @@ CREATE TABLE course_selections
     is_deleted     TINYINT  NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
     KEY idx_course_selections_course_active (course_id, is_deleted, status),
     KEY idx_course_selections_student_course_active (student_id, course_id, is_deleted, status),
+    KEY idx_course_selections_waitlist_queue (course_id, status, is_deleted, selection_date, id),
     FOREIGN KEY (student_id) REFERENCES students (id),
     FOREIGN KEY (course_id) REFERENCES courses (id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='选课表';
 
--- 创建成绩表
+CREATE TABLE curriculum_plans
+(
+    id               BIGINT PRIMARY KEY AUTO_INCREMENT,
+    plan_name        VARCHAR(100) NOT NULL,
+    major_code       VARCHAR(20)  NOT NULL,
+    grade            VARCHAR(4)   NOT NULL,
+    total_credits    DECIMAL(5,1) NOT NULL,
+    required_credits DECIMAL(5,1) NOT NULL,
+    elective_credits DECIMAL(5,1) NOT NULL,
+    create_time      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by        VARCHAR(50) DEFAULT NULL,
+    update_by        VARCHAR(50) DEFAULT NULL,
+    is_deleted       TINYINT NOT NULL DEFAULT 0,
+    UNIQUE KEY uk_curriculum_plan_major_grade (major_code, grade),
+    KEY idx_curriculum_plan_grade (grade)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='专业年级培养方案';
+
 CREATE TABLE scores
 (
     id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
@@ -167,6 +215,9 @@ CREATE TABLE scores
     grade       VARCHAR(5)    NOT NULL COMMENT '等级',
     grade_point DECIMAL(4,2)  NOT NULL COMMENT '绩点',
     semester    VARCHAR(20)   NOT NULL COMMENT '学期',
+    attempt_type ENUM ('REGULAR', 'MAKEUP', 'RETAKE') NOT NULL DEFAULT 'REGULAR' COMMENT '考试类型',
+    attempt_no  INT NOT NULL DEFAULT 1 COMMENT '考试次数',
+    publish_status ENUM ('DRAFT', 'PUBLISHED') NOT NULL DEFAULT 'PUBLISHED' COMMENT '发布状态',
     exam_time   DATETIME      NOT NULL COMMENT '考试时间',
     remarks     TEXT COMMENT '评语',
     create_time DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -174,7 +225,7 @@ CREATE TABLE scores
     create_by   VARCHAR(50) DEFAULT NULL COMMENT '创建人',
     update_by   VARCHAR(50) DEFAULT NULL COMMENT '更新人',
     is_deleted  TINYINT       NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
-    UNIQUE KEY uk_score_student_course_semester (student_id, course_id, semester),
+    UNIQUE KEY uk_score_student_course_attempt (student_id, course_id, semester, attempt_no),
     KEY idx_scores_exam_time (exam_time),
     CONSTRAINT fk_scores_student FOREIGN KEY (student_id) REFERENCES students (id),
     CONSTRAINT fk_scores_course FOREIGN KEY (course_id) REFERENCES courses (id)
@@ -182,7 +233,73 @@ CREATE TABLE scores
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='学生成绩表';
 
--- 创建考勤记录表
+CREATE TABLE score_change_logs
+(
+    id                  BIGINT PRIMARY KEY AUTO_INCREMENT,
+    score_id            BIGINT NOT NULL,
+    action              VARCHAR(20) NOT NULL COMMENT 'CREATE、UPDATE、DELETE、PUBLISH',
+    old_score           DECIMAL(5,2) NULL,
+    new_score           DECIMAL(5,2) NULL,
+    old_attempt_type    VARCHAR(16) NULL,
+    new_attempt_type    VARCHAR(16) NULL,
+    old_publish_status  VARCHAR(16) NULL,
+    new_publish_status  VARCHAR(16) NULL,
+    reason              VARCHAR(500) NOT NULL,
+    operator_name       VARCHAR(50) NOT NULL,
+    create_time         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_score_change_logs_score (score_id, create_time),
+    KEY idx_score_change_logs_operator (operator_name, create_time)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='成绩变更审计记录';
+
+CREATE TABLE student_status_change_requests
+(
+    id                  BIGINT PRIMARY KEY AUTO_INCREMENT,
+    student_id          BIGINT NOT NULL,
+    change_type         ENUM ('SUSPENSION', 'RETURN', 'MAJOR_TRANSFER', 'WITHDRAWAL') NOT NULL,
+    current_status      TINYINT NOT NULL,
+    target_status       TINYINT NOT NULL,
+    target_major_code   VARCHAR(20) NULL,
+    target_class_no     VARCHAR(2) NULL,
+    effective_date      DATE NOT NULL,
+    reason              VARCHAR(1000) NOT NULL,
+    status              ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED') NOT NULL DEFAULT 'PENDING',
+    review_comment      VARCHAR(1000) NULL,
+    reviewed_by         VARCHAR(50) NULL,
+    reviewed_at         DATETIME NULL,
+    applied_at          DATETIME NULL,
+    create_time         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_status_change_student (student_id, status, create_time),
+    KEY idx_status_change_review (status, create_time),
+    CONSTRAINT fk_status_change_student FOREIGN KEY (student_id) REFERENCES students (id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='学生学籍异动申请';
+
+CREATE TABLE operation_audits
+(
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    actor           VARCHAR(50) NOT NULL,
+    action          VARCHAR(50) NOT NULL,
+    entity_type     VARCHAR(50) NOT NULL,
+    entity_id       VARCHAR(100) NOT NULL,
+    summary         VARCHAR(1000) NOT NULL,
+    create_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_operation_audits_actor (actor, create_time),
+    KEY idx_operation_audits_entity (entity_type, entity_id, create_time)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='关键操作审计记录';
+
+CREATE TABLE system_notifications
+(
+    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id         BIGINT NOT NULL,
+    notification_type VARCHAR(40) NOT NULL,
+    title           VARCHAR(200) NOT NULL,
+    message         VARCHAR(1000) NOT NULL,
+    read_at         DATETIME NULL,
+    create_time     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_notifications_user_unread (user_id, read_at, create_time),
+    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users (id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT ='站内通知';
+
 CREATE TABLE attendance_records
 (
     id              BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
@@ -206,7 +323,7 @@ CREATE TABLE attendance_records
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='学生考勤记录表';
 
--- Bootstrap administrator for an empty database. Demo data is only in backend/db/init.sql.
+-- Bootstrap administrator for an empty database. Development demo data is in backend/db/seed-dev.sql.
 INSERT INTO users
     (username, password, role, real_name, gender, phone, email, status, must_change_password, create_by, update_by)
 VALUES

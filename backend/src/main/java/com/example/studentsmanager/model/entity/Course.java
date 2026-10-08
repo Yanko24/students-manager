@@ -11,6 +11,10 @@ import java.time.LocalDateTime;
 public class Course {
     @TableId(type = IdType.AUTO)
     private Long id;
+    @TableField("catalog_id")
+    private Long catalogId;
+    @TableField("section_code")
+    private String sectionCode;
     @TableField("course_name")
     private String courseName;
     @TableField("course_code")

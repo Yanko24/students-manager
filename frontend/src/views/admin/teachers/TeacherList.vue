@@ -26,7 +26,7 @@
         <el-card class="table-card">
             <el-table ref="tableRef" :data="teacherList" v-loading="loading" border stripe
                 :style="{ width: tableWidth + 'px' }">
-                <el-table-column prop="teacherNo" label="工号" :width="columnWidth.teacherNo" align="center" />
+                <el-table-column prop="teacherNo" label="工号" :width="columnWidth.teacherNo" align="center" fixed="left" />
                 <el-table-column prop="realName" label="姓名" :width="columnWidth.realName" align="center" />
                 <el-table-column prop="gender" label="性别" :width="columnWidth.gender" align="center">
                     <template #default="{ row }">
@@ -46,7 +46,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" :width="columnWidth.operation" align="center">
+                <el-table-column label="操作" :width="columnWidth.operation" align="center" fixed="right">
                     <template #default="{ row }">
                         <record-view-link :to="{ name: 'TeacherView', params: { id: row.id } }" />
                         <el-button type="primary" link @click.stop="router.push({ name: 'TeacherEdit', params: { id: row.id } })">
@@ -90,7 +90,7 @@ import { showApiError } from "@/utils/errorHandler";
         status: 120,
         operation: 180
     }
-    const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths)
+    const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths, teacherList)
 
     const filterForm = ref({
         teacherNo: '',
@@ -101,19 +101,12 @@ import { showApiError } from "@/utils/errorHandler";
     const fetchTeachers = async (page, size) => {
         loading.value = true;
         try {
-            console.log('开始获取教师列表，参数：', {
-                page,
-                size,
-                ...filterForm.value
-            });
-
             const response = await getTeacherList({
                 page,
                 size,
                 ...filterForm.value
             });
 
-            console.log('获取教师列表响应：', response);
             if (response?.code !== 200 || !response.data) {
                 teacherList.value = [];
                 total.value = 0;

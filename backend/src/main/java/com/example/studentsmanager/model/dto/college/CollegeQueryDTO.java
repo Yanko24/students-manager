@@ -4,8 +4,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import com.example.studentsmanager.model.dto.BaseQueryDTO;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @Schema(description = "学院查询条件DTO")
 public class CollegeQueryDTO extends BaseQueryDTO {
 

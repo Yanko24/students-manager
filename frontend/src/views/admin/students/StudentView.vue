@@ -45,7 +45,6 @@ import { showApiError } from "@/utils/errorHandler";
             const response = await getStudentById(route.params.id)
             if (response && response.data) {
                 studentInfo.value = response.data
-                console.log('获取学生详情成功:', response.data)
             }
         } catch (error) {
             console.error('获取学生详情失败:', error)

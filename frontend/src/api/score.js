@@ -45,11 +45,20 @@ export function updateScore(id, data) {
 }
 
 // 删除成绩
-export function deleteScore(id) {
+export function deleteScore(id, reason) {
 	return request({
 		url: `/scores/${id}`,
 		method: "delete",
+		params: { reason },
 	});
+}
+
+export function publishScores(data) {
+	return request({ url: "/scores/publish", method: "post", data });
+}
+
+export function getScoreHistory(id) {
+	return request({ url: `/scores/${id}/history`, method: "get" });
 }
 
 // 批量导入成绩

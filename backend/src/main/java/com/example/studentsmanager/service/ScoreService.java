@@ -7,12 +7,17 @@ import com.example.studentsmanager.model.dto.score.ScoreUpdateDTO;
 import com.example.studentsmanager.model.entity.Score;
 import com.example.studentsmanager.model.vo.score.ScoreVO;
 import com.example.studentsmanager.model.vo.score.ScoreDistributionResponse;
+import com.example.studentsmanager.model.vo.score.ScoreChangeLogVO;
+
+import java.util.List;
 
 public interface ScoreService extends IService<Score> {
     Page<ScoreVO> getScorePage(ScoreQueryDTO queryDTO);
     ScoreDistributionResponse getScoreDistribution(String period);
     ScoreVO getScore(Long id);
-    ScoreVO createScore(ScoreUpdateDTO dto);
-    ScoreVO updateScore(Long id, ScoreUpdateDTO dto);
-    void deleteScore(Long id);
+    ScoreVO createScore(ScoreUpdateDTO dto, String actor);
+    ScoreVO updateScore(Long id, ScoreUpdateDTO dto, String actor);
+    void deleteScore(Long id, String reason, String actor);
+    int publishScores(List<Long> ids, String reason, String actor);
+    List<ScoreChangeLogVO> getScoreChangeLogs(Long id);
 }

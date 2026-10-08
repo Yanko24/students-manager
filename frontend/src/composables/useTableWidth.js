@@ -1,65 +1,56 @@
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, unref, onMounted, onUnmounted, nextTick } from 'vue'
 
-export function useTableWidth(minColumnWidths, padding = 40) {
+// Measure source values instead of rendered cells: assigned widths never feed
+// back into the next calculation, and Element Plus owns header/body alignment.
+export function useTableWidth(minColumnWidths, rows, fieldMap = {}) {
     const tableRef = ref(null)
     const containerWidth = ref(0)
+    const font = ref('14px sans-serif')
+    let context
 
-    // 计算总最小宽度
-    const totalMinWidth = Object.values(minColumnWidths).reduce((sum, width) => sum + width, 0)
+    const contentWidths = computed(() => {
+        const currentFont = font.value
+        if (context) context.font = currentFont
+        return Object.fromEntries(Object.entries(minColumnWidths).map(([key, minimum]) => {
+            const field = fieldMap[key] || key
+            const width = (unref(rows) || []).reduce((largest, row) => {
+                const value = typeof field === 'function' ? field(row) : row[field]
+                if (value == null || typeof value === 'object') return largest
+                const text = String(value)
+                const measured = context ? context.measureText(text).width : [...text].reduce((sum, char) => sum + (/[^\x00-\x7f]/.test(char) ? 14 : 8), 0)
+                return Math.max(largest, Math.ceil(measured) + 32)
+            }, minimum)
+            return [key, width]
+        }))
+    })
 
-    // 动态计算列宽
     const columnWidth = computed(() => {
-        if (containerWidth.value === 0 || containerWidth.value <= totalMinWidth) {
-            return minColumnWidths
-        }
-
-        const extraWidth = containerWidth.value - totalMinWidth
-        const totalWeight = Object.keys(minColumnWidths).length
-        const extraPerColumn = Math.floor(extraWidth / totalWeight)
-
-        return Object.entries(minColumnWidths).reduce((acc, [key, minWidth]) => {
-            acc[key] = minWidth + extraPerColumn
-            return acc
-        }, {})
+        const widths = contentWidths.value
+        const total = Object.values(widths).reduce((sum, width) => sum + width, 0)
+        const extra = Math.max(0, containerWidth.value - total)
+        const keys = Object.keys(widths)
+        return Object.fromEntries(keys.map((key, index) => [key, widths[key] + Math.floor(extra / keys.length) + (index < extra % keys.length ? 1 : 0)]))
     })
+    const tableWidth = computed(() => Object.values(columnWidth.value).reduce((sum, width) => sum + width, 0))
 
-    // 计算表格总宽度
-    const tableWidth = computed(() => {
-        return Math.max(totalMinWidth, containerWidth.value)
-    })
-
-    // 更新容器宽度
     const updateContainerWidth = () => {
-        if (tableRef.value?.$el) {
-            const parentWidth = tableRef.value.$el.parentElement.clientWidth
-            containerWidth.value = parentWidth - padding // 减去内边距
+        const element = tableRef.value?.$el
+        if (!element) return
+        containerWidth.value = Math.max(0, Math.floor(element.parentElement.clientWidth))
+        const cell = element.querySelector('.cell')
+        if (cell) {
+            const style = getComputedStyle(cell)
+            font.value = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
         }
     }
 
-    // 监听窗口大小变化
-    const handleResize = () => {
+    onMounted(async () => {
+        context = document.createElement('canvas').getContext('2d')
+        await nextTick()
         updateContainerWidth()
-    }
+        window.addEventListener('resize', updateContainerWidth)
+    })
+    onUnmounted(() => window.removeEventListener('resize', updateContainerWidth))
 
-    // 初始化
-    const initializeWidth = () => {
-        nextTick(() => {
-            updateContainerWidth()
-            window.addEventListener('resize', handleResize)
-        })
-    }
-
-    // 清理
-    const cleanupWidth = () => {
-        window.removeEventListener('resize', handleResize)
-    }
-
-    onMounted(initializeWidth)
-    onUnmounted(cleanupWidth)
-
-    return {
-        tableRef,
-        columnWidth,
-        tableWidth
-    }
-} 
+    return { tableRef, columnWidth, tableWidth }
+}

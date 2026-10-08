@@ -43,10 +43,28 @@ const router = createRouter({
 					meta: { title: "控制台", requiresAuth: true, role: "admin" },
 				},
 				{
+					path: "notifications",
+					name: "AdminNotifications",
+					component: () => import("@/views/common/Notifications.vue"),
+					meta: { title: "站内通知", requiresAuth: true, role: "admin" },
+				},
+				{
+					path: "operation-audits",
+					name: "OperationAuditList",
+					component: () => import("@/views/admin/AuditLogs.vue"),
+					meta: { title: "操作审计", requiresAuth: true, role: "admin" },
+				},
+				{
 					path: "students",
 					name: "StudentList",
 					component: () => import("@/views/admin/students/StudentList.vue"),
 					meta: { title: "学生管理", requiresAuth: true, role: "admin" },
+				},
+				{
+					path: "student-status-changes",
+					name: "StudentStatusChangeList",
+					component: () => import("@/views/admin/students/StudentStatusChangeList.vue"),
+					meta: { title: "学籍异动审核", requiresAuth: true, role: "admin" },
 				},
 				{
 					path: "students/add",
@@ -143,6 +161,12 @@ const router = createRouter({
 					name: "CourseStudents",
 					component: () => import("@/views/admin/courses/CourseStudents.vue"),
 					meta: { title: "选课学生", requiresAuth: true, role: "admin" },
+				},
+				{
+					path: "curriculum-plans",
+					name: "CurriculumPlanList",
+					component: () => import("@/views/admin/curriculum/CurriculumPlanList.vue"),
+					meta: { title: "培养方案", requiresAuth: true, role: "admin" },
 				},
 				{
 					path: "attendance",
@@ -252,6 +276,12 @@ const router = createRouter({
 					meta: { title: "控制台", requiresAuth: true, roles: ["teacher"] },
 				},
 				{
+					path: "notifications",
+					name: "TeacherNotifications",
+					component: () => import("@/views/common/Notifications.vue"),
+					meta: { title: "站内通知", requiresAuth: true, role: "teacher" },
+				},
+				{
 					path: "attendance",
 					name: "TeacherAttendance",
 					component: () => import("@/views/teacher/Attendance.vue"),
@@ -308,6 +338,24 @@ const router = createRouter({
 					name: "StudentScores",
 					component: () => import("@/views/student/Scores.vue"),
 					meta: { title: "成绩查询", requiresAuth: true, role: "student" },
+				},
+				{
+					path: "curriculum-progress",
+					name: "StudentCurriculumProgress",
+					component: () => import("@/views/student/CurriculumProgress.vue"),
+					meta: { title: "培养进度", requiresAuth: true, role: "student" },
+				},
+				{
+					path: "status-changes",
+					name: "StudentStatusChanges",
+					component: () => import("@/views/student/StatusChanges.vue"),
+					meta: { title: "学籍异动", requiresAuth: true, role: "student" },
+				},
+				{
+					path: "notifications",
+					name: "StudentNotifications",
+					component: () => import("@/views/common/Notifications.vue"),
+					meta: { title: "站内通知", requiresAuth: true, role: "student" },
 				},
 				{
 					path: "attendance",

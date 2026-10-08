@@ -18,6 +18,16 @@
             <el-form-item label="学期" prop="semester">
                 <el-input v-model="formData.semester" placeholder="例如：2026-2027-1" />
             </el-form-item>
+            <el-form-item label="考试类型" prop="attemptType">
+                <el-select v-model="formData.attemptType" style="width: 100%">
+                    <el-option label="正常考试" value="REGULAR" />
+                    <el-option label="补考" value="MAKEUP" />
+                    <el-option label="重修" value="RETAKE" />
+                </el-select>
+            </el-form-item>
+            <el-form-item label="考试次数" prop="attemptNo">
+                <el-input-number v-model="formData.attemptNo" :min="1" :max="10" :precision="0" style="width: 100%" />
+            </el-form-item>
             <el-form-item label="成绩" prop="score">
                 <el-input-number v-model="formData.score" :min="0" :max="100" :precision="1" style="width: 100%" />
             </el-form-item>
@@ -26,6 +36,9 @@
             </el-form-item>
             <el-form-item label="评语" prop="comment">
                 <el-input v-model="formData.comment" type="textarea" :rows="3" placeholder="请输入评语" />
+            </el-form-item>
+            <el-form-item v-if="isEdit" label="更正原因" prop="changeReason">
+                <el-input v-model="formData.changeReason" type="textarea" :rows="2" placeholder="说明本次成绩更正原因" />
             </el-form-item>
             <el-form-item>
                 <el-button type="primary" @click="handleSubmit">提交</el-button>
@@ -50,13 +63,14 @@ import { showApiError } from "@/utils/errorHandler";
     const courses = ref([])
     const studentLoading = ref(false)
     const courseLoading = ref(false)
-    const formData = reactive({ studentId: null, courseId: null, score: 0, grade: '', semester: '', examTime: '', comment: '' })
+    const formData = reactive({ studentId: null, courseId: null, score: 0, grade: '', semester: '', attemptType: 'REGULAR', attemptNo: 1, changeReason: '', examTime: '', comment: '' })
     const rules = {
         studentId: [{ required: true, message: '请选择学生', trigger: 'change' }],
         courseId: [{ required: true, message: '请选择课程', trigger: 'change' }],
         score: [{ required: true, message: '请输入成绩', trigger: 'blur' }],
         semester: [{ required: true, message: '请输入学期', trigger: 'blur' }],
-        examTime: [{ required: true, message: '请选择考试时间', trigger: 'change' }]
+        examTime: [{ required: true, message: '请选择考试时间', trigger: 'change' }],
+        changeReason: [{ required: true, message: '请填写成绩更正原因', trigger: 'blur' }]
     }
 
     const searchStudents = async (query = '') => {
@@ -105,6 +119,7 @@ import { showApiError } from "@/utils/errorHandler";
                 const response = await getScoreById(props.id)
                 if (response?.code !== 200 || !response.data) throw new Error(response?.message || '获取成绩信息失败')
                 Object.assign(formData, response.data)
+                formData.changeReason = ''
                 formData.examTime = response.data.examTime ? new Date(response.data.examTime) : ''
                 await Promise.all([searchStudents(response.data.studentNo), searchCourses(response.data.courseCode)])
             } else {

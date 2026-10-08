@@ -177,7 +177,7 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, College> impl
         BeanUtils.copyProperties(college, vo);
 
         // 设置状态文字描述
-        vo.setStatusText(college.getStatus() == 0 ? "禁用" : "启用");
+        vo.setStatusText(college.getStatus() == 0 ? "正常" : "停用");
 
         return vo;
     }

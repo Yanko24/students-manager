@@ -5,6 +5,7 @@
             <div class="header-actions">
                 <el-button type="primary" @click="importDialogVisible = true">导入成绩</el-button>
                 <el-button type="success" @click="handleExport">导出成绩</el-button>
+                <el-button type="warning" :disabled="selectedIds.length === 0" @click="handlePublish">发布所选（{{ selectedIds.length }}）</el-button>
                 <el-button type="primary" @click="router.push('/admin/scores/add')">录入成绩</el-button>
             </div>
         </div>
@@ -15,7 +16,7 @@
             description="使用中文模板填写成绩数据。学号和课程代码需已存在，导入前会校验整份文件。"
             template-name="成绩导入模板.csv"
             template-href="/templates/score-import-template.csv"
-            :fields="['学号', '课程代码', '成绩', '学期', '考试时间', '评语']"
+            :fields="['学号', '课程代码', '成绩', '学期', '考试类型', '考试次数', '考试时间', '评语']"
             :tips="scoreImportTips"
             :loading="importing"
             @submit="handleImport"
@@ -43,8 +44,9 @@
         </el-card>
 
         <el-card class="table-card">
-            <el-table :data="scoreList" v-loading="loading" border stripe style="width: 100%">
-                <el-table-column prop="studentNo" label="学号" min-width="120" align="center" />
+            <el-table :data="scoreList" v-loading="loading" border stripe style="width: 100%" @selection-change="selectedRows = $event">
+                <el-table-column type="selection" width="48" align="center" :selectable="canPublishScore" />
+                <el-table-column prop="studentNo" label="学号" min-width="120" align="center" fixed="left" />
                 <el-table-column prop="studentName" label="姓名" min-width="100" align="center" />
                 <el-table-column prop="courseNo" label="课程代码" min-width="120" align="center" />
                 <el-table-column prop="courseName" label="课程名称" min-width="150" align="center" />
@@ -56,6 +58,9 @@
                 </el-table-column>
                 <el-table-column prop="gradePoint" label="绩点" min-width="80" align="center" />
                 <el-table-column prop="semester" label="学期" min-width="120" align="center" />
+                <el-table-column label="考试类型" min-width="100" align="center">
+                    <template #default="{ row }">{{ attemptTypeLabel(row.attemptType) }}（第{{ row.attemptNo }}次）</template>
+                </el-table-column>
                 <el-table-column prop="examTime" label="考试时间" min-width="180" align="center">
                     <template #default="{ row }">{{ formatDateTime(row.examTime) }}</template>
                 </el-table-column>
@@ -65,6 +70,9 @@
                             {{ row.status }}
                         </el-tag>
                     </template>
+                </el-table-column>
+                <el-table-column prop="publishStatus" label="发布状态" min-width="100" align="center">
+                    <template #default="{ row }"><el-tag :type="row.publishStatus === 'PUBLISHED' ? 'success' : 'warning'">{{ row.publishStatus === 'PUBLISHED' ? '已发布' : '待发布' }}</el-tag></template>
                 </el-table-column>
                 <el-table-column label="操作" min-width="180" fixed="right" align="center">
                     <template #default="{ row }">
@@ -86,10 +94,10 @@
 
 <script setup>
 import { showApiError } from "@/utils/errorHandler";
-    import { ref } from 'vue'
+import { ref, computed } from 'vue'
     import { useRouter } from 'vue-router'
     import { ElMessage, ElMessageBox } from 'element-plus'
-    import { getScoreList, deleteScore, exportScores, importScores } from '@/api/score'
+import { getScoreList, deleteScore, exportScores, importScores, publishScores } from '@/api/score'
     import SmartPagination from '@/components/common/SmartPagination.vue'
     import RecordViewLink from '@/components/common/RecordViewLink.vue'
     import CsvImportDialog from '@/components/common/CsvImportDialog.vue'
@@ -98,6 +106,8 @@ import { showApiError } from "@/utils/errorHandler";
     const router = useRouter()
     const loading = ref(false)
     const scoreList = ref([])
+    const selectedRows = ref([])
+    const selectedIds = computed(() => selectedRows.value.map(row => row.id))
     const total = ref(0)
     const importDialogVisible = ref(false)
     const importing = ref(false)
@@ -106,7 +116,7 @@ import { showApiError } from "@/utils/errorHandler";
     const scoreImportTips = [
         '成绩填写 0–100；学期示例：2026-2027-1。',
         '考试时间格式为 YYYY-MM-DDTHH:mm:ss，例如 2026-10-03T17:27:19。',
-        '最多导入 5000 条、文件不超过 5 MB；学号、课程代码必须已存在，任意记录失败整批回滚。'
+        '考试类型填写正常考试、补考或重修；考试次数填写 1–10，默认 1。最多导入 5000 条、文件不超过 5 MB；任意记录失败整批回滚。'
     ]
 
     const filterForm = ref({
@@ -123,22 +133,34 @@ import { showApiError } from "@/utils/errorHandler";
         return '#F56C6C'
     }
 
+    const attemptTypeLabel = (type) => ({ REGULAR: '正常考试', MAKEUP: '补考', RETAKE: '重修' }[type] || '正常考试')
+    const canPublishScore = (row) => row.publishStatus === 'DRAFT'
+
+    const handlePublish = async () => {
+        try {
+            const { value: reason } = await ElMessageBox.prompt('请输入本次成绩发布说明。发布后学生即可查询。', '批量发布成绩', {
+                confirmButtonText: '发布', cancelButtonText: '取消', inputPlaceholder: '例如：2026-2027 学年第一学期成绩',
+                inputValidator: value => !!value?.trim() || '发布说明不能为空'
+            })
+            const response = await publishScores({ scoreIds: selectedIds.value, reason: reason.trim() })
+            ElMessage.success(`已发布 ${response?.data?.published ?? selectedIds.value.length} 条成绩`)
+            selectedRows.value = []
+            handleSearch()
+        } catch (error) {
+            if (error === 'cancel' || error === 'close') return
+            showApiError(error, '发布成绩失败')
+        }
+    }
+
     const fetchScores = async (page, size) => {
         loading.value = true;
         try {
-            console.log('开始获取成绩列表，参数：', {
-                page,
-                size,
-                ...filterForm.value
-            });
-
             const response = await getScoreList({
                 page,
                 size,
                 ...filterForm.value
             });
 
-            console.log('获取成绩列表响应：', response);
             if (response?.code === 200 && response.data) {
                 scoreList.value = response.data.records || [];
                 total.value = response.data.total || 0;
@@ -175,13 +197,12 @@ import { showApiError } from "@/utils/errorHandler";
 
     const handleDelete = async (id) => {
         try {
-            await ElMessageBox.confirm('删除后无法恢复，确定删除这条成绩记录吗？', '删除成绩', {
-                confirmButtonText: '删除',
-                cancelButtonText: '取消',
-                type: 'warning',
+            const { value: reason } = await ElMessageBox.prompt('请填写删除这条成绩的原因。', '删除成绩', {
+                confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning',
+                inputPlaceholder: '删除原因', inputValidator: value => !!value?.trim() || '删除原因不能为空',
                 confirmButtonClass: 'el-button--danger'
             });
-            await deleteScore(id);
+            await deleteScore(id, reason.trim());
             ElMessage.success('删除成功');
             handleSearch();
         } catch (error) {

@@ -7,9 +7,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.studentsmanager.core.response.Result;
 import com.example.studentsmanager.model.dto.score.ScoreQueryDTO;
 import com.example.studentsmanager.model.dto.score.ScoreUpdateDTO;
+import com.example.studentsmanager.model.dto.score.ScorePublishDTO;
 import com.example.studentsmanager.model.entity.Course;
 import com.example.studentsmanager.model.entity.Student;
 import com.example.studentsmanager.model.vo.score.ScoreVO;
+import com.example.studentsmanager.model.vo.score.ScoreChangeLogVO;
 import com.example.studentsmanager.model.vo.score.ScoreDistributionResponse;
 import com.example.studentsmanager.service.CourseService;
 import com.example.studentsmanager.service.ScoreService;
@@ -31,6 +33,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/scores")
@@ -60,20 +63,33 @@ public class ScoreController {
 
     @PostMapping
     @Operation(summary = "新增成绩", description = "创建一条学生成绩记录")
-    public Result<ScoreVO> createScore(@RequestBody ScoreUpdateDTO dto) { return Result.success(scoreService.createScore(dto)); }
+    public Result<ScoreVO> createScore(@RequestBody ScoreUpdateDTO dto, Principal principal) { return Result.success(scoreService.createScore(dto, principal.getName())); }
 
     @PutMapping("/{id}")
     @Operation(summary = "更新成绩", description = "根据成绩编号更新成绩信息")
-    public Result<ScoreVO> updateScore(@PathVariable Long id, @RequestBody ScoreUpdateDTO dto) { return Result.success(scoreService.updateScore(id, dto)); }
+    public Result<ScoreVO> updateScore(@PathVariable Long id, @RequestBody ScoreUpdateDTO dto, Principal principal) { return Result.success(scoreService.updateScore(id, dto, principal.getName())); }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除成绩", description = "根据成绩编号删除成绩记录")
-    public Result<Void> deleteScore(@PathVariable Long id) { scoreService.deleteScore(id); return Result.success(); }
+    public Result<Void> deleteScore(@PathVariable Long id, @RequestParam String reason, Principal principal) { scoreService.deleteScore(id, reason, principal.getName()); return Result.success(); }
+
+    @PostMapping("/publish")
+    @Operation(summary = "批量发布成绩", description = "发布所选成绩，发布后学生端可见")
+    public Result<Map<String, Integer>> publishScores(@RequestBody ScorePublishDTO dto, Principal principal) {
+        int count = scoreService.publishScores(dto.getScoreIds(), dto.getReason(), principal.getName());
+        return Result.success(java.util.Collections.singletonMap("published", count));
+    }
+
+    @GetMapping("/{id}/history")
+    @Operation(summary = "查询成绩变更记录", description = "查看成绩创建、修改、发布和删除的历史")
+    public Result<List<ScoreChangeLogVO>> getScoreHistory(@PathVariable Long id) {
+        return Result.success(scoreService.getScoreChangeLogs(id));
+    }
 
     @PostMapping("/import")
     @Operation(summary = "导入成绩", description = "通过CSV文件批量导入成绩记录")
     @Transactional(rollbackFor = Exception.class)
-    public Result<Map<String, Integer>> importScores(@RequestParam("file") MultipartFile file) throws Exception {
+    public Result<Map<String, Integer>> importScores(@RequestParam("file") MultipartFile file, Principal principal) throws Exception {
         if (file.isEmpty()) throw new IllegalArgumentException("请选择CSV文件");
         if (file.getSize() > MAX_IMPORT_FILE_BYTES) throw new IllegalArgumentException("CSV 文件不能超过 5 MB");
         String filename = file.getOriginalFilename();
@@ -92,6 +108,8 @@ public class ScoreController {
             importColumns.put("courseCode", findColumn(columns, "课程代码", "courseCode"));
             importColumns.put("score", findColumn(columns, "成绩", "score"));
             importColumns.put("semester", findColumn(columns, "学期", "semester"));
+            importColumns.put("attemptType", findColumn(columns, "考试类型", "attemptType"));
+            importColumns.put("attemptNo", findColumn(columns, "考试次数", "attemptNo"));
             importColumns.put("examTime", findColumn(columns, "考试时间", "examTime"));
             importColumns.put("comment", findColumn(columns, "评语", "comment"));
             for (String required : new String[]{"studentNo", "courseCode", "score", "semester", "examTime"}) {
@@ -116,9 +134,18 @@ public class ScoreController {
                     dto.setStudentId(student.getId()); dto.setCourseId(course.getId());
                     dto.setScore(new java.math.BigDecimal(cell(values, importColumns.get("score"))));
                     dto.setSemester(cell(values, importColumns.get("semester")));
+                    String attemptType = optionalCell(values, importColumns.get("attemptType"));
+                    dto.setAttemptType(attemptType.isBlank() ? "REGULAR" : switch (attemptType) {
+                        case "正常考试" -> "REGULAR";
+                        case "补考" -> "MAKEUP";
+                        case "重修" -> "RETAKE";
+                        default -> attemptType;
+                    });
+                    String attemptNo = optionalCell(values, importColumns.get("attemptNo"));
+                    if (!attemptNo.isBlank()) dto.setAttemptNo(Integer.parseInt(attemptNo));
                     dto.setExamTime(LocalDateTime.parse(cell(values, importColumns.get("examTime"))));
                     if (importColumns.get("comment") != null) dto.setComment(cell(values, importColumns.get("comment")));
-                    scoreService.createScore(dto);
+                    scoreService.createScore(dto, principal.getName());
                     imported++;
                 } catch (Exception e) {
                     throw new IllegalArgumentException("第" + lineNumber + "行导入失败：" + e.getMessage(), e);
@@ -164,6 +191,10 @@ public class ScoreController {
 
     private static String cell(List<String> values, int index) {
         return index < values.size() ? values.get(index).trim() : "";
+    }
+
+    private static String optionalCell(List<String> values, Integer index) {
+        return index == null ? "" : cell(values, index);
     }
 
     private static String csv(String value) {

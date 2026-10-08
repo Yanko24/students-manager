@@ -8,63 +8,59 @@
                 </div>
                 <el-menu :default-active="activeMenu" class="sidebar-menu" @select="handleMenuSelect">
                     <el-menu-item index="/admin/dashboard">
-                        <el-icon>
-                            <Monitor />
-                        </el-icon>
+                        <el-icon><Monitor /></el-icon>
                         <span>控制台</span>
                     </el-menu-item>
-                    <el-menu-item index="/admin/students">
-                        <el-icon>
-                            <User />
-                        </el-icon>
-                        <span>学生管理</span>
-                    </el-menu-item>
-                    <el-menu-item index="/admin/teachers">
-                        <el-icon>
-                            <UserFilled />
-                        </el-icon>
-                        <span>教师管理</span>
-                    </el-menu-item>
-                    <el-menu-item index="/admin/majors">
-                        <el-icon>
-                            <Collection />
-                        </el-icon>
-                        <span>专业管理</span>
-                    </el-menu-item>
-                    <el-menu-item index="/admin/courses">
-                        <el-icon>
-                            <Reading />
-                        </el-icon>
-                        <span>课程管理</span>
-                    </el-menu-item>
-                    <el-menu-item index="/admin/scores">
-                        <el-icon>
-                            <Document />
-                        </el-icon>
-                        <span>成绩管理</span>
-                    </el-menu-item>
                     <el-menu-item index="/admin/colleges">
-                        <el-icon>
-                            <OfficeBuilding />
-                        </el-icon>
+                        <el-icon><OfficeBuilding /></el-icon>
                         <span>学院管理</span>
                     </el-menu-item>
+                    <el-menu-item index="/admin/majors">
+                        <el-icon><Collection /></el-icon>
+                        <span>专业管理</span>
+                    </el-menu-item>
+                    <el-menu-item index="/admin/teachers">
+                        <el-icon><UserFilled /></el-icon>
+                        <span>教师管理</span>
+                    </el-menu-item>
+                    <el-menu-item index="/admin/students">
+                        <el-icon><User /></el-icon>
+                        <span>学生管理</span>
+                    </el-menu-item>
+                    <el-menu-item index="/admin/courses">
+                        <el-icon><Reading /></el-icon>
+                        <span>课程管理</span>
+                    </el-menu-item>
+                    <el-menu-item index="/admin/curriculum-plans">
+                        <el-icon><Reading /></el-icon>
+                        <span>培养方案</span>
+                    </el-menu-item>
+                    <el-menu-item index="/admin/scores">
+                        <el-icon><Document /></el-icon>
+                        <span>成绩管理</span>
+                    </el-menu-item>
                     <el-menu-item index="/admin/attendance">
-                        <el-icon>
-                            <Calendar />
-                        </el-icon>
+                        <el-icon><Calendar /></el-icon>
                         <span>考勤管理</span>
                     </el-menu-item>
+                    <el-menu-item index="/admin/student-status-changes">
+                        <el-icon><Document /></el-icon>
+                        <span>学籍异动审核</span>
+                    </el-menu-item>
+                    <el-menu-item index="/admin/notifications">
+                        <el-icon><Document /></el-icon>
+                        <span>站内通知</span>
+                    </el-menu-item>
+                    <el-menu-item index="/admin/operation-audits">
+                        <el-icon><Document /></el-icon>
+                        <span>操作审计</span>
+                    </el-menu-item>
                     <el-menu-item index="/admin/profile">
-                        <el-icon>
-                            <User />
-                        </el-icon>
+                        <el-icon><User /></el-icon>
                         <span>个人信息</span>
                     </el-menu-item>
                     <el-menu-item index="/admin/settings">
-                        <el-icon>
-                            <Setting />
-                        </el-icon>
+                        <el-icon><Setting /></el-icon>
                         <span>系统设置</span>
                     </el-menu-item>
                 </el-menu>

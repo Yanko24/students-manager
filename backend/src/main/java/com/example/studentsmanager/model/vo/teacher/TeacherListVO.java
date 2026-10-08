@@ -3,6 +3,7 @@ package com.example.studentsmanager.model.vo.teacher;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class TeacherListVO {
@@ -16,4 +17,6 @@ public class TeacherListVO {
     private String title;
     private Integer status;
     private LocalDate hireDate;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }

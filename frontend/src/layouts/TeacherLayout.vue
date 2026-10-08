@@ -26,6 +26,10 @@
                         </el-icon>
                         <template #title>考勤管理</template>
                     </el-menu-item>
+                    <el-menu-item index="/teacher/notifications">
+                        <el-icon><Document /></el-icon>
+                        <template #title>站内通知</template>
+                    </el-menu-item>
                     <el-menu-item index="/teacher/profile">
                         <el-icon>
                             <User />
@@ -114,6 +118,7 @@
         FullScreen,
         Aim,
         User,
+        Document,
         Calendar,
         SwitchButton,
         CaretBottom,

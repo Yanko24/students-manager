@@ -17,6 +17,7 @@
         <el-card class="table-card">
             <el-tabs v-model="activeStatus" @tab-change="handleStatusChange">
                 <el-tab-pane label="待审核" name="pending" />
+                <el-tab-pane label="候补队列" name="waitlisted" />
                 <el-tab-pane label="已通过" name="approved" />
                 <el-tab-pane label="已拒绝" name="rejected" />
                 <el-tab-pane label="全部记录" name="all" />
@@ -34,7 +35,7 @@
                 @selection-change="handleSelectionChange">
                 <el-table-column v-if="activeStatus === 'pending'" type="selection" width="52" align="center"
                     :selectable="(row) => row.selectionStatus === 'pending'" />
-                <el-table-column prop="studentNo" label="学号" min-width="140" align="center" />
+                <el-table-column prop="studentNo" label="学号" min-width="140" align="center" fixed="left" />
                 <el-table-column prop="studentName" label="姓名" min-width="120" align="center" />
                 <el-table-column prop="majorName" label="专业" min-width="180" align="center" />
                 <el-table-column label="年级班级" min-width="140" align="center">
@@ -45,7 +46,7 @@
                 </el-table-column>
                 <el-table-column label="审核状态" width="120" align="center">
                     <template #default="{ row }">
-                        <el-tag :type="statusTag(row.selectionStatus)">{{ statusLabel(row.selectionStatus) }}</el-tag>
+                        <el-tag :type="statusTag(row.selectionStatus)">{{ statusLabel(row.selectionStatus, row.waitlistPosition) }}</el-tag>
                     </template>
                 </el-table-column>
                 <template #empty>
@@ -83,12 +84,14 @@ const page = ref(1)
 const size = ref(10)
 const emptyDescription = computed(() => ({
     pending: '当前没有待审核申请',
+    waitlisted: '当前没有候补申请',
     approved: '还没有通过的选课申请',
     rejected: '还没有拒绝记录',
     all: '这门课程还没有选课申请'
 })[activeStatus.value])
 
-function statusLabel(status) {
+function statusLabel(status, position) {
+    if (status === 'waitlisted') return `候补第 ${position || '—'} 位`
     return ({ pending: '待审核', approved: '已通过', rejected: '已拒绝' })[status] || '未知'
 }
 

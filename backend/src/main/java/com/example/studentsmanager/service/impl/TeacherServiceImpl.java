@@ -58,24 +58,38 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
                 : userService.listByIds(userIds).stream().collect(Collectors.toMap(User::getId, Function.identity()));
 
         Page<TeacherListVO> response = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
-        response.setRecords(result.getRecords().stream().map(teacher -> {
-            TeacherListVO vo = new TeacherListVO();
-            vo.setId(teacher.getId());
-            vo.setTeacherNo(teacher.getTeacherNumber());
-            vo.setDepartment(teacher.getDepartment());
-            vo.setTitle(teacher.getTitle());
-            vo.setStatus(teacher.getStatus());
-            vo.setHireDate(teacher.getHireDate());
-            User user = usersById.get(teacher.getUserId());
-            if (user != null) {
-                vo.setRealName(user.getRealName());
-                vo.setGender(user.getGender());
-                vo.setPhone(user.getPhone());
-                vo.setEmail(user.getEmail());
-            }
-            return vo;
-        }).collect(Collectors.toList()));
+        response.setRecords(result.getRecords().stream()
+                .map(teacher -> toTeacherListVO(teacher, usersById.get(teacher.getUserId())))
+                .collect(Collectors.toList()));
         return response;
+    }
+
+    @Override
+    public TeacherListVO getTeacherDetail(Long id) {
+        Teacher teacher = getById(id);
+        if (teacher == null) throw new BusinessException("教师不存在");
+        User user = userService.getById(teacher.getUserId());
+        if (user == null) throw new BusinessException("教师账号不存在");
+        return toTeacherListVO(teacher, user);
+    }
+
+    private TeacherListVO toTeacherListVO(Teacher teacher, User user) {
+        TeacherListVO vo = new TeacherListVO();
+        vo.setId(teacher.getId());
+        vo.setTeacherNo(teacher.getTeacherNumber());
+        vo.setDepartment(teacher.getDepartment());
+        vo.setTitle(teacher.getTitle());
+        vo.setStatus(teacher.getStatus());
+        vo.setHireDate(teacher.getHireDate());
+        vo.setCreateTime(teacher.getCreateTime());
+        vo.setUpdateTime(teacher.getUpdateTime());
+        if (user != null) {
+            vo.setRealName(user.getRealName());
+            vo.setGender(user.getGender());
+            vo.setPhone(user.getPhone());
+            vo.setEmail(user.getEmail());
+        }
+        return vo;
     }
 
     @Override
@@ -115,10 +129,19 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
             throw new BusinessException("教师不存在");
         }
 
+        if (teacher.getTeacherNumber() != null && !teacher.getTeacherNumber().equals(existingTeacher.getTeacherNumber())) {
+            Teacher duplicate = getByTeacherNumber(teacher.getTeacherNumber());
+            if (duplicate != null && !duplicate.getId().equals(existingTeacher.getId())) {
+                throw new BusinessException("教师编号已存在");
+            }
+        }
+
         // 更新用户信息
         if (teacher.getUser() != null) {
             User user = teacher.getUser();
             user.setId(existingTeacher.getUserId());
+            if (teacher.getTeacherNumber() != null) user.setUsername(teacher.getTeacherNumber());
+            user.setRole("teacher");
             userService.updateById(user);
         }
 

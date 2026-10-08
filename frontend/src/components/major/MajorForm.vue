@@ -82,15 +82,10 @@ import { showApiError } from "@/utils/errorHandler";
         await formRef.value.validate(async (valid) => {
             if (valid) {
                 try {
-                    console.log('开始提交专业表单，数据：', formData.value);
                     if (props.id) {
-                        console.log('更新专业，ID：', props.id);
                         await updateMajor(props.id, formData.value);
-                        console.log('更新专业成功');
                     } else {
-                        console.log('创建新专业');
                         await createMajor(formData.value);
-                        console.log('创建专业成功');
                     }
                     emit('success');
                 } catch (error) {

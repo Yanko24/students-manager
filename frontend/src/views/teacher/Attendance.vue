@@ -17,7 +17,7 @@
 
     <el-card class="list-card">
       <el-table :data="attendanceList" v-loading="loading" border stripe>
-        <el-table-column prop="studentNo" label="学号" width="130" />
+        <el-table-column prop="studentNo" label="学号" width="130" fixed="left" />
         <el-table-column prop="studentName" label="姓名" width="120" />
         <el-table-column prop="className" label="班级" min-width="220" />
         <el-table-column prop="courseName" label="课程" min-width="160" />

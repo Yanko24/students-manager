@@ -10,7 +10,8 @@
     </el-card>
     <el-card shadow="never" class="table-card">
       <el-table :data="courses" v-loading="loading" border>
-        <el-table-column prop="code" label="课程代码" min-width="120" />
+        <el-table-column prop="code" label="课程代码" min-width="120" fixed="left" />
+        <el-table-column prop="sectionCode" label="教学班号" width="100" />
         <el-table-column prop="name" label="课程名称" min-width="180" />
         <el-table-column prop="college" label="开课单位" min-width="180" />
         <el-table-column prop="credit" label="学分" width="90" />
@@ -18,6 +19,14 @@
         <el-table-column prop="type" label="课程类型" min-width="110" />
         <el-table-column prop="teacher" label="授课教师" min-width="120"><template #default="{ row }">{{ row.teacher || '暂未安排' }}</template></el-table-column>
         <el-table-column prop="semester" label="学期" min-width="130" />
+        <el-table-column label="上课安排" min-width="250">
+          <template #default="{ row }">
+            <div v-if="row.schedules?.length" class="schedule-list">
+              <div v-for="(schedule, index) in row.schedules" :key="schedule.id || index">{{ scheduleText(schedule) }}</div>
+            </div>
+            <span v-else class="muted">暂未安排</span>
+          </template>
+        </el-table-column>
         <el-table-column label="课程状态" width="110"><template #default="{ row }"><el-tag :type="courseStatusType(row.status)">{{ row.statusText }}</el-tag></template></el-table-column>
         <el-table-column label="操作" width="90" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="router.push(`/student/courses/${row.id}`)">详情</el-button></template></el-table-column>
         <template #empty><el-empty description="暂无已确认的课程" /></template>
@@ -41,6 +50,11 @@ const loading = ref(false)
 const page = ref(1)
 const size = ref(10)
 const total = ref(0)
+const scheduleText = (schedule) => {
+  const day = ['一', '二', '三', '四', '五', '六', '日'][schedule.dayOfWeek - 1]
+  const parity = ({ ALL: '每周', ODD: '单周', EVEN: '双周' })[schedule.weekParity] || '每周'
+  return `周${day} ${schedule.startPeriod}-${schedule.endPeriod}节（${schedule.weekStart}-${schedule.weekEnd}周${parity}） ${schedule.classroom}`
+}
 const courseStatusType = (status) => ({ 0: 'info', 1: 'success', 2: 'warning' }[status] || 'info')
 
 async function fetchCourses() {
@@ -67,5 +81,7 @@ onMounted(fetchCourses)
 .page-heading p { margin: 8px 0 0; color: var(--el-text-color-secondary); }
 .filter-card :deep(.el-card__body) { padding-bottom: 2px; }
 .table-card :deep(.el-card__body) { overflow-x: auto; }
+.schedule-list { display: grid; gap: 4px; white-space: nowrap; }
+.muted { color: var(--el-text-color-secondary); }
 .pagination { display: flex; justify-content: flex-end; margin-top: 18px; overflow-x: auto; }
 </style>

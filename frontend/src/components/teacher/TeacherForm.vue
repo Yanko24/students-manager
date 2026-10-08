@@ -1,5 +1,5 @@
 <template>
-    <div class="teacher-form-container">
+    <div class="teacher-form-container" v-loading="loading">
         <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px" label-position="right">
             <el-row :gutter="20">
                 <el-col :span="12">
@@ -18,18 +18,14 @@
                 <el-col :span="12">
                     <el-form-item label="性别" prop="gender">
                         <el-radio-group v-model="formData.gender">
-                            <el-radio label="male">男</el-radio>
-                            <el-radio label="female">女</el-radio>
+                            <el-radio :label="1">男</el-radio>
+                            <el-radio :label="0">女</el-radio>
                         </el-radio-group>
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="所属院系" prop="department">
-                        <el-select v-model="formData.department" placeholder="请选择院系" style="width: 100%">
-                            <el-option label="计算机科学与技术" value="计算机科学与技术" />
-                            <el-option label="软件工程" value="软件工程" />
-                            <el-option label="信息安全" value="信息安全" />
-                        </el-select>
+                        <el-input v-model="formData.department" placeholder="请输入所属学院" />
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -70,15 +66,11 @@
             </el-row>
 
             <el-form-item label="入职日期" prop="entryDate">
-                <el-date-picker v-model="formData.entryDate" type="date" placeholder="请选择入职日期" style="width: 100%" />
-            </el-form-item>
-
-            <el-form-item label="备注" prop="remark">
-                <el-input v-model="formData.remark" type="textarea" rows="3" placeholder="请输入备注" />
+                <el-date-picker v-model="formData.entryDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择入职日期" style="width: 100%" />
             </el-form-item>
 
             <el-form-item>
-                <el-button type="primary" @click="handleSubmit">保存</el-button>
+                <el-button type="primary" :loading="saving" @click="handleSubmit">保存</el-button>
                 <el-button @click="handleCancel">取消</el-button>
             </el-form-item>
         </el-form>
@@ -88,6 +80,8 @@
 <script setup>
     import { ref, reactive, onMounted } from 'vue'
     import { ElMessage } from 'element-plus'
+    import { getTeacherById } from '@/api/teacher'
+    import { showApiError } from '@/utils/errorHandler'
 
     const props = defineProps({
         id: {
@@ -103,18 +97,19 @@
     const emit = defineEmits(['submit', 'cancel'])
 
     const formRef = ref(null)
+    const loading = ref(false)
+    const saving = ref(false)
 
     const formData = reactive({
         name: '',
         teacherId: '',
-        gender: 'male',
+        gender: 1,
         department: '',
         title: '',
         status: 0,
         phone: '',
         email: '',
         entryDate: '',
-        remark: ''
     })
 
     const rules = {
@@ -124,7 +119,7 @@
         ],
         teacherId: [
             { required: true, message: '请输入教师工号', trigger: 'blur' },
-            { pattern: /^[A-Z]{2}\d{6}$/, message: '工号格式为：2个大写字母+6个数字', trigger: 'blur' }
+            { pattern: /^[A-Z0-9]{4,20}$/, message: '工号请使用4到20位大写字母或数字', trigger: 'blur' }
         ],
         gender: [
             { required: true, message: '请选择性别', trigger: 'change' }
@@ -153,10 +148,29 @@
 
     const handleSubmit = async () => {
         try {
+            saving.value = true
             await formRef.value.validate()
-            emit('submit', formData)
+            const teacherNumber = formData.teacherId.trim()
+            emit('submit', {
+                teacherNumber,
+                title: formData.title,
+                department: formData.department.trim(),
+                hireDate: formData.entryDate || null,
+                status: formData.status,
+                user: {
+                    username: teacherNumber,
+                    role: 'teacher',
+                    realName: formData.name.trim(),
+                    gender: Number(formData.gender),
+                    phone: formData.phone.trim(),
+                    email: formData.email.trim()
+                }
+            })
         } catch (error) {
-            console.error('表单验证失败：', error)
+            if (error?.length) return
+            showApiError(error, '教师信息校验失败')
+        } finally {
+            saving.value = false
         }
     }
 
@@ -165,18 +179,27 @@
     }
 
     const loadTeacherData = async (id) => {
-        // TODO: 调用获取教师详情接口
-        // 模拟数据
-        formData.name = '张三'
-        formData.teacherId = 'JS202301'
-        formData.gender = 'male'
-        formData.department = '计算机科学与技术'
-        formData.title = '教授'
-        formData.status = 0
-        formData.phone = '13800138000'
-        formData.email = 'zhangsan@example.com'
-        formData.entryDate = '2023-01-01'
-        formData.remark = '优秀教师'
+        loading.value = true
+        try {
+            const response = await getTeacherById(id)
+            const teacher = response?.data
+            if (!teacher) throw new Error('教师信息不存在')
+            Object.assign(formData, {
+                name: teacher.realName || '',
+                teacherId: teacher.teacherNo || '',
+                gender: Number(teacher.gender ?? 1),
+                department: teacher.department || '',
+                title: teacher.title || '',
+                status: Number(teacher.status ?? 0),
+                phone: teacher.phone || '',
+                email: teacher.email || '',
+                entryDate: teacher.hireDate || ''
+            })
+        } catch (error) {
+            showApiError(error, '获取教师信息失败')
+        } finally {
+            loading.value = false
+        }
     }
 
     onMounted(() => {

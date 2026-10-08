@@ -5,12 +5,19 @@
                     </template>
                     <el-descriptions-item label="课程名称">{{ course.name }}</el-descriptions-item>
                     <el-descriptions-item label="课程代码">{{ course.code }}</el-descriptions-item>
+                    <el-descriptions-item label="教学班号">{{ course.sectionCode || '01' }}</el-descriptions-item>
                     <el-descriptions-item label="授课院系">{{ course.college }}</el-descriptions-item>
                     <el-descriptions-item label="学分">{{ course.credit }}</el-descriptions-item>
                     <el-descriptions-item label="学时">{{ course.hours }}</el-descriptions-item>
                     <el-descriptions-item label="课程类型">{{ course.type }}</el-descriptions-item>
                     <el-descriptions-item label="授课教师">{{ course.teacher || '未指定' }}</el-descriptions-item>
                     <el-descriptions-item label="开课学期">{{ course.semester }}</el-descriptions-item>
+                    <el-descriptions-item label="上课安排" :span="2">
+                        <div v-if="course.schedules?.length" class="schedule-list">
+                            <div v-for="(schedule, index) in course.schedules" :key="schedule.id || index">{{ scheduleText(schedule) }}</div>
+                        </div>
+                        <span v-else>暂未安排</span>
+                    </el-descriptions-item>
                     <el-descriptions-item label="名额占用（待审核 + 已通过）">{{ course.selectedCount || 0 }} / {{ course.maxStudents || 60 }} 人</el-descriptions-item>
                     <el-descriptions-item label="适用范围">
                         {{ course.selectionScope === 'COLLEGE' ? `指定学院：${course.selectionCollegeName || '未设置'}` : course.selectionScope === 'MAJOR' ? `指定专业：${course.selectionMajorName || course.selectionMajorCode || '未设置'}` : '全校学生' }}
@@ -40,6 +47,12 @@
     const loading = ref(true)
     const course = ref(null)
 
+    const scheduleText = (schedule) => {
+        const day = ['一', '二', '三', '四', '五', '六', '日'][schedule.dayOfWeek - 1]
+        const parity = ({ ALL: '每周', ODD: '单周', EVEN: '双周' })[schedule.weekParity] || '每周'
+        return `星期${day} 第 ${schedule.startPeriod}-${schedule.endPeriod} 节，第 ${schedule.weekStart}-${schedule.weekEnd} 周（${parity}），${schedule.classroom}`
+    }
+
     onMounted(async () => {
         try {
             const response = await getCourseById(route.params.id)
@@ -53,6 +66,10 @@
         }
     })
 </script>
+
+<style scoped>
+.schedule-list { display: grid; gap: 6px; }
+</style>
 
 <style lang="scss" scoped>
     .course-view-container {

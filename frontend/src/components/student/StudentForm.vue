@@ -196,7 +196,6 @@ import { showApiError } from "@/utils/errorHandler";
                     label: major.displayName,
                     studentCount: major.studentCount
                 }))
-                console.log('专业列表加载成功:', majorList.value)
             }
         } catch (error) {
             console.error('获取专业列表失败:', error)
@@ -227,7 +226,6 @@ import { showApiError } from "@/utils/errorHandler";
                         const studentCount = response.data || 0
                         const newStudentNo = `${code}${grade}${classNo}${String(studentCount + 1).padStart(2, '0')}`
                         formData.studentNo = newStudentNo
-                        console.log('新增模式 - 生成的学号:', newStudentNo)
                     } else {
                         console.warn('获取学生总数失败')
                         ElMessage.warning('获取学生总数失败')
@@ -254,12 +252,10 @@ import { showApiError } from "@/utils/errorHandler";
     onMounted(() => {
         fetchMajorList()
         if (props.initialData && Object.keys(props.initialData).length > 0) {
-            console.log('接收到初始数据:', props.initialData)
 
             // 设置学号（编辑模式下）
             if (props.isEdit && props.initialData.studentNo) {
                 formData.studentNo = props.initialData.studentNo
-                console.log('编辑模式 - 设置学号:', props.initialData.studentNo)
             }
 
             // 设置其他字段
@@ -268,18 +264,14 @@ import { showApiError } from "@/utils/errorHandler";
                 gender: parseInt(props.initialData.gender)
             }
             Object.assign(formData, initialData)
-            console.log('初始化后的表单数据:', formData)
 
             // 如果有初始数据，设置专业信息
             if (props.initialData.displayName) {
-                console.log('开始设置专业信息:', props.initialData.displayName)
                 // 等待专业列表加载完成
                 const timer = setInterval(() => {
                     if (majorList.value.length > 0) {
-                        console.log('专业列表已加载:', majorList.value)
                         const selectedMajor = majorList.value.find(m => m.label === props.initialData.displayName)
                         if (selectedMajor) {
-                            console.log('找到匹配的专业:', selectedMajor)
                             const [code, grade, classNo] = selectedMajor.value.split('-')
                             formData.majorCode = code
                             formData.grade = grade
@@ -296,12 +288,10 @@ import { showApiError } from "@/utils/errorHandler";
     // 监听 initialData 变化
     watch(() => props.initialData, (newVal) => {
         if (newVal && Object.keys(newVal).length > 0) {
-            console.log('initialData 发生变化:', newVal)
 
             // 保持学号不变（编辑模式下）
             if (props.isEdit && newVal.studentNo) {
                 formData.studentNo = newVal.studentNo
-                console.log('编辑模式 - 保持学号不变:', newVal.studentNo)
             }
 
             const initialData = {
@@ -309,7 +299,6 @@ import { showApiError } from "@/utils/errorHandler";
                 gender: parseInt(newVal.gender)
             }
             Object.assign(formData, initialData)
-            console.log('更新后的表单数据:', formData)
         }
     }, { deep: true })
 
@@ -319,7 +308,6 @@ import { showApiError } from "@/utils/errorHandler";
 
         try {
             await formRef.value.validate()
-            console.log('表单验证通过，准备提交数据:', formData)
 
             // 准备提交的数据
             const submitData = {
@@ -327,7 +315,6 @@ import { showApiError } from "@/utils/errorHandler";
                 gender: String(formData.gender) // 确保gender是字符串类型
             }
 
-            console.log('最终提交的数据:', submitData)
             emit('submit', submitData)
         } catch (error) {
             console.error('表单验证失败:', error)

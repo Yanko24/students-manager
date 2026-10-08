@@ -1,5 +1,6 @@
--- Canonical schema and seed data for a fresh, pre-release deployment.
--- Docker MySQL runs this file only when initializing an empty data directory.
+-- Local development demo records only.
+-- Run once after Flyway V1 has created the schema and bootstrap administrator.
+-- This script does not create databases or tables.
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
@@ -8,232 +9,7 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
--- 创建数据库
-CREATE DATABASE IF NOT EXISTS students_manager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- 使用数据库
-USE students_manager;
-
--- 设置数据库连接的字符集
-SET character_set_client = utf8mb4;
-SET character_set_connection = utf8mb4;
-SET character_set_results = utf8mb4;
-SET character_set_server = utf8mb4;
-SET collation_connection = utf8mb4_unicode_ci;
-SET collation_server = utf8mb4_unicode_ci;
-
--- 创建用户表
-CREATE TABLE IF NOT EXISTS users
-(
-    id         BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    username   VARCHAR(50)                          NOT NULL UNIQUE COMMENT '用户名',
-    password   VARCHAR(255)                         NOT NULL COMMENT '密码',
-    role       ENUM ('admin', 'teacher', 'student') NOT NULL COMMENT '角色：管理员、教师、学生',
-    real_name  VARCHAR(50)                          NOT NULL COMMENT '真实姓名',
-    gender     TINYINT                              NOT NULL COMMENT '性别：1-男，0-女',
-    phone      VARCHAR(255)                         NOT NULL COMMENT 'SM4-GCM加密后的联系电话',
-    email      VARCHAR(512)                         NOT NULL COMMENT 'SM4-GCM加密后的电子邮箱',
-    status     TINYINT                              NOT NULL DEFAULT 0 COMMENT '状态：0-正常，1-禁用',
-    must_change_password TINYINT                     NOT NULL DEFAULT 1 COMMENT '是否首次登录后必须修改密码',
-    create_time DATETIME                             NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME                             NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    create_by  VARCHAR(50) DEFAULT NULL COMMENT '创建人',
-    update_by  VARCHAR(50) DEFAULT NULL COMMENT '更新人',
-    is_deleted TINYINT                              NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除'
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='用户表';
-
--- 创建学院表
-CREATE TABLE IF NOT EXISTS colleges
-(
-    id         BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    name       VARCHAR(50) NOT NULL COMMENT '学院名称',
-    code       VARCHAR(20) NOT NULL COMMENT '学院代码',
-    description TEXT COMMENT '学院描述',
-    status     TINYINT     NOT NULL DEFAULT 0 COMMENT '状态：0-正常，1-停办',
-    create_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    create_by  VARCHAR(50) DEFAULT NULL COMMENT '创建人',
-    update_by  VARCHAR(50) DEFAULT NULL COMMENT '更新人',
-    is_deleted TINYINT     NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除'
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='学院表';
-
--- 创建专业表（包含班级信息）
-CREATE TABLE IF NOT EXISTS majors
-(
-    code       VARCHAR(20) NOT NULL COMMENT '专业代码',
-    grade      VARCHAR(4)  NOT NULL COMMENT '年级',
-    class_no   VARCHAR(2)  NOT NULL COMMENT '班级号',
-    name       VARCHAR(50) NOT NULL COMMENT '专业名称',
-    college_id BIGINT      NOT NULL COMMENT '所属学院ID',
-    head_teacher_id BIGINT COMMENT '班主任ID',
-    status     TINYINT     NOT NULL DEFAULT 0 COMMENT '状态：0-正常，1-停招，2-撤销',
-    create_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    create_by  VARCHAR(50) DEFAULT NULL COMMENT '创建人',
-    update_by  VARCHAR(50) DEFAULT NULL COMMENT '更新人',
-    is_deleted TINYINT     NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
-    PRIMARY KEY (code, grade, class_no),
-    FOREIGN KEY (college_id) REFERENCES colleges(id)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='专业表';
-
--- 创建教师信息表
-CREATE TABLE IF NOT EXISTS teachers
-(
-    id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    user_id        BIGINT      NOT NULL COMMENT '用户ID',
-    teacher_number VARCHAR(20) NOT NULL UNIQUE COMMENT '教师工号',
-    title          VARCHAR(50) COMMENT '职称',
-    department     VARCHAR(50) COMMENT '所属院系',
-    hire_date      DATE COMMENT '入职日期',
-    status         TINYINT     NOT NULL DEFAULT 0 COMMENT '状态：0-在职，1-离职，2-退休',
-    create_time    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    create_by      VARCHAR(50) DEFAULT NULL COMMENT '创建人',
-    update_by      VARCHAR(50) DEFAULT NULL COMMENT '更新人',
-    is_deleted     TINYINT     NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
-    FOREIGN KEY (user_id) REFERENCES users (id)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='教师信息表';
-
--- 创建学生信息表
-CREATE TABLE IF NOT EXISTS students
-(
-    id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    user_id        BIGINT      NOT NULL COMMENT '用户ID',
-    student_no     VARCHAR(20) NOT NULL UNIQUE COMMENT '学号',
-    birth_date     DATE        NOT NULL COMMENT '出生日期',
-    admission_date DATE        NOT NULL COMMENT '入学日期',
-    address        VARCHAR(200) COMMENT '家庭住址',
-    major_code     VARCHAR(20) NOT NULL COMMENT '专业代码',
-    grade          VARCHAR(4)  NOT NULL COMMENT '年级',
-    class_no       VARCHAR(2)  NOT NULL COMMENT '班级号',
-    status         TINYINT     NOT NULL DEFAULT 0 COMMENT '状态：0-在读，1-休学，2-退学，3-毕业',
-    create_time    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    create_by      VARCHAR(50) DEFAULT NULL COMMENT '创建人',
-    update_by      VARCHAR(50) DEFAULT NULL COMMENT '更新人',
-    is_deleted     TINYINT     NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
-    FOREIGN KEY (user_id) REFERENCES users (id),
-    FOREIGN KEY (major_code, grade, class_no) REFERENCES majors (code, grade, class_no)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='学生信息表';
-
--- 创建课程表
-CREATE TABLE IF NOT EXISTS courses
-(
-    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    course_name VARCHAR(100) NOT NULL COMMENT '课程名称',
-    course_code VARCHAR(20)  NOT NULL UNIQUE COMMENT '课程代码',
-    teacher_id  BIGINT COMMENT '授课教师ID',
-    credits     DECIMAL(4,1) NOT NULL COMMENT '学分',
-    course_type VARCHAR(30)  NOT NULL DEFAULT '必修课' COMMENT '课程类型',
-    semester    VARCHAR(20)  NOT NULL DEFAULT '2026-2027-1' COMMENT '开课学期',
-    hours       INT          NOT NULL DEFAULT 48 COMMENT '学时',
-    status      TINYINT      NOT NULL DEFAULT 0 COMMENT '状态：0-未开课，1-已开课，2-已结课',
-    selection_open TINYINT NOT NULL DEFAULT 1 COMMENT '是否开放选课：0-关闭，1-开放',
-    max_students INT NOT NULL DEFAULT 60 COMMENT '最大选课人数',
-    selection_scope VARCHAR(16) NOT NULL DEFAULT 'ALL' COMMENT '选课范围：ALL全校、COLLEGE学院、MAJOR专业',
-    selection_college_id BIGINT NULL COMMENT '限定学院ID',
-    selection_major_code VARCHAR(20) NULL COMMENT '限定专业代码',
-    selection_grade VARCHAR(4) NULL COMMENT '限定入学年级，空表示不限',
-    description TEXT COMMENT '课程描述',
-    objectives  TEXT COMMENT '教学目标',
-    create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    create_by   VARCHAR(50)  DEFAULT NULL COMMENT '创建人',
-    update_by   VARCHAR(50)  DEFAULT NULL COMMENT '更新人',
-    is_deleted  TINYINT      NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
-    KEY idx_courses_selection_scope (selection_scope, selection_college_id, selection_major_code, selection_grade),
-    FOREIGN KEY (teacher_id) REFERENCES teachers (id),
-    FOREIGN KEY (selection_college_id) REFERENCES colleges (id)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='课程表';
-
--- 创建选课表
-CREATE TABLE IF NOT EXISTS course_selections
-(
-    id             BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    student_id     BIGINT   NOT NULL COMMENT '学生ID',
-    course_id      BIGINT   NOT NULL COMMENT '课程ID',
-    selection_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '选课时间',
-    status         ENUM ('pending', 'approved', 'rejected') DEFAULT 'pending' COMMENT '状态：待审核、已通过、已拒绝',
-    create_time    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    create_by      VARCHAR(50) DEFAULT NULL COMMENT '创建人',
-    update_by      VARCHAR(50) DEFAULT NULL COMMENT '更新人',
-    is_deleted     TINYINT  NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
-    KEY idx_course_selections_course_active (course_id, is_deleted, status),
-    KEY idx_course_selections_student_course_active (student_id, course_id, is_deleted, status),
-    FOREIGN KEY (student_id) REFERENCES students (id),
-    FOREIGN KEY (course_id) REFERENCES courses (id)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='选课表';
-
--- 创建成绩表
-CREATE TABLE IF NOT EXISTS scores
-(
-    id          BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    student_id  BIGINT        NOT NULL COMMENT '学生ID',
-    course_id   BIGINT        NOT NULL COMMENT '课程ID',
-    score       DECIMAL(5,2)  NOT NULL COMMENT '百分制成绩',
-    grade       VARCHAR(5)    NOT NULL COMMENT '等级',
-    grade_point DECIMAL(4,2)  NOT NULL COMMENT '绩点',
-    semester    VARCHAR(20)   NOT NULL COMMENT '学期',
-    exam_time   DATETIME      NOT NULL COMMENT '考试时间',
-    remarks     TEXT COMMENT '评语',
-    create_time DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    create_by   VARCHAR(50) DEFAULT NULL COMMENT '创建人',
-    update_by   VARCHAR(50) DEFAULT NULL COMMENT '更新人',
-    is_deleted  TINYINT       NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
-    UNIQUE KEY uk_score_student_course_semester (student_id, course_id, semester),
-    KEY idx_scores_exam_time (exam_time),
-    CONSTRAINT fk_scores_student FOREIGN KEY (student_id) REFERENCES students (id),
-    CONSTRAINT fk_scores_course FOREIGN KEY (course_id) REFERENCES courses (id)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='学生成绩表';
-
--- 创建考勤记录表
-CREATE TABLE IF NOT EXISTS attendance_records
-(
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    student_id      BIGINT      NOT NULL COMMENT '学生ID',
-    course_id       BIGINT      NOT NULL COMMENT '课程ID',
-    attendance_date DATE        NOT NULL COMMENT '考勤日期',
-    class_period    VARCHAR(30) NOT NULL DEFAULT '未指定' COMMENT '上课节次',
-    status          VARCHAR(20) NOT NULL COMMENT '正常、迟到、早退、缺勤、请假',
-    remark          VARCHAR(500) DEFAULT NULL COMMENT '备注',
-    create_time     DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time     DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    create_by       VARCHAR(50) DEFAULT NULL COMMENT '创建人',
-    update_by       VARCHAR(50) DEFAULT NULL COMMENT '更新人',
-    is_deleted      TINYINT     NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
-    KEY idx_attendance_student_date (student_id, attendance_date),
-    KEY idx_attendance_course_date (course_id, attendance_date),
-    KEY idx_attendance_date_status (attendance_date, status),
-    CONSTRAINT fk_attendance_student FOREIGN KEY (student_id) REFERENCES students (id),
-    CONSTRAINT fk_attendance_course FOREIGN KEY (course_id) REFERENCES courses (id)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='学生考勤记录表';
-
--- 插入测试数据
--- 1. 插入管理员用户
-INSERT INTO users (username, password, role, real_name, gender, phone, email, status, create_by, update_by) VALUES
-('admin', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA', 'ADMIN', '系统管理员', 1, '13800000000', 'admin@example.com', 0, 'system', 'system');
-
--- 2. 插入学院数据
+-- 插入学院演示数据
 INSERT INTO colleges (name, code, description, status, create_time, update_time, create_by, update_by) VALUES
 ('数学与计算机科学学院', 'CS', '数学与计算机科学学院描述', 0, NOW(), NOW(), 'system', 'system'),
 ('物理与电子信息学院', 'PH', '物理与电子信息学院描述', 0, NOW(), NOW(), 'system', 'system'),
@@ -251,7 +27,7 @@ INSERT INTO colleges (name, code, description, status, create_time, update_time,
 ('护理学院', 'NS', '护理学院描述', 0, NOW(), NOW(), 'system', 'system'),
 ('公共卫生学院', 'VM', '公共卫生学院描述', 0, NOW(), NOW(), 'system', 'system');
 
--- 3. 插入教师用户和信息（每个学院3个教师，共45个）
+-- 插入教师用户和信息（每个学院3个教师，共45个）
 INSERT INTO users (username, password, role, real_name, gender, phone, email, status, create_by, update_by) VALUES
 -- 数学与计算机科学学院教师
 ('T2024001', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA', 'teacher', '张教授', 1, '13811111001', 'teacher01@example.com', 0, 'system', 'system'),
@@ -267,6 +43,23 @@ INSERT INTO users (username, password, role, real_name, gender, phone, email, st
 ('T2024009', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA', 'teacher', '郑教授', 1, '13811111009', 'teacher09@example.com', 0, 'system', 'system'),
 ('T2024010', '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA', 'teacher', '王教授', 0, '13811111010', 'teacher10@example.com', 0, 'system', 'system');
 
+-- 补齐其余学院的教师账号，确保下面 45 个班主任编号都有对应教师记录。
+INSERT INTO users (username, password, role, real_name, gender, phone, email, status, create_by, update_by)
+SELECT CONCAT('T2024', LPAD(numbers.teacher_no, 3, '0')),
+       '{pbkdf2-sm3}310000$dB_rALR6a4f-5G1EPGF0Lg$y-Kl4LGA_kb6m2RqXrefOwwS6ECibtRJ2kGngmPISFA',
+       'teacher', CONCAT('教师', LPAD(numbers.teacher_no, 2, '0')),
+       MOD(numbers.teacher_no, 2),
+       CONCAT('138', LPAD(11111000 + numbers.teacher_no, 8, '0')),
+       CONCAT('teacher', LPAD(numbers.teacher_no, 2, '0'), '@example.com'),
+       0, 'system', 'system'
+FROM (
+    SELECT tens.digit * 10 + ones.digit AS teacher_no
+    FROM (SELECT 1 AS digit UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) tens
+    CROSS JOIN (SELECT 0 AS digit UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+                UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) ones
+    WHERE tens.digit * 10 + ones.digit BETWEEN 11 AND 45
+) numbers;
+
 -- 插入教师详细信息
 INSERT INTO teachers (user_id, teacher_number, title, department, hire_date, status, create_time, update_time, create_by, update_by)
 SELECT id,
@@ -280,7 +73,19 @@ SELECT id,
        CASE
            WHEN username BETWEEN 'T2024001' AND 'T2024003' THEN '数学与计算机科学学院'
            WHEN username BETWEEN 'T2024004' AND 'T2024006' THEN '物理与电子信息学院'
-           WHEN username BETWEEN 'T2024007' AND 'T2024010' THEN '化学与材料科学学院'
+           WHEN username BETWEEN 'T2024007' AND 'T2024009' THEN '化学与材料科学学院'
+           WHEN username BETWEEN 'T2024010' AND 'T2024012' THEN '生命科学学院'
+           WHEN username BETWEEN 'T2024013' AND 'T2024015' THEN '经济管理学院'
+           WHEN username BETWEEN 'T2024016' AND 'T2024018' THEN '外国语学院'
+           WHEN username BETWEEN 'T2024019' AND 'T2024021' THEN '文学院'
+           WHEN username BETWEEN 'T2024022' AND 'T2024024' THEN '法学院'
+           WHEN username BETWEEN 'T2024025' AND 'T2024027' THEN '教育学院'
+           WHEN username BETWEEN 'T2024028' AND 'T2024030' THEN '艺术学院'
+           WHEN username BETWEEN 'T2024031' AND 'T2024033' THEN '体育学院'
+           WHEN username BETWEEN 'T2024034' AND 'T2024036' THEN '医学院'
+           WHEN username BETWEEN 'T2024037' AND 'T2024039' THEN '药学院'
+           WHEN username BETWEEN 'T2024040' AND 'T2024042' THEN '护理学院'
+           WHEN username BETWEEN 'T2024043' AND 'T2024045' THEN '公共卫生学院'
            END,
        DATE_SUB(CURRENT_DATE, INTERVAL FLOOR(RAND() * 3650) DAY),
        0, -- 状态：0-在职
@@ -414,7 +219,7 @@ SELECT
 FROM users u
 WHERE u.role = 'student';
 
--- 5. 插入课程数据
+-- 插入课程数据
 INSERT INTO courses (course_name, course_code, teacher_id, credits, description, create_time, update_time, create_by, update_by)
 VALUES ('Java程序设计', 'CS101', 1, 4, 'Java语言基础与面向对象程序设计', NOW(), NOW(), 'system', 'system'),
        ('数据结构', 'CS102', 2, 4, '数据结构与算法基础', NOW(), NOW(), 'system', 'system'),
@@ -436,6 +241,34 @@ VALUES ('大学心理健康', 'GE201', 1, 2, '公共课', '2026-2027-1', 32, 1, 
         '面向数学与计算机科学学院2023级学生开放。', NOW(), NOW(), 'eligibility-demo', 'eligibility-demo'),
        ('机器学习实践', 'CS207', 4, 3, '选修课', '2026-2027-1', 48, 1, 1, 50, 'MAJOR', 1, 'CS', '2023',
         '面向计算机科学与技术专业2023级学生开放。', NOW(), NOW(), 'eligibility-demo', 'eligibility-demo');
+
+INSERT INTO course_catalog (course_code, course_name, credits, course_type, hours, description, objectives)
+SELECT course_code, MAX(course_name), MAX(credits), MAX(course_type), MAX(hours), MAX(description), MAX(objectives)
+FROM courses WHERE is_deleted = 0 GROUP BY course_code;
+
+UPDATE courses c JOIN course_catalog catalog ON catalog.course_code = c.course_code
+SET c.catalog_id = catalog.id WHERE c.catalog_id IS NULL;
+
+-- 课程排课演示时段：同一学期内不冲突，便于本地查看课表并验证冲突校验。
+INSERT INTO course_schedules (course_id, day_of_week, start_period, end_period, week_start, week_end, week_parity, classroom)
+SELECT c.id, seed.day_of_week, seed.start_period, seed.end_period, 1, 16, 'ALL', seed.classroom
+FROM (
+    SELECT 'CS101' AS course_code, 1 AS day_of_week, 1 AS start_period, 2 AS end_period, 'A101' AS classroom UNION ALL
+    SELECT 'CS102', 2, 3, 4, 'A102' UNION ALL
+    SELECT 'CS103', 3, 5, 6, 'A103' UNION ALL
+    SELECT 'CS104', 4, 1, 2, 'A104' UNION ALL
+    SELECT 'CS105', 5, 3, 4, 'A105' UNION ALL
+    SELECT 'GE201', 2, 5, 6, 'B201' UNION ALL
+    SELECT 'GE202', 4, 3, 4, 'B202' UNION ALL
+    SELECT 'CS206', 5, 1, 2, 'C206' UNION ALL
+    SELECT 'CS207', 3, 1, 2, 'C207'
+) seed
+JOIN courses c ON c.course_code = seed.course_code AND c.is_deleted = 0
+WHERE NOT EXISTS (
+    SELECT 1 FROM course_schedules existing
+    WHERE existing.course_id = c.id AND existing.day_of_week = seed.day_of_week
+      AND existing.start_period = seed.start_period AND existing.classroom = seed.classroom
+);
 
 -- 初始化少量成绩样例：前10名学生的3门示例课程，共最多30条；重复执行不会重复插入。
 INSERT IGNORE INTO scores (student_id, course_id, score, grade, grade_point, semester, exam_time, remarks, create_time, update_time, create_by, update_by)
@@ -504,7 +337,123 @@ WHERE NOT EXISTS (
       AND existing.is_deleted = 0
 );
 
--- 7. 插入少量、确定性的选课演示数据，避免初始化后超过默认选课容量
+-- 插入少量、确定性的选课演示数据，避免初始化后超过默认选课容量
+
+
+-- 新增业务模块演示数据
+-- 为每个有在校生的专业年级生成培养方案
+INSERT INTO curriculum_plans
+    (plan_name, major_code, grade, total_credits, required_credits, elective_credits, create_by, update_by)
+SELECT CONCAT(MIN(m.name), m.grade, '级培养方案'), m.code, m.grade, 160.0, 128.0, 32.0, 'seed-dev', 'seed-dev'
+FROM majors m
+JOIN students s ON s.major_code = m.code AND s.grade = m.grade AND s.class_no = m.class_no
+WHERE m.status = 0 AND m.is_deleted = 0 AND s.is_deleted = 0
+GROUP BY m.code, m.grade;
+
+-- 给已有正常考试成绩增加补考与待发布重修记录
+INSERT INTO scores
+    (student_id, course_id, score, grade, grade_point, semester, attempt_type, attempt_no,
+     publish_status, exam_time, remarks, create_by, update_by)
+SELECT student_id, course_id, 82.00, 'B', 3.00, semester, 'MAKEUP', 2, 'PUBLISHED',
+       DATE_ADD(exam_time, INTERVAL 7 DAY), '演示补考成绩', 'seed-dev', 'seed-dev'
+FROM scores WHERE id = 1;
+
+INSERT INTO scores
+    (student_id, course_id, score, grade, grade_point, semester, attempt_type, attempt_no,
+     publish_status, exam_time, remarks, create_by, update_by)
+SELECT student_id, course_id, 88.00, 'A', 4.00, semester, 'RETAKE', 3, 'DRAFT',
+       DATE_ADD(exam_time, INTERVAL 14 DAY), '演示重修成绩，待管理员发布', 'seed-dev', 'seed-dev'
+FROM scores WHERE id = 1;
+
+-- 成绩变更历史关联到实际成绩记录
+INSERT INTO score_change_logs
+    (score_id, action, old_score, new_score, old_attempt_type, new_attempt_type,
+     old_publish_status, new_publish_status, reason, operator_name, create_time)
+SELECT id, 'UPDATE', 68.00, score, attempt_type, attempt_type, publish_status, publish_status,
+       '演示：复核后更正成绩', 'admin', DATE_SUB(NOW(), INTERVAL 3 DAY)
+FROM scores WHERE id = 1;
+
+INSERT INTO score_change_logs
+    (score_id, action, old_score, new_score, old_attempt_type, new_attempt_type,
+     old_publish_status, new_publish_status, reason, operator_name, create_time)
+SELECT id, 'PUBLISH', score, score, attempt_type, attempt_type, 'DRAFT', 'PUBLISHED',
+       '演示：审核并发布成绩', 'admin', DATE_SUB(NOW(), INTERVAL 2 DAY)
+FROM scores WHERE id = 2;
+
+INSERT INTO score_change_logs
+    (score_id, action, old_score, new_score, old_attempt_type, new_attempt_type,
+     old_publish_status, new_publish_status, reason, operator_name, create_time)
+SELECT id, 'CREATE', NULL, score, NULL, attempt_type, NULL, publish_status,
+       '演示：录入正常考试成绩', 'admin', DATE_SUB(NOW(), INTERVAL 1 DAY)
+FROM scores WHERE id = 3;
+
+INSERT INTO score_change_logs
+    (score_id, action, old_score, new_score, old_attempt_type, new_attempt_type,
+     old_publish_status, new_publish_status, reason, operator_name, create_time)
+SELECT id, 'CREATE', NULL, score, NULL, attempt_type, NULL, publish_status,
+       '演示：录入补考成绩', 'admin', DATE_SUB(NOW(), INTERVAL 1 DAY)
+FROM scores WHERE attempt_type = 'MAKEUP' AND attempt_no = 2;
+
+INSERT INTO score_change_logs
+    (score_id, action, old_score, new_score, old_attempt_type, new_attempt_type,
+     old_publish_status, new_publish_status, reason, operator_name, create_time)
+SELECT id, 'CREATE', NULL, score, NULL, attempt_type, NULL, publish_status,
+       '演示：录入重修成绩，等待发布', 'admin', NOW()
+FROM scores WHERE attempt_type = 'RETAKE' AND attempt_no = 3;
+
+-- 学籍异动演示：待审核、已批准（未来生效）和已驳回
+INSERT INTO student_status_change_requests
+    (student_id, change_type, current_status, target_status, effective_date, reason, status, create_time, update_time)
+SELECT id, 'SUSPENSION', 0, 1, '2027-09-01', '演示：因个人原因申请休学', 'PENDING', NOW(), NOW()
+FROM students WHERE student_no = 'CS20230108';
+
+INSERT INTO student_status_change_requests
+    (student_id, change_type, current_status, target_status, target_major_code, target_class_no,
+     effective_date, reason, status, review_comment, reviewed_by, reviewed_at, create_time, update_time)
+SELECT id, 'MAJOR_TRANSFER', 0, 0, 'SE', '01', '2027-09-01', '演示：申请转入软件工程专业',
+       'APPROVED', '材料齐全，同意于生效日办理', 'admin', DATE_SUB(NOW(), INTERVAL 1 DAY),
+       DATE_SUB(NOW(), INTERVAL 3 DAY), NOW()
+FROM students WHERE student_no = 'CS20230112';
+
+INSERT INTO student_status_change_requests
+    (student_id, change_type, current_status, target_status, effective_date, reason, status,
+     review_comment, reviewed_by, reviewed_at, create_time, update_time)
+SELECT id, 'RETURN', 1, 0, '2027-09-01', '演示：申请复学', 'REJECTED',
+       '请补充校医院复核材料后重新提交', 'admin', DATE_SUB(NOW(), INTERVAL 2 DAY),
+       DATE_SUB(NOW(), INTERVAL 4 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)
+FROM students WHERE student_no = 'CS20230105';
+
+INSERT INTO student_status_change_requests
+    (student_id, change_type, current_status, target_status, effective_date, reason, status, create_time, update_time)
+SELECT id, 'WITHDRAWAL', 0, 2, '2027-09-01', '演示：提交退学申请，等待审核', 'PENDING', NOW(), NOW()
+FROM students WHERE student_no = 'CS20230116';
+
+-- 操作审计演示
+INSERT INTO operation_audits (actor, action, entity_type, entity_id, summary, create_time) VALUES
+('admin', 'SCORE_UPDATE', 'SCORE', '1', '演示：复核并更正学生成绩', DATE_SUB(NOW(), INTERVAL 3 DAY)),
+('admin', 'SCORE_PUBLISH', 'SCORE', '2', '演示：发布课程成绩', DATE_SUB(NOW(), INTERVAL 2 DAY)),
+('admin', 'COURSE_SELECTION_APPROVE', 'COURSE_SELECTION', '1', '演示：审核通过选课申请', DATE_SUB(NOW(), INTERVAL 2 DAY)),
+('admin', 'STUDENT_STATUS_REVIEW', 'STUDENT_STATUS_CHANGE', 'CS20230112', '演示：批准转专业申请', DATE_SUB(NOW(), INTERVAL 1 DAY)),
+('admin', 'STUDENT_STATUS_REVIEW', 'STUDENT_STATUS_CHANGE', 'CS20230105', '演示：驳回复学申请', DATE_SUB(NOW(), INTERVAL 1 DAY));
+
+-- 站内通知演示：管理员和学生均有通知，并包含已读、未读状态
+INSERT INTO system_notifications (user_id, notification_type, title, message, read_at, create_time)
+SELECT id, 'STUDENT_STATUS_PENDING', '有新的学籍异动申请', '学生 CS20230108 提交了休学申请，请及时审核。', NULL, DATE_SUB(NOW(), INTERVAL 2 HOUR)
+FROM users WHERE username = 'admin'
+UNION ALL
+SELECT id, 'STUDENT_STATUS_PENDING', '有新的学籍异动申请', '学生 CS20230116 提交了退学申请，请及时审核。', DATE_SUB(NOW(), INTERVAL 1 HOUR), DATE_SUB(NOW(), INTERVAL 1 DAY)
+FROM users WHERE username = 'admin';
+
+INSERT INTO system_notifications (user_id, notification_type, title, message, read_at, create_time)
+SELECT u.id, 'STATUS_CHANGE_REVIEWED', '学籍异动申请已通过', '你的转专业申请已通过，将于 2027-09-01 生效。', NULL, DATE_SUB(NOW(), INTERVAL 1 DAY)
+FROM users u JOIN students s ON s.user_id = u.id WHERE s.student_no = 'CS20230112'
+UNION ALL
+SELECT u.id, 'STATUS_CHANGE_REVIEWED', '学籍异动申请未通过', '你的复学申请未通过，请查看审核意见并补充材料。', DATE_SUB(NOW(), INTERVAL 1 HOUR), DATE_SUB(NOW(), INTERVAL 2 DAY)
+FROM users u JOIN students s ON s.user_id = u.id WHERE s.student_no = 'CS20230105'
+UNION ALL
+SELECT u.id, 'SCORE_PUBLISHED', '课程成绩已发布', '《数据库原理》成绩已发布，可在成绩查询中查看。', NULL, DATE_SUB(NOW(), INTERVAL 2 DAY)
+FROM users u JOIN students s ON s.user_id = u.id WHERE s.student_no = 'VM20230201';
+
 INSERT INTO course_selections (student_id, course_id, status, create_time, update_time, create_by, update_by)
 SELECT s.id,
        c.id,

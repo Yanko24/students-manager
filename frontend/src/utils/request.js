@@ -43,20 +43,25 @@ request.interceptors.response.use(
 		if (error.response) {
 			const isLoginRequest = /\/auth\/login(?:\?|$)/.test(error.config?.url || "");
 			const responseToken = error.config?._authToken;
+			const isUnauthorizedRequest = error.response.status === 401 && !isLoginRequest;
 			const isCurrentSession = responseToken &&
 				responseToken === localStorage.getItem("token") &&
 				error.config?._authSessionRevision === getAuthSessionRevision();
-			if (
-				error.response.status === 401 &&
-				!isLoginRequest &&
-				isCurrentSession
-			) {
+			let triggeredSessionExpiry = false;
+			if (isUnauthorizedRequest && isCurrentSession) {
+				triggeredSessionExpiry = true;
 				window.dispatchEvent(new Event("auth:expired"));
 			}
-			// Session-expiry handling clears the token synchronously. Mark any in-flight
-			// request made with that old token so pages can avoid a second error toast.
-			const isExpiredSessionRequest = Boolean(
-				responseToken && responseToken !== localStorage.getItem("token")
+			// Hide companion 401s after expiry. A late page request can also start after
+			// logout has already cleared localStorage, so a missing token is expired too.
+			const currentToken = localStorage.getItem("token");
+			const sessionChanged =
+				error.config?._authSessionRevision !== getAuthSessionRevision();
+			const isExpiredSessionRequest = isUnauthorizedRequest && (
+				triggeredSessionExpiry ||
+				sessionChanged ||
+				!currentToken ||
+				Boolean(responseToken && responseToken !== currentToken)
 			);
 			if (isExpiredSessionRequest) {
 				const responseData = error.response.data;

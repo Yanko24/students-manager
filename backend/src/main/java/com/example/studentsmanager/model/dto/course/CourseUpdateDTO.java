@@ -3,10 +3,12 @@ package com.example.studentsmanager.model.dto.course;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class CourseUpdateDTO {
     private String code;
+    private String sectionCode;
     private String name;
     private Long teacherId;
     private BigDecimal credit;
@@ -22,4 +24,5 @@ public class CourseUpdateDTO {
     private String selectionGrade;
     private String description;
     private String objectives;
+    private List<CourseScheduleDTO> schedules;
 }

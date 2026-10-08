@@ -12,6 +12,9 @@ public class ScoreUpdateDTO {
     private BigDecimal score;
     private String grade;
     private String semester;
+    private String attemptType;
+    private Integer attemptNo;
     private LocalDateTime examTime;
     private String comment;
+    private String changeReason;
 }

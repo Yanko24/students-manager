@@ -41,7 +41,7 @@
         <el-card class="table-card">
             <el-table ref="tableRef" :data="studentList" v-loading="loading" border stripe
                 :style="{ width: tableWidth + 'px' }">
-                <el-table-column prop="studentNo" label="学号" :width="columnWidth.studentNo" align="center" />
+                <el-table-column prop="studentNo" label="学号" :width="columnWidth.studentNo" align="center" fixed="left" />
                 <el-table-column prop="realName" label="姓名" :width="columnWidth.realName" align="center" />
                 <el-table-column prop="gender" label="性别" :width="columnWidth.gender" align="center">
                     <template #default="{ row }">
@@ -120,7 +120,7 @@ import { showApiError } from "@/utils/errorHandler";
     }
 
     // 使用表格宽度计算组合式函数
-    const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths)
+    const { tableRef, columnWidth, tableWidth } = useTableWidth(minColumnWidths, studentList)
 
     const filterForm = ref({
         studentNo: '',

@@ -8,6 +8,13 @@
                     </el-form-item>
                 </el-col>
                 <el-col :span="12">
+                    <el-form-item label="教学班号" prop="sectionCode">
+                        <el-input v-model="formData.sectionCode" maxlength="10" placeholder="例如：01" />
+                    </el-form-item>
+                </el-col>
+            </el-row>
+            <el-row :gutter="20">
+                <el-col :span="12">
                     <el-form-item label="课程名称" prop="name">
                         <el-input v-model="formData.name" placeholder="请输入课程名称" />
                     </el-form-item>
@@ -115,6 +122,30 @@
                 </el-col>
             </el-row>
 
+            <el-divider content-position="left">上课安排</el-divider>
+            <div v-for="(schedule, index) in formData.schedules" :key="index" class="schedule-row">
+                <el-select v-model="schedule.dayOfWeek" placeholder="星期" class="schedule-day">
+                    <el-option v-for="day in weekdays" :key="day.value" :label="day.label" :value="day.value" />
+                </el-select>
+                <span>第</span>
+                <el-input-number v-model="schedule.startPeriod" :min="1" :max="12" controls-position="right" />
+                <span>至</span>
+                <el-input-number v-model="schedule.endPeriod" :min="1" :max="12" controls-position="right" />
+                <span>节，周次</span>
+                <el-input-number v-model="schedule.weekStart" :min="1" :max="30" controls-position="right" />
+                <span>至</span>
+                <el-input-number v-model="schedule.weekEnd" :min="1" :max="30" controls-position="right" />
+                <el-select v-model="schedule.weekParity" placeholder="单双周" class="schedule-parity">
+                    <el-option label="每周" value="ALL" />
+                    <el-option label="单周" value="ODD" />
+                    <el-option label="双周" value="EVEN" />
+                </el-select>
+                <el-input v-model="schedule.classroom" placeholder="教室" class="schedule-room" />
+                <el-button type="danger" plain @click="removeSchedule(index)">移除</el-button>
+            </div>
+            <el-button class="add-schedule" plain type="primary" @click="addSchedule">添加上课时段</el-button>
+            <p class="schedule-hint">可添加多个每周时段；不填写时段的课程暂不参与时间冲突校验。</p>
+
             <el-form-item label="课程简介" prop="description">
                 <el-input v-model="formData.description" type="textarea" rows="3" placeholder="请输入课程简介" />
             </el-form-item>
@@ -161,6 +192,7 @@ import { showApiError } from "@/utils/errorHandler";
     // 表单数据
     const formData = reactive({
         code: '',
+        sectionCode: '01',
         name: '',
         type: '',
         semester: '',
@@ -175,14 +207,30 @@ import { showApiError } from "@/utils/errorHandler";
         selectionMajorCode: '',
         selectionGrade: '',
         description: '',
-        objectives: ''
+        objectives: '',
+        schedules: []
     })
+
+    const weekdays = [
+        { value: 1, label: '星期一' }, { value: 2, label: '星期二' }, { value: 3, label: '星期三' },
+        { value: 4, label: '星期四' }, { value: 5, label: '星期五' }, { value: 6, label: '星期六' },
+        { value: 7, label: '星期日' }
+    ]
+
+    const addSchedule = () => formData.schedules.push({
+        dayOfWeek: 1, startPeriod: 1, endPeriod: 2, weekStart: 1, weekEnd: 16, weekParity: 'ALL', classroom: ''
+    })
+    const removeSchedule = (index) => formData.schedules.splice(index, 1)
 
     // 表单验证规则
     const rules = {
         code: [
             { required: true, message: '请输入课程编号', trigger: 'blur' },
             { pattern: /^[A-Z]{2}\d{3}$/, message: '课程编号格式为：2个大写字母+3个数字', trigger: 'blur' }
+        ],
+        sectionCode: [
+            { required: true, message: '请输入教学班号', trigger: 'blur' },
+            { pattern: /^[A-Za-z0-9_-]{1,10}$/, message: '教学班号仅支持1到10位字母、数字、下划线或短横线', trigger: 'blur' }
         ],
         name: [
             { required: true, message: '请输入课程名称', trigger: 'blur' },
@@ -284,4 +332,11 @@ import { showApiError } from "@/utils/errorHandler";
     }
 
     .scope-hint { display: flex; align-items: center; color: #909399; font-size: 13px; }
+    .schedule-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 12px 100px; }
+    .schedule-row :deep(.el-input-number) { width: 105px; }
+    .schedule-day { width: 110px; }
+    .schedule-parity { width: 100px; }
+    .schedule-room { width: 180px; }
+    .add-schedule { margin-left: 100px; }
+    .schedule-hint { margin: 10px 0 24px 100px; color: #909399; font-size: 13px; }
 </style>

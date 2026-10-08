@@ -12,7 +12,7 @@ import java.util.List;
 @Mapper
 public interface ScoreMapper extends BaseMapper<Score> {
 
-    @Select("SELECT semester FROM scores WHERE is_deleted = 0 ORDER BY semester DESC LIMIT 1")
+    @Select("SELECT semester FROM scores WHERE is_deleted = 0 AND publish_status = 'PUBLISHED' ORDER BY semester DESC LIMIT 1")
     String selectLatestSemester();
 
     @Select({
@@ -24,7 +24,7 @@ public interface ScoreMapper extends BaseMapper<Score> {
             "WHEN score &gt;= 60 THEN '及格（60-69分）'",
             "ELSE '不及格（60分以下）' END AS name, COUNT(*) AS value",
             "FROM scores",
-            "WHERE is_deleted = 0 AND",
+            "WHERE is_deleted = 0 AND publish_status = 'PUBLISHED' AND",
             "<choose>",
             "<when test='academicYear'>semester LIKE CONCAT(#{semesterPattern}, '%')</when>",
             "<otherwise>semester = #{semesterPattern}</otherwise>",

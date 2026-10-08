@@ -20,6 +20,12 @@ public class Score {
     @TableField("grade_point")
     private BigDecimal gradePoint;
     private String semester;
+    @TableField("attempt_type")
+    private String attemptType;
+    @TableField("attempt_no")
+    private Integer attemptNo;
+    @TableField("publish_status")
+    private String publishStatus;
     @TableField("exam_time")
     private LocalDateTime examTime;
     @TableField("remarks")

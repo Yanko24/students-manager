@@ -12,7 +12,6 @@ import com.example.studentsmanager.model.vo.teacher.TeacherListVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.studentsmanager.service.TeacherService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
@@ -25,12 +24,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TeacherController {
 
-    @Autowired
-    private TeacherService teacherService;
+    private final TeacherService teacherService;
 
     @GetMapping
     @Operation(summary = "获取所有教师", description = "返回系统中所有教师的信息列表")
-public Result<Page<TeacherListVO>> getAllTeachers(TeacherQueryDTO queryDTO) {
+    public Result<Page<TeacherListVO>> getAllTeachers(TeacherQueryDTO queryDTO) {
         log.info("分页查询教师列表，查询条件：{}", queryDTO);
         try {
             Page<TeacherListVO> teachers = teacherService.getTeacherPage(queryDTO);
@@ -44,14 +42,10 @@ public Result<Page<TeacherListVO>> getAllTeachers(TeacherQueryDTO queryDTO) {
 
     @GetMapping("/{id}")
     @Operation(summary = "获取教师详情", description = "根据ID获取指定教师的详细信息")
-    public Result<Teacher> getTeacherById(@PathVariable Long id) {
+    public Result<TeacherListVO> getTeacherById(@PathVariable Long id) {
         log.info("获取教师详情，ID: {}", id);
         try {
-            Teacher teacher = teacherService.getById(id);
-            if (teacher == null) {
-                log.warn("教师不存在，ID: {}", id);
-                return Result.error(ResultCode.NOT_FOUND, ResultMessage.RECORD_NOT_FOUND);
-            }
+            TeacherListVO teacher = teacherService.getTeacherDetail(id);
             log.info("成功获取教师详情，ID: {}", id);
             return Result.success(teacher);
         } catch (Exception e) {
@@ -76,7 +70,7 @@ public Result<Page<TeacherListVO>> getAllTeachers(TeacherQueryDTO queryDTO) {
 
     @PutMapping("/{id}")
     @Operation(summary = "更新教师", description = "更新指定教师的信息")
-public Result<Boolean> updateTeacher(@PathVariable Long id, @RequestBody Teacher teacher) {
+    public Result<Boolean> updateTeacher(@PathVariable Long id, @RequestBody Teacher teacher) {
         log.info("更新教师，ID: {}", id);
         try {
             teacher.setId(id);

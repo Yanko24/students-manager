@@ -4,11 +4,14 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class CourseVO {
     private Long id;
+    private Long catalogId;
     private String code;
+    private String sectionCode;
     private String name;
     private Long teacherId;
     private String teacher;
@@ -32,6 +35,8 @@ public class CourseVO {
     private String objectives;
     private String selectionStatus;
     private LocalDateTime selectionDate;
+    private Long waitlistPosition;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+    private List<CourseScheduleVO> schedules;
 }
