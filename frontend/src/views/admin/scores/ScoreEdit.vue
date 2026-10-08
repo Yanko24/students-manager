@@ -5,13 +5,14 @@
             <div class="header-actions"><el-button @click="handleCancel">返回列表</el-button></div>
         </div>
         <el-card class="form-card record-card">
-            <score-form :id="id" :is-edit="true" @submit="handleSubmit" @cancel="handleCancel" />
+            <score-form ref="scoreFormRef" :id="id" :is-edit="true" @submit="handleSubmit" @cancel="handleCancel" />
         </el-card>
     </div>
 </template>
 
 <script setup>
 import { showApiError } from "@/utils/errorHandler";
+import { ref } from 'vue'
     import { useRoute, useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { updateScore } from '@/api/score'
@@ -20,11 +21,13 @@ import { showApiError } from "@/utils/errorHandler";
     const route = useRoute()
     const router = useRouter()
     const id = route.params.id
+    const scoreFormRef = ref(null)
 
     const handleSubmit = async (formData) => {
         try {
             await updateScore(id, formData)
             ElMessage.success('更新成功')
+            scoreFormRef.value?.markClean()
             router.push('/admin/scores')
         } catch (error) {
             console.error('更新失败：', error)

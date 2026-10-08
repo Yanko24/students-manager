@@ -50,6 +50,7 @@ import { showApiError } from "@/utils/errorHandler";
     import { ElMessage } from 'element-plus'
     import { getAttendanceById, updateAttendance } from '@/api/attendance'
     import { getCourseList } from '@/api/course'
+    import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
     const router = useRouter()
     const route = useRoute()
@@ -64,6 +65,9 @@ import { showApiError } from "@/utils/errorHandler";
         status: '',
         remark: ''
     })
+    const initialSnapshot = ref('')
+    const initialized = ref(false)
+    const { markClean } = useUnsavedChanges(() => initialized.value && JSON.stringify(form.value) !== initialSnapshot.value)
 
     const rules = {
         date: [
@@ -79,6 +83,8 @@ import { showApiError } from "@/utils/errorHandler";
             const response = await getAttendanceById(route.params.id)
             if (response?.code === 200 && response.data) {
                 Object.assign(form.value, response.data)
+                initialSnapshot.value = JSON.stringify(form.value)
+                initialized.value = true
             }
         } catch (error) {
             console.error('获取考勤详情失败：', error)
@@ -103,6 +109,7 @@ import { showApiError } from "@/utils/errorHandler";
             await formRef.value.validate()
             await updateAttendance(route.params.id, form.value)
             ElMessage.success('保存成功')
+            markClean()
             router.push('/admin/attendance')
         } catch (error) {
             console.error('保存失败：', error)

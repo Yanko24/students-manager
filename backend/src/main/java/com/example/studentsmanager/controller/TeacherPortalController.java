@@ -62,6 +62,12 @@ public class TeacherPortalController {
         return Result.success(scoreService.createTeacherCourseScore(principal.getName(), courseId, request, principal.getName()));
     }
 
+    @PostMapping("/courses/{courseId}/scores/batch")
+    public Result<List<ScoreVO>> submitCourseScores(@PathVariable Long courseId,
+            @RequestBody List<ScoreUpdateDTO> requests, Principal principal) {
+        return Result.success(scoreService.createTeacherCourseScores(principal.getName(), courseId, requests, principal.getName()));
+    }
+
     @PutMapping("/courses/{courseId}/scores/{scoreId}")
     public Result<ScoreVO> updateCourseScore(@PathVariable Long courseId, @PathVariable Long scoreId,
             @RequestBody ScoreUpdateDTO request, Principal principal) {

@@ -28,6 +28,7 @@ import { showApiError } from "@/utils/errorHandler";
     import { ref, defineProps, defineEmits, onMounted } from 'vue'
     import { ElMessage } from 'element-plus'
     import { getMajorById, updateMajor, createMajor } from '@/api/major'
+    import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
     const props = defineProps({
         id: {
@@ -49,6 +50,11 @@ import { showApiError } from "@/utils/errorHandler";
         displayName: '',
         status: 0
     })
+    const initialSnapshot = ref('')
+    const initialized = ref(false)
+    const { markClean } = useUnsavedChanges(() => initialized.value && JSON.stringify(formData.value) !== initialSnapshot.value)
+    const setInitialSnapshot = () => { initialSnapshot.value = JSON.stringify(formData.value); initialized.value = true }
+    defineExpose({ markClean })
 
     const rules = {
         majorName: [
@@ -71,6 +77,7 @@ import { showApiError } from "@/utils/errorHandler";
         try {
             const response = await getMajorById(props.id)
             Object.assign(formData.value, response.data)
+            setInitialSnapshot()
         } catch (error) {
             console.error('获取专业信息失败:', error)
             showApiError(error, '获取专业信息失败')
@@ -87,6 +94,8 @@ import { showApiError } from "@/utils/errorHandler";
                     } else {
                         await createMajor(formData.value);
                     }
+                    setInitialSnapshot()
+                    markClean()
                     emit('success');
                 } catch (error) {
                     console.error('提交专业表单失败：', error);
@@ -103,8 +112,10 @@ import { showApiError } from "@/utils/errorHandler";
     onMounted(() => {
         if (props.initialData && Object.keys(props.initialData).length > 0) {
             Object.assign(formData.value, props.initialData)
+            setInitialSnapshot()
         } else {
-            fetchMajorInfo()
+            if (props.id) fetchMajorInfo()
+            else setInitialSnapshot()
         }
     })
 </script>

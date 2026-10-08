@@ -36,6 +36,7 @@ import { showApiError } from "@/utils/errorHandler";
             const response = await createStudent(formData)
             if (response && response.code === 200) {
                 ElMessage.success('创建成功')
+                studentFormRef.value?.markClean()
                 router.push('/admin/students')
             } else {
                 ElMessage.error(response.msg || '创建失败')

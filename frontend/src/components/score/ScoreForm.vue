@@ -55,6 +55,7 @@ import { showApiError } from "@/utils/errorHandler";
     import { getStudentList } from '@/api/student'
     import { getCourseList } from '@/api/course'
     import { getScoreById } from '@/api/score'
+    import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
     const props = defineProps({ id: { type: String, default: '' }, isEdit: { type: Boolean, default: false } })
     const emit = defineEmits(['submit', 'cancel'])
@@ -64,6 +65,11 @@ import { showApiError } from "@/utils/errorHandler";
     const studentLoading = ref(false)
     const courseLoading = ref(false)
     const formData = reactive({ studentId: null, courseId: null, score: 0, grade: '', semester: '', attemptType: 'REGULAR', attemptNo: 1, changeReason: '', examTime: '', comment: '' })
+    const initialSnapshot = ref('')
+    const initialized = ref(false)
+    const { markClean } = useUnsavedChanges(() => initialized.value && JSON.stringify(formData) !== initialSnapshot.value)
+    const setInitialSnapshot = () => { initialSnapshot.value = JSON.stringify(formData); initialized.value = true }
+    defineExpose({ markClean })
     const rules = {
         studentId: [{ required: true, message: '请选择学生', trigger: 'change' }],
         courseId: [{ required: true, message: '请选择课程', trigger: 'change' }],
@@ -125,6 +131,7 @@ import { showApiError } from "@/utils/errorHandler";
             } else {
                 await Promise.all([searchStudents(''), searchCourses('')])
             }
+            setInitialSnapshot()
         } catch (error) {
             showApiError(error, error.message || '加载成绩信息失败')
         }

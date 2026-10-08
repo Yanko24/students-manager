@@ -49,6 +49,7 @@ import { showApiError } from "@/utils/errorHandler";
     import { ElMessage } from 'element-plus'
     import { createAttendance } from '@/api/attendance'
     import { getCourseList } from '@/api/course'
+    import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
     const router = useRouter()
     const formRef = ref(null)
@@ -62,6 +63,8 @@ import { showApiError } from "@/utils/errorHandler";
         status: '',
         remark: ''
     })
+    const initialSnapshot = JSON.stringify(form.value)
+    const { markClean } = useUnsavedChanges(() => JSON.stringify(form.value) !== initialSnapshot)
 
     const rules = {
         studentNo: [
@@ -95,6 +98,7 @@ import { showApiError } from "@/utils/errorHandler";
             await formRef.value.validate()
             await createAttendance({ ...form.value, studentNo: form.value.studentNo.trim() })
             ElMessage.success('添加成功')
+            markClean()
             router.push('/admin/attendance')
         } catch (error) {
             console.error('添加失败：', error)

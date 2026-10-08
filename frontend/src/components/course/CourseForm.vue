@@ -170,6 +170,7 @@ import { showApiError } from "@/utils/errorHandler";
     import { getCourseById } from '@/api/course'
     import { getCollegeList } from '@/api/college'
     import { getAllMajorsList } from '@/api/major'
+    import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
     const props = defineProps({
         id: {
@@ -210,6 +211,11 @@ import { showApiError } from "@/utils/errorHandler";
         objectives: '',
         schedules: []
     })
+    const initialSnapshot = ref('')
+    const initialized = ref(false)
+    const { markClean } = useUnsavedChanges(() => initialized.value && JSON.stringify(formData) !== initialSnapshot.value)
+    const setInitialSnapshot = () => { initialSnapshot.value = JSON.stringify(formData); initialized.value = true }
+    defineExpose({ markClean })
 
     const weekdays = [
         { value: 1, label: '星期一' }, { value: 2, label: '星期二' }, { value: 3, label: '星期三' },
@@ -320,6 +326,7 @@ import { showApiError } from "@/utils/errorHandler";
                 majors.value = [...uniqueMajors.values()]
             }
             if (props.isEdit) await loadCourseData(props.id)
+            setInitialSnapshot()
         } catch (error) {
             showApiError(error, error.message || '加载课程信息失败')
         }

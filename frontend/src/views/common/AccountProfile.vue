@@ -34,7 +34,7 @@
       </div>
     </el-card>
 
-    <el-dialog v-model="passwordDialogVisible" title="修改登录密码" width="min(480px, calc(100vw - 32px))" @closed="resetPasswordForm">
+    <el-dialog v-model="passwordDialogVisible" title="修改登录密码" width="min(480px, calc(100vw - 32px))" :close-on-click-modal="false" :before-close="confirmPasswordDialogClose" @closed="resetPasswordForm">
       <el-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-position="top" @submit.prevent="submitPassword">
         <el-form-item label="当前密码" prop="currentPassword">
           <el-input v-model="passwordForm.currentPassword" type="password" show-password autocomplete="current-password" @keyup.enter="focusNewPassword" />
@@ -47,7 +47,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="passwordDialogVisible = false">取消</el-button>
+        <el-button @click="requestPasswordDialogClose">取消</el-button>
         <el-button type="primary" :loading="savingPassword" @click="submitPassword">确认修改</el-button>
       </template>
     </el-dialog>
@@ -57,11 +57,12 @@
 <script setup>
 import { showApiError } from "@/utils/errorHandler";
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { changePassword, getCurrentUser } from '@/api/auth'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
 import defaultAvatar from '@/assets/images/default-avatar.png'
+import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
 const userStore = useUserStore()
 const loading = ref(false)
@@ -116,6 +117,8 @@ const passwordFormRef = ref()
 const newPasswordInput = ref()
 const confirmPasswordInput = ref()
 const passwordForm = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' })
+const passwordFormDirty = computed(() => passwordDialogVisible.value && Object.values(passwordForm).some(value => value !== ''))
+useUnsavedChanges(passwordFormDirty)
 const passwordRules = {
   currentPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
   newPassword: [
@@ -153,6 +156,15 @@ const resetPasswordForm = () => {
   passwordForm.confirmPassword = ''
   passwordFormRef.value?.clearValidate()
 }
+const confirmPasswordDialogClose = async done => {
+  if (passwordFormDirty.value) {
+    try {
+      await ElMessageBox.confirm('密码表单尚未提交，确定放弃本次输入吗？', '尚未保存', { type: 'warning', confirmButtonText: '放弃输入', cancelButtonText: '继续修改' })
+    } catch { return }
+  }
+  done()
+}
+const requestPasswordDialogClose = () => confirmPasswordDialogClose(() => { passwordDialogVisible.value = false })
 const submitPassword = async () => {
   if (savingPassword.value) return
   try {

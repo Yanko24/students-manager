@@ -110,6 +110,7 @@ import { showApiError } from "@/utils/errorHandler";
     import { ElMessage } from 'element-plus'
     import { getAllMajorsList } from '@/api/major'
     import { getStudentCount } from '@/api/student'
+    import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
     const props = defineProps({
         initialData: {
@@ -142,6 +143,11 @@ import { showApiError } from "@/utils/errorHandler";
         address: '',
         remark: ''
     })
+    const initialSnapshot = ref('')
+    const initialized = ref(false)
+    const { markClean } = useUnsavedChanges(() => initialized.value && JSON.stringify(formData) !== initialSnapshot.value)
+    const setInitialSnapshot = () => { initialSnapshot.value = JSON.stringify(formData); initialized.value = true }
+    defineExpose({ markClean })
 
     const rules = {
         studentNo: [
@@ -264,6 +270,7 @@ import { showApiError } from "@/utils/errorHandler";
                 gender: parseInt(props.initialData.gender)
             }
             Object.assign(formData, initialData)
+            setInitialSnapshot()
 
             // 如果有初始数据，设置专业信息
             if (props.initialData.displayName) {
@@ -282,7 +289,7 @@ import { showApiError } from "@/utils/errorHandler";
                     }
                 }, 100)
             }
-        }
+        } else setInitialSnapshot()
     })
 
     // 监听 initialData 变化
@@ -299,6 +306,7 @@ import { showApiError } from "@/utils/errorHandler";
                 gender: parseInt(newVal.gender)
             }
             Object.assign(formData, initialData)
+            setInitialSnapshot()
         }
     }, { deep: true })
 

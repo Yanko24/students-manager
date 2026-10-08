@@ -20,6 +20,10 @@ export function submitMyCourseScore(courseId, data) {
 	return request({ url: `/teacher-portal/courses/${courseId}/scores`, method: "post", data });
 }
 
+export function submitMyCourseScores(courseId, data) {
+	return request({ url: `/teacher-portal/courses/${courseId}/scores/batch`, method: "post", data });
+}
+
 export function updateMyCourseScore(courseId, scoreId, data) {
 	return request({ url: `/teacher-portal/courses/${courseId}/scores/${scoreId}`, method: "put", data });
 }

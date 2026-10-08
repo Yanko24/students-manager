@@ -31,6 +31,7 @@ import { showApiError } from "@/utils/errorHandler";
     import { useRouter, useRoute } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { getCollegeById, updateCollege } from '@/api/college'
+    import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
     const router = useRouter()
     const route = useRoute()
@@ -41,6 +42,9 @@ import { showApiError } from "@/utils/errorHandler";
         name: '',
         description: ''
     })
+    const initialSnapshot = ref('')
+    const initialized = ref(false)
+    const { markClean } = useUnsavedChanges(() => initialized.value && JSON.stringify(form.value) !== initialSnapshot.value)
 
     const rules = {
         name: [
@@ -53,6 +57,8 @@ import { showApiError } from "@/utils/errorHandler";
             const response = await getCollegeById(route.params.id)
             if (response && response.data) {
                 Object.assign(form.value, response.data)
+                initialSnapshot.value = JSON.stringify(form.value)
+                initialized.value = true
             }
         } catch (error) {
             console.error('获取学院详情失败：', error)
@@ -65,6 +71,7 @@ import { showApiError } from "@/utils/errorHandler";
             await formRef.value.validate()
             await updateCollege(route.params.id, form.value)
             ElMessage.success('保存成功')
+            markClean()
             router.push('/admin/colleges')
         } catch (error) {
             console.error('保存失败：', error)

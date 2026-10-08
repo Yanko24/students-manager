@@ -82,6 +82,7 @@
     import { ElMessage } from 'element-plus'
     import { getTeacherById } from '@/api/teacher'
     import { showApiError } from '@/utils/errorHandler'
+    import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
     const props = defineProps({
         id: {
@@ -111,6 +112,11 @@
         email: '',
         entryDate: '',
     })
+    const initialSnapshot = ref('')
+    const initialized = ref(false)
+    const { markClean } = useUnsavedChanges(() => initialized.value && JSON.stringify(formData) !== initialSnapshot.value)
+    const setInitialSnapshot = () => { initialSnapshot.value = JSON.stringify(formData); initialized.value = true }
+    defineExpose({ markClean })
 
     const rules = {
         name: [
@@ -195,6 +201,7 @@
                 email: teacher.email || '',
                 entryDate: teacher.hireDate || ''
             })
+            setInitialSnapshot()
         } catch (error) {
             showApiError(error, '获取教师信息失败')
         } finally {
@@ -205,7 +212,7 @@
     onMounted(() => {
         if (props.isEdit) {
             loadTeacherData(props.id)
-        }
+        } else setInitialSnapshot()
     })
 </script>
 

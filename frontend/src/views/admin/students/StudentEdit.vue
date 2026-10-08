@@ -70,6 +70,7 @@ import { showApiError } from "@/utils/errorHandler";
             const response = await updateStudent(route.params.id, formData)
             if (response && response.code === 200) {
                 ElMessage.success('更新成功')
+                studentFormRef.value?.markClean()
                 router.push('/admin/students')
             } else {
                 ElMessage.error(response.msg || '更新失败')

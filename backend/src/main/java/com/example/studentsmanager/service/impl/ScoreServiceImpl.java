@@ -24,6 +24,8 @@ import java.util.Collections;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -130,6 +132,54 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public List<ScoreVO> createTeacherCourseScores(String username, Long courseId, List<ScoreUpdateDTO> dtos, String actor) {
+        Course course = requireTeacherCourse(username, courseId);
+        if (dtos == null || dtos.isEmpty() || dtos.size() > 200) {
+            throw new BusinessException("每次请选择1到200名学生批量录入");
+        }
+        Set<String> attempts = new HashSet<>();
+        Set<Long> studentIds = new HashSet<>();
+        Set<Integer> attemptNumbers = new HashSet<>();
+        for (ScoreUpdateDTO dto : dtos) {
+            validateTeacherScoreInput(course, dto);
+            if (courseSelectionMapper.countApprovedSelection(courseId, dto.getStudentId()) == 0) {
+                throw new BusinessException("学号对应学生未确认选修该课程，请检查名单后重试");
+            }
+            String attemptKey = dto.getStudentId() + ":" + (dto.getAttemptNo() == null ? 1 : dto.getAttemptNo());
+            if (!attempts.add(attemptKey)) {
+                throw new BusinessException("批量数据中存在同一学生重复的考试次数");
+            }
+            studentIds.add(dto.getStudentId());
+            attemptNumbers.add(dto.getAttemptNo() == null ? 1 : dto.getAttemptNo());
+        }
+        List<Score> existingScores = list(new LambdaQueryWrapper<Score>()
+                .select(Score::getStudentId, Score::getAttemptNo)
+                .eq(Score::getCourseId, courseId)
+                .eq(Score::getSemester, course.getSemester())
+                .in(Score::getStudentId, studentIds)
+                .in(Score::getAttemptNo, attemptNumbers));
+        Set<String> existingAttempts = existingScores.stream()
+                .map(score -> score.getStudentId() + ":" + score.getAttemptNo())
+                .collect(Collectors.toSet());
+        if (!Collections.disjoint(attempts, existingAttempts)) {
+            Set<Long> conflicts = existingAttempts.stream().filter(attempts::contains)
+                    .map(key -> Long.valueOf(key.substring(0, key.indexOf(':')))).collect(Collectors.toSet());
+            Map<Long, String> studentNos = studentService.listByIds(conflicts).stream()
+                    .collect(Collectors.toMap(Student::getId, Student::getStudentNo));
+            String conflictNos = conflicts.stream().map(id -> studentNos.getOrDefault(id, String.valueOf(id)))
+                    .collect(Collectors.joining("、"));
+            throw new BusinessException("以下学生已存在相同考试次数的成绩，请调整考试次数或移除：" + conflictNos);
+        }
+        List<ScoreVO> createdScores = new ArrayList<>(dtos.size());
+        for (ScoreUpdateDTO dto : dtos) createdScores.add(createScore(dto, actor));
+        notificationService.notifyAdmins("SCORE_SUBMITTED", "收到教师成绩批量提交",
+                actor + " 已提交课程“" + course.getCourseName() + "”（" + course.getSemester()
+                        + "）的 " + createdScores.size() + " 条成绩，待管理员发布。");
+        return createdScores;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public ScoreVO updateTeacherCourseScore(String username, Long courseId, Long scoreId, ScoreUpdateDTO dto, String actor) {
         Course course = requireTeacherCourse(username, courseId);
         validateTeacherScoreInput(course, dto);
@@ -193,6 +243,7 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
             throw new BusinessException("成绩学期必须与课程开课学期一致");
         }
         if (dto.getExamTime() == null) throw new BusinessException("请选择考试时间");
+        validateReferences(dto);
         if (dto.getChangeReason() == null || dto.getChangeReason().isBlank()) {
             dto.setChangeReason("教师提交成绩，待管理员发布");
         }

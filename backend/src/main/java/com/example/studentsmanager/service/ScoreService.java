@@ -22,6 +22,7 @@ public interface ScoreService extends IService<Score> {
     List<ScoreChangeLogVO> getScoreChangeLogs(Long id);
     Page<ScoreVO> getTeacherCourseScorePage(String username, Long courseId, ScoreQueryDTO queryDTO);
     ScoreVO createTeacherCourseScore(String username, Long courseId, ScoreUpdateDTO dto, String actor);
+    List<ScoreVO> createTeacherCourseScores(String username, Long courseId, List<ScoreUpdateDTO> dtos, String actor);
     ScoreVO updateTeacherCourseScore(String username, Long courseId, Long scoreId, ScoreUpdateDTO dto, String actor);
     List<ScoreChangeLogVO> getTeacherCourseScoreHistory(String username, Long courseId, Long scoreId);
 }

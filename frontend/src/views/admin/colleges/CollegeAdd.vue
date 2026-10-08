@@ -30,6 +30,7 @@ import { showApiError } from "@/utils/errorHandler";
     import { useRouter } from 'vue-router'
     import { ElMessage } from 'element-plus'
     import { createCollege } from '@/api/college'
+    import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
     const router = useRouter()
     const formRef = ref(null)
@@ -39,6 +40,8 @@ import { showApiError } from "@/utils/errorHandler";
         name: '',
         description: ''
     })
+    const initialSnapshot = JSON.stringify(form.value)
+    const { markClean } = useUnsavedChanges(() => JSON.stringify(form.value) !== initialSnapshot)
 
     const rules = {
         code: [
@@ -54,6 +57,7 @@ import { showApiError } from "@/utils/errorHandler";
             await formRef.value.validate()
             await createCollege(form.value)
             ElMessage.success('添加成功')
+            markClean()
             router.push('/admin/colleges')
         } catch (error) {
             console.error('添加失败：', error)
