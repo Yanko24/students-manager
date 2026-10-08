@@ -270,6 +270,12 @@ const router = createRouter({
 					meta: { title: "我的课程", requiresAuth: true, role: "teacher" },
 				},
 				{
+					path: "courses/:courseId/teaching",
+					name: "TeacherCourseTeaching",
+					component: () => import("@/views/teacher/courses/TeacherCourseDetail.vue"),
+					meta: { title: "课程教学", requiresAuth: true, role: "teacher" },
+				},
+				{
 					path: "dashboard",
 					name: "TeacherDashboard",
 					component: TeacherDashboard,

@@ -9,11 +9,12 @@ import com.example.studentsmanager.model.vo.course.CourseVO;
 import com.example.studentsmanager.model.vo.course.CourseSelectionStudentVO;
 
 import java.util.List;
-import com.example.studentsmanager.model.vo.course.CourseSelectionStudentVO;
 
 public interface CourseService extends IService<Course> {
     Page<CourseVO> getCoursePage(CourseQueryDTO queryDTO);
     Page<CourseVO> getTeacherCoursePage(String username, CourseQueryDTO queryDTO);
+    CourseVO getTeacherCourse(String username, Long courseId);
+    Page<CourseSelectionStudentVO> getTeacherSelectedStudents(String username, Long courseId, long page, long size, String keyword);
     CourseVO getCourse(Long id);
     Page<CourseSelectionStudentVO> getSelectedStudents(Long courseId, long page, long size);
     Page<CourseSelectionStudentVO> getCourseSelections(Long courseId, long page, long size, String status);

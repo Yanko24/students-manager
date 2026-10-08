@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.example.studentsmanager.exception.BusinessException;
 import com.example.studentsmanager.mapper.ScoreMapper;
 import com.example.studentsmanager.mapper.ScoreChangeLogMapper;
+import com.example.studentsmanager.mapper.CourseSelectionMapper;
 import com.example.studentsmanager.model.dto.score.ScoreQueryDTO;
 import com.example.studentsmanager.model.dto.score.ScoreUpdateDTO;
 import com.example.studentsmanager.model.entity.*;
@@ -31,17 +32,23 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
     private final StudentService studentService;
     private final CourseService courseService;
     private final UserService userService;
+    private final TeacherService teacherService;
     private final ScoreChangeLogMapper scoreChangeLogMapper;
+    private final CourseSelectionMapper courseSelectionMapper;
     private final OperationAuditService operationAuditService;
     private final SystemNotificationService notificationService;
 
     public ScoreServiceImpl(StudentService studentService, CourseService courseService, UserService userService,
-                            ScoreChangeLogMapper scoreChangeLogMapper, OperationAuditService operationAuditService,
+                            TeacherService teacherService,
+                            ScoreChangeLogMapper scoreChangeLogMapper, CourseSelectionMapper courseSelectionMapper,
+                            OperationAuditService operationAuditService,
                             SystemNotificationService notificationService) {
         this.studentService = studentService;
         this.courseService = courseService;
         this.userService = userService;
+        this.teacherService = teacherService;
         this.scoreChangeLogMapper = scoreChangeLogMapper;
+        this.courseSelectionMapper = courseSelectionMapper;
         this.operationAuditService = operationAuditService;
         this.notificationService = notificationService;
     }
@@ -76,6 +83,131 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
             wrapper.in(Score::getCourseId, courseIds);
         }
         return toVOPage(page(new Page<>(query.getPage(), query.getSize()), wrapper));
+    }
+
+    @Override
+    public Page<ScoreVO> getTeacherCourseScorePage(String username, Long courseId, ScoreQueryDTO query) {
+        requireTeacherCourse(username, courseId);
+        int current = query.getPage() == null || query.getPage() < 1 ? 1 : query.getPage();
+        int size = query.getSize() == null || query.getSize() < 1 ? 10 : Math.min(100, query.getSize());
+        LambdaQueryWrapper<Score> wrapper = new LambdaQueryWrapper<Score>()
+                .eq(Score::getCourseId, courseId)
+                .like(query.getSemester() != null && !query.getSemester().isBlank(), Score::getSemester, query.getSemester().trim())
+                .orderByAsc(Score::getStudentId).orderByAsc(Score::getAttemptNo);
+        if (query.getStudentNo() != null && !query.getStudentNo().isBlank()) {
+            List<Long> studentIds = studentService.list(new LambdaQueryWrapper<Student>()
+                            .select(Student::getId).like(Student::getStudentNo, query.getStudentNo().trim()))
+                    .stream().map(Student::getId).toList();
+            if (studentIds.isEmpty()) return emptyPage(current, size);
+            wrapper.in(Score::getStudentId, studentIds);
+        }
+        if (query.getStudentName() != null && !query.getStudentName().isBlank()) {
+            List<Long> userIds = userService.list(new LambdaQueryWrapper<User>().select(User::getId)
+                            .eq(User::getRole, "student").like(User::getRealName, query.getStudentName().trim()))
+                    .stream().map(User::getId).toList();
+            if (userIds.isEmpty()) return emptyPage(current, size);
+            List<Long> studentIds = studentService.list(new LambdaQueryWrapper<Student>()
+                            .select(Student::getId).in(Student::getUserId, userIds))
+                    .stream().map(Student::getId).toList();
+            if (studentIds.isEmpty()) return emptyPage(current, size);
+            wrapper.in(Score::getStudentId, studentIds);
+        }
+        return toVOPage(page(new Page<>(current, size), wrapper));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ScoreVO createTeacherCourseScore(String username, Long courseId, ScoreUpdateDTO dto, String actor) {
+        Course course = requireTeacherCourse(username, courseId);
+        validateTeacherScoreInput(course, dto);
+        if (courseSelectionMapper.countApprovedSelection(courseId, dto.getStudentId()) == 0) {
+            throw new BusinessException("只能为已确认选修该课程的学生录入成绩");
+        }
+        ScoreVO created = createScore(dto, actor);
+        notifyScoreSubmission(course, created.getStudentNo(), actor);
+        return created;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ScoreVO updateTeacherCourseScore(String username, Long courseId, Long scoreId, ScoreUpdateDTO dto, String actor) {
+        Course course = requireTeacherCourse(username, courseId);
+        validateTeacherScoreInput(course, dto);
+        Score existing = getById(scoreId);
+        if (existing == null || !courseId.equals(existing.getCourseId())) {
+            throw new BusinessException("成绩不存在或无权访问");
+        }
+        if (!"DRAFT".equals(existing.getPublishStatus())) {
+            throw new BusinessException("已发布成绩不能由教师修改，请联系管理员办理更正");
+        }
+        if (!existing.getStudentId().equals(dto.getStudentId())) {
+            throw new BusinessException("不能将成绩转给其他学生");
+        }
+        if (courseSelectionMapper.countApprovedSelection(courseId, dto.getStudentId()) == 0) {
+            throw new BusinessException("该学生当前不是此课程的已确认选课学生");
+        }
+        ScoreVO updated = updateScore(scoreId, dto, actor);
+        notifyScoreSubmission(course, updated.getStudentNo(), actor);
+        return updated;
+    }
+
+    @Override
+    public List<ScoreChangeLogVO> getTeacherCourseScoreHistory(String username, Long courseId, Long scoreId) {
+        requireTeacherCourse(username, courseId);
+        Score score = getById(scoreId);
+        if (score == null || !courseId.equals(score.getCourseId())) {
+            throw new BusinessException("成绩不存在或无权访问");
+        }
+        return getScoreChangeLogs(scoreId);
+    }
+
+    private Course requireTeacherCourse(String username, Long courseId) {
+        User user = userService.findByUsername(username);
+        if (user == null) throw new BusinessException("当前账号不存在");
+        Teacher teacher = getTeacherForUser(user.getId());
+        Course course = courseService.getById(courseId);
+        if (course == null || !teacher.getId().equals(course.getTeacherId())) {
+            throw new BusinessException("课程不存在或无权访问");
+        }
+        return course;
+    }
+
+    private Teacher getTeacherForUser(Long userId) {
+        Teacher teacher = teacherService.getOne(new LambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, userId));
+        if (teacher == null) throw new BusinessException("教师信息不存在");
+        return teacher;
+    }
+
+    private void validateTeacherScoreInput(Course course, ScoreUpdateDTO dto) {
+        if (dto == null) throw new BusinessException("成绩内容不能为空");
+        if (dto.getCourseId() != null && !course.getId().equals(dto.getCourseId())) {
+            throw new BusinessException("提交的课程与当前授课课程不一致");
+        }
+        dto.setCourseId(course.getId());
+        String courseSemester = course.getSemester();
+        if (courseSemester == null || courseSemester.isBlank()) {
+            throw new BusinessException("课程未设置学期，暂不能录入成绩");
+        }
+        if (dto.getSemester() == null || dto.getSemester().isBlank()) dto.setSemester(courseSemester);
+        if (!courseSemester.equals(dto.getSemester().trim())) {
+            throw new BusinessException("成绩学期必须与课程开课学期一致");
+        }
+        if (dto.getExamTime() == null) throw new BusinessException("请选择考试时间");
+        if (dto.getChangeReason() == null || dto.getChangeReason().isBlank()) {
+            dto.setChangeReason("教师提交成绩，待管理员发布");
+        }
+    }
+
+    private void notifyScoreSubmission(Course course, String studentNo, String actor) {
+        notificationService.notifyAdmins("SCORE_SUBMITTED", "收到教师成绩提交",
+                actor + " 已提交课程“" + course.getCourseName() + "”（" + course.getSemester()
+                        + "）的成绩，学生学号：" + studentNo + "。成绩待管理员发布。 ");
+    }
+
+    private Page<ScoreVO> emptyPage(long current, long size) {
+        Page<ScoreVO> result = new Page<>(current, size, 0);
+        result.setRecords(Collections.emptyList());
+        return result;
     }
 
     @Override

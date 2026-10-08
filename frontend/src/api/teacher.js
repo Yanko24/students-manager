@@ -4,6 +4,30 @@ export function getMyTeachingCourses(params) {
 	return request({ url: "/teacher-portal/courses", method: "get", params });
 }
 
+export function getMyTeachingCourse(courseId) {
+	return request({ url: `/teacher-portal/courses/${courseId}`, method: "get" });
+}
+
+export function getMyCourseStudents(courseId, params) {
+	return request({ url: `/teacher-portal/courses/${courseId}/students`, method: "get", params });
+}
+
+export function getMyCourseScores(courseId, params) {
+	return request({ url: `/teacher-portal/courses/${courseId}/scores`, method: "get", params });
+}
+
+export function submitMyCourseScore(courseId, data) {
+	return request({ url: `/teacher-portal/courses/${courseId}/scores`, method: "post", data });
+}
+
+export function updateMyCourseScore(courseId, scoreId, data) {
+	return request({ url: `/teacher-portal/courses/${courseId}/scores/${scoreId}`, method: "put", data });
+}
+
+export function getMyCourseScoreHistory(courseId, scoreId) {
+	return request({ url: `/teacher-portal/courses/${courseId}/scores/${scoreId}/history`, method: "get" });
+}
+
 // 获取教师列表
 export function getTeacherList(params) {
 	return request({

@@ -18,6 +18,7 @@ import com.example.studentsmanager.service.ScoreService;
 import com.example.studentsmanager.service.StudentService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,7 @@ import java.security.Principal;
 @RequestMapping("/api/scores")
 @RequiredArgsConstructor
 @Tag(name = "成绩管理")
+@PreAuthorize("hasRole('ADMIN')")
 public class ScoreController {
     private static final long MAX_IMPORT_FILE_BYTES = 5L * 1024 * 1024;
     private static final int MAX_IMPORT_ROWS = 5000;

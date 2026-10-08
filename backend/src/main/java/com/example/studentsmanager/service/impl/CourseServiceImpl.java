@@ -86,10 +86,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
 
     @Override
     public Page<CourseVO> getTeacherCoursePage(String username, CourseQueryDTO query) {
-        User user = userService.findByUsername(username);
-        if (user == null) throw new BusinessException("当前账号不存在");
-        Teacher teacher = teacherService.getOne(new LambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, user.getId()));
-        if (teacher == null) throw new BusinessException("教师信息不存在");
+        Teacher teacher = findTeacher(username);
         int current = query.getPage() == null || query.getPage() < 1 ? 1 : query.getPage();
         int size = query.getSize() == null || query.getSize() < 1 ? 10 : Math.min(100, query.getSize());
         LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<Course>()
@@ -102,6 +99,37 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     }
 
     @Override
+    public CourseVO getTeacherCourse(String username, Long courseId) {
+        Course course = requireTeacherCourse(username, courseId);
+        return toVOPage(new Page<Course>(1, 1, 1).setRecords(Collections.singletonList(course))).getRecords().get(0);
+    }
+
+    @Override
+    public Page<CourseSelectionStudentVO> getTeacherSelectedStudents(String username, Long courseId, long page, long size, String keyword) {
+        requireTeacherCourse(username, courseId);
+        return courseSelectionMapper.selectStudentsByCourse(
+                new Page<>(Math.max(1, page), Math.min(100, Math.max(1, size))), courseId,
+                keyword == null || keyword.isBlank() ? null : keyword.trim());
+    }
+
+    private Teacher findTeacher(String username) {
+        User user = userService.findByUsername(username);
+        if (user == null) throw new BusinessException("当前账号不存在");
+        Teacher teacher = teacherService.getOne(new LambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, user.getId()));
+        if (teacher == null) throw new BusinessException("教师信息不存在");
+        return teacher;
+    }
+
+    private Course requireTeacherCourse(String username, Long courseId) {
+        Teacher teacher = findTeacher(username);
+        Course course = getById(courseId);
+        if (course == null || !teacher.getId().equals(course.getTeacherId())) {
+            throw new BusinessException("课程不存在或无权访问");
+        }
+        return course;
+    }
+
+    @Override
     public CourseVO getCourse(Long id) {
         Course course = getById(id);
         if (course == null) throw new BusinessException("课程不存在");
@@ -111,7 +139,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     @Override
     public Page<CourseSelectionStudentVO> getSelectedStudents(Long courseId, long page, long size) {
         if (getById(courseId) == null) throw new BusinessException("课程不存在");
-        return courseSelectionMapper.selectStudentsByCourse(new Page<>(Math.max(1, page), Math.min(100, Math.max(1, size))), courseId);
+        return courseSelectionMapper.selectStudentsByCourse(new Page<>(Math.max(1, page), Math.min(100, Math.max(1, size))), courseId, null);
     }
 
     @Override

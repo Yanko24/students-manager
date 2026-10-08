@@ -14,7 +14,11 @@ import java.util.List;
 
 @Mapper
 public interface CourseSelectionMapper {
+    @Select("SELECT COUNT(*) FROM course_selections WHERE course_id = #{courseId} AND student_id = #{studentId} AND status = 'approved' AND is_deleted = 0")
+    int countApprovedSelection(@Param("courseId") Long courseId, @Param("studentId") Long studentId);
+
     @Select({
+            "<script>",
             "SELECT s.id AS studentId, s.student_no AS studentNo, u.real_name AS studentName,",
             "m.name AS majorName, s.grade, s.class_no AS classNo, cs.selection_date AS selectionDate",
             "FROM course_selections cs",
@@ -22,9 +26,12 @@ public interface CourseSelectionMapper {
             "JOIN users u ON u.id = s.user_id AND u.is_deleted = 0",
             "LEFT JOIN majors m ON m.code = s.major_code AND m.grade = s.grade AND m.class_no = s.class_no AND m.is_deleted = 0",
             "WHERE cs.course_id = #{courseId} AND cs.status = 'approved' AND cs.is_deleted = 0",
-            "ORDER BY cs.selection_date DESC, s.student_no ASC"
+            "<if test='keyword != null and keyword != \"\"'>AND (s.student_no LIKE CONCAT('%', #{keyword}, '%') OR u.real_name LIKE CONCAT('%', #{keyword}, '%'))</if>",
+            "ORDER BY cs.selection_date DESC, s.student_no ASC",
+            "</script>"
     })
-    Page<CourseSelectionStudentVO> selectStudentsByCourse(Page<CourseSelectionStudentVO> page, @Param("courseId") Long courseId);
+    Page<CourseSelectionStudentVO> selectStudentsByCourse(Page<CourseSelectionStudentVO> page,
+            @Param("courseId") Long courseId, @Param("keyword") String keyword);
 
     @Select({
             "<script>",

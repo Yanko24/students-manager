@@ -25,7 +25,7 @@
         <el-table-column label="选课人数" width="110" align="center"><template #default="{ row }">{{ row.selectedCount ?? 0 }} / {{ row.maxStudents ?? '—' }}</template></el-table-column>
         <el-table-column label="上课安排" min-width="180"><template #default="{ row }">{{ scheduleSummary(row.schedules) }}</template></el-table-column>
         <el-table-column label="课程状态" width="110"><template #default="{ row }"><el-tag :type="row.status === 2 ? 'info' : 'success'">{{ row.statusText || '未开课' }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" width="130" fixed="right"><template #default="{ row }"><el-button type="primary" link @click="openAttendance(row)">查看考勤</el-button></template></el-table-column>
+        <el-table-column label="操作" width="220" fixed="right"><template #default="{ row }"><el-button type="primary" link @click="openTeaching(row)">学生与成绩</el-button><el-button type="primary" link @click="openAttendance(row)">考勤</el-button></template></el-table-column>
         <template #empty><el-empty :description="errorMessage || '暂无分配课程'" /></template>
       </el-table>
       <div class="pagination-container">
@@ -76,6 +76,7 @@ const scheduleSummary = schedules => {
   return schedules.map(item => `周${['', '一', '二', '三', '四', '五', '六', '日'][item.dayOfWeek]} 第${item.startPeriod}-${item.endPeriod}节`).join('；')
 }
 const openAttendance = course => router.push({ path: '/teacher/attendance', query: { course: course.name, courseId: course.id } })
+const openTeaching = course => router.push(`/teacher/courses/${course.id}/teaching`)
 
 onMounted(() => {
   if (route.query.courseName) filters.name = String(route.query.courseName)

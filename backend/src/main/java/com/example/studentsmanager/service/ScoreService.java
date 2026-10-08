@@ -20,4 +20,8 @@ public interface ScoreService extends IService<Score> {
     void deleteScore(Long id, String reason, String actor);
     int publishScores(List<Long> ids, String reason, String actor);
     List<ScoreChangeLogVO> getScoreChangeLogs(Long id);
+    Page<ScoreVO> getTeacherCourseScorePage(String username, Long courseId, ScoreQueryDTO queryDTO);
+    ScoreVO createTeacherCourseScore(String username, Long courseId, ScoreUpdateDTO dto, String actor);
+    ScoreVO updateTeacherCourseScore(String username, Long courseId, Long scoreId, ScoreUpdateDTO dto, String actor);
+    List<ScoreChangeLogVO> getTeacherCourseScoreHistory(String username, Long courseId, Long scoreId);
 }
