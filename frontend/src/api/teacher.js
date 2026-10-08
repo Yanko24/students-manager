@@ -1,5 +1,9 @@
 import request from "@/utils/request";
 
+export function getMyTeachingCourses(params) {
+	return request({ url: "/teacher-portal/courses", method: "get", params });
+}
+
 // 获取教师列表
 export function getTeacherList(params) {
 	return request({

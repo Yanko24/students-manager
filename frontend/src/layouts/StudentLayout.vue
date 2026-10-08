@@ -48,7 +48,7 @@
                     </el-menu-item>
                     <el-menu-item index="/student/notifications">
                         <el-icon><Document /></el-icon>
-                        <template #title>站内通知</template>
+                        <template #title><el-badge :value="unreadNotificationCount" :hidden="!unreadNotificationCount" :max="99">站内通知</el-badge></template>
                     </el-menu-item>
                     <el-menu-item index="/student/profile">
                         <el-icon>
@@ -152,12 +152,14 @@
         Reading
     } from '@element-plus/icons-vue'
     import defaultAvatar from '@/assets/images/default-avatar.png'
+    import { useUnreadNotificationCount } from '@/composables/useUnreadNotificationCount'
 
     const route = useRoute()
     const router = useRouter()
     const userStore = useUserStore()
     const isSidebarCollapsed = ref(false)
     const isFullscreen = ref(false)
+    const { count: unreadNotificationCount } = useUnreadNotificationCount()
 
     const toggleSidebar = () => {
         isSidebarCollapsed.value = !isSidebarCollapsed.value

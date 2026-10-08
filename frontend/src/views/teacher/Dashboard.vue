@@ -28,8 +28,8 @@
           </template>
           <el-table :data="recentRecords" stripe>
             <el-table-column prop="date" label="日期" width="120"><template #default="{ row }">{{ formatDate(row.date) }}</template></el-table-column>
-            <el-table-column prop="courseName" label="课程" min-width="150" show-overflow-tooltip />
-            <el-table-column prop="className" label="班级" min-width="180" show-overflow-tooltip />
+            <el-table-column prop="courseName" label="课程" min-width="150" />
+            <el-table-column prop="className" label="班级" min-width="180" />
             <el-table-column prop="studentName" label="学生" width="100" />
             <el-table-column prop="status" label="考勤状态" width="110"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="light">{{ row.status }}</el-tag></template></el-table-column>
             <template #empty><el-empty description="暂无考勤记录" /></template>
@@ -38,9 +38,18 @@
       </el-col>
       <el-col :xs="24" :lg="8">
         <el-card class="content-card shortcuts-card">
+          <template #header><div class="card-heading"><div><h3>近期通知</h3><span>课程安排和教务消息</span></div><el-button link type="primary" @click="router.push('/teacher/notifications')">全部通知</el-button></div></template>
+          <button v-for="item in notifications" :key="item.id" class="notification-row" type="button" @click="openNotification(item)">
+            <span class="notification-dot" :class="{ unread: !item.readAt }"></span>
+            <span class="notification-copy"><strong>{{ item.title }}</strong><small>{{ item.message }}</small></span>
+            <el-icon><ArrowRight /></el-icon>
+          </button>
+          <el-empty v-if="!notifications.length" description="暂无通知" :image-size="58" />
+        </el-card>
+        <el-card class="content-card shortcuts-card">
           <template #header><div class="card-heading"><div><h3>常用功能</h3><span>快速进入教师工作区</span></div></div></template>
           <button class="shortcut" type="button" @click="router.push('/teacher/courses')">
-            <span class="shortcut-icon blue"><el-icon><Reading /></el-icon></span><span><strong>我的课程</strong><small>查看有考勤记录的授课课程</small></span><el-icon class="shortcut-arrow"><ArrowRight /></el-icon>
+            <span class="shortcut-icon blue"><el-icon><Reading /></el-icon></span><span><strong>我的课程</strong><small>查看当前分配给你的课程和上课安排</small></span><el-icon class="shortcut-arrow"><ArrowRight /></el-icon>
           </button>
           <button class="shortcut" type="button" @click="router.push('/teacher/attendance')">
             <span class="shortcut-icon green"><el-icon><Calendar /></el-icon></span><span><strong>课程考勤</strong><small>筛选并查看学生考勤</small></span><el-icon class="shortcut-arrow"><ArrowRight /></el-icon>
@@ -60,6 +69,9 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight, Calendar, Reading, User, Tickets, WarningFilled, Collection } from '@element-plus/icons-vue'
 import { getTeacherAttendance } from '@/api/attendance'
+import { getMyTeachingCourses } from '@/api/teacher'
+import { getNotifications, markNotificationRead } from '@/api/notification'
+import { getNotificationRoute } from '@/utils/notificationLinks'
 import { formatDate } from '@/utils/dateUtils'
 import { isAuthSessionExpiredError } from '@/utils/errorHandler'
 
@@ -67,14 +79,16 @@ const router = useRouter()
 const loading = ref(false)
 const errorMessage = ref('')
 const recentRecords = ref([])
+const notifications = ref([])
 const total = ref(0)
 const anomalies = ref(0)
-const courses = computed(() => new Set(recentRecords.value.map((record) => record.courseId).filter(Boolean)).size)
+const courses = ref(0)
+const unreadNotifications = computed(() => notifications.value.filter(item => !item.readAt).length)
 const summaryCards = computed(() => [
   { label: '考勤记录', value: total.value, icon: Tickets, tone: 'blue' },
   { label: '异常记录（近100条）', value: anomalies.value, icon: WarningFilled, tone: 'orange' },
-  { label: '近期涉及课程', value: courses.value, icon: Collection, tone: 'green' },
-  { label: '最近展示', value: recentRecords.value.length, icon: Calendar, tone: 'purple' },
+  { label: '授课课程', value: courses.value, icon: Collection, tone: 'green' },
+  { label: '近期未读通知', value: unreadNotifications.value, icon: Calendar, tone: 'purple' },
 ])
 const statusType = (status) => ({ 正常: 'success', 迟到: 'warning', 早退: 'warning', 缺勤: 'danger', 请假: 'info' }[status] || 'info')
 
@@ -82,12 +96,23 @@ const loadDashboard = async () => {
   loading.value = true
   errorMessage.value = ''
   try {
-    const response = await getTeacherAttendance({ page: 1, size: 100 })
-    if (response?.code !== 200) throw new Error(response?.message || '获取教师考勤数据失败')
-    const records = response.data?.records || []
-    recentRecords.value = records.slice(0, 10)
-    total.value = Number(response.data?.total || 0)
-    anomalies.value = records.filter((record) => ['迟到', '早退', '缺勤'].includes(record.status)).length
+    const [attendanceResponse, courseResponse, notificationResponse] = await Promise.allSettled([
+      getTeacherAttendance({ page: 1, size: 100 }),
+      getMyTeachingCourses({ page: 1, size: 1 }),
+      getNotifications({ page: 1, size: 5 }),
+    ])
+    if (attendanceResponse.status === 'fulfilled') {
+      const records = attendanceResponse.value?.data?.records || []
+      recentRecords.value = records.slice(0, 10)
+      total.value = Number(attendanceResponse.value?.data?.total || 0)
+      anomalies.value = records.filter((record) => ['迟到', '早退', '缺勤'].includes(record.status)).length
+    }
+    if (courseResponse.status === 'fulfilled') courses.value = Number(courseResponse.value?.data?.total || 0)
+    if (notificationResponse.status === 'fulfilled') notifications.value = notificationResponse.value?.data?.records || []
+    const results = [attendanceResponse, courseResponse, notificationResponse]
+    if (results.some(result => result.status === 'rejected' && !isAuthSessionExpiredError(result.reason))) {
+      errorMessage.value = '部分工作台数据暂时无法加载，请进入对应页面重试'
+    }
   } catch (error) {
     if (!isAuthSessionExpiredError(error)) {
       errorMessage.value = error?.message || '获取教师工作台数据失败'
@@ -95,6 +120,17 @@ const loadDashboard = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const openNotification = async item => {
+  if (!item.readAt) {
+    try {
+      await markNotificationRead(item.id)
+      item.readAt = new Date().toISOString()
+      window.dispatchEvent(new Event('notifications:updated'))
+    } catch { /* Navigate to the notification even if the read-state update fails. */ }
+  }
+  router.push(getNotificationRoute(item.notificationType, 'teacher') || '/teacher/notifications')
 }
 
 onMounted(loadDashboard)
@@ -122,5 +158,8 @@ onMounted(loadDashboard)
 .shortcut > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 5px; }.shortcut strong { color: var(--el-text-color-primary); font-size: 14px; }.shortcut small { color: var(--el-text-color-secondary); font-size: 12px; }
 .shortcut-arrow { color: var(--el-text-color-placeholder); }.shortcut:hover strong,.shortcut:hover .shortcut-arrow { color: var(--el-color-primary); }
 .load-error { margin-top: 16px; }
+.notification-row { display: flex; align-items: center; width: 100%; gap: 10px; padding: 12px 2px; border: 0; border-bottom: 1px solid var(--el-border-color-lighter); background: transparent; text-align: left; cursor: pointer; }
+.notification-row:last-of-type { border-bottom: 0; }.notification-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: transparent; }.notification-dot.unread { background: var(--el-color-primary); }
+.notification-copy { display: grid; min-width: 0; flex: 1; gap: 4px; }.notification-copy strong,.notification-copy small { white-space: normal; overflow-wrap: anywhere; }.notification-copy strong { color: var(--el-text-color-primary); font-size: 13px; }.notification-copy small { color: var(--el-text-color-secondary); }.notification-row > .el-icon { color: var(--el-text-color-placeholder); }
 @media (max-width: 640px) { .page-header { align-items: flex-start; flex-direction: column; }.summary-card :deep(.el-card__body) { padding: 14px; gap: 10px; }.summary-icon { width: 38px; height: 38px; }.summary-copy strong { font-size: 21px; } }
 </style>

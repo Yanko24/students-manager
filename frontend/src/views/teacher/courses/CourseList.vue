@@ -1,68 +1,68 @@
 <template>
   <div class="course-list-page">
-    <header class="page-header"><div><h2>我的课程</h2><p>按当前教师最近 100 条考勤记录汇总，仅显示已有考勤记录的课程。</p></div></header>
+    <header class="page-header">
+      <div><h2>我的课程</h2><p>查看分配给你的授课课程、班级和上课安排。</p></div>
+    </header>
+
     <el-card class="filter-card">
       <el-form :inline="true" :model="filters" @submit.prevent="search">
-        <el-form-item label="课程名称"><el-input v-model="filters.courseName" clearable placeholder="输入课程名称" @keyup.enter="search" /></el-form-item>
+        <el-form-item label="课程代码"><el-input v-model="filters.code" clearable placeholder="输入课程代码" @keyup.enter="search" /></el-form-item>
+        <el-form-item label="课程名称"><el-input v-model="filters.name" clearable placeholder="输入课程名称" @keyup.enter="search" /></el-form-item>
+        <el-form-item label="学期"><el-input v-model="filters.semester" clearable placeholder="例如 2026-2027-1" @keyup.enter="search" /></el-form-item>
         <el-form-item><el-button type="primary" @click="search">查询</el-button><el-button @click="reset">重置</el-button></el-form-item>
       </el-form>
     </el-card>
+
     <el-card class="list-card" v-loading="loading">
       <el-table :data="courseList" stripe>
-        <el-table-column prop="courseName" label="课程名称" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="courseCode" label="课程代码" width="130" fixed="left" />
-        <el-table-column prop="classCount" label="考勤班级数" width="120" align="center" />
-        <el-table-column prop="attendanceCount" label="考勤记录数" width="120" align="center" />
-        <el-table-column label="最近考勤日期" width="150"><template #default="{ row }">{{ formatDate(row.latestDate) || '—' }}</template></el-table-column>
-        <el-table-column label="操作" width="120" fixed="right"><template #default="{ row }"><el-button type="primary" link @click="openAttendance(row)">查看考勤</el-button></template></el-table-column>
-        <template #empty><el-empty :description="errorMessage || '暂无课程考勤记录'" /></template>
+        <el-table-column prop="code" label="课程代码" width="130" fixed="left" />
+        <el-table-column prop="sectionCode" label="教学班" width="100" />
+        <el-table-column prop="name" label="课程名称" min-width="180" />
+        <el-table-column prop="college" label="所属学院" min-width="170" />
+        <el-table-column prop="semester" label="学期" width="150" />
+        <el-table-column label="学分 / 学时" width="125" align="center"><template #default="{ row }">{{ row.credit ?? '—' }} / {{ row.hours ?? '—' }}</template></el-table-column>
+        <el-table-column prop="type" label="课程类型" width="110" />
+        <el-table-column label="选课人数" width="110" align="center"><template #default="{ row }">{{ row.selectedCount ?? 0 }} / {{ row.maxStudents ?? '—' }}</template></el-table-column>
+        <el-table-column label="上课安排" min-width="180"><template #default="{ row }">{{ scheduleSummary(row.schedules) }}</template></el-table-column>
+        <el-table-column label="课程状态" width="110"><template #default="{ row }"><el-tag :type="row.status === 2 ? 'info' : 'success'">{{ row.statusText || '未开课' }}</el-tag></template></el-table-column>
+        <el-table-column label="操作" width="130" fixed="right"><template #default="{ row }"><el-button type="primary" link @click="openAttendance(row)">查看考勤</el-button></template></el-table-column>
+        <template #empty><el-empty :description="errorMessage || '暂无分配课程'" /></template>
       </el-table>
-      <div class="pagination-container"><el-pagination v-model:current-page="page" v-model:page-size="size" :page-sizes="[10, 20, 50]" :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="loadCourses" @current-change="loadCourses" /></div>
+      <div class="pagination-container">
+        <el-pagination v-model:current-page="page" v-model:page-size="size" :page-sizes="[10, 20, 50]" :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="loadCourses" @current-change="loadCourses" />
+      </div>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { showApiError } from "@/utils/errorHandler";
 import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { getTeacherAttendance } from '@/api/attendance'
-import { formatDate } from '@/utils/dateUtils'
+import { useRoute, useRouter } from 'vue-router'
+import { getMyTeachingCourses } from '@/api/teacher'
+import { showApiError } from '@/utils/errorHandler'
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const errorMessage = ref('')
 const courseList = ref([])
 const total = ref(0)
 const page = ref(1)
 const size = ref(10)
-const filters = reactive({ courseName: '' })
+const filters = reactive({ code: '', name: '', semester: '' })
 
 const loadCourses = async () => {
   loading.value = true
   errorMessage.value = ''
   try {
-    const response = await getTeacherAttendance({ page: 1, size: 100, courseName: filters.courseName || undefined })
-    if (response?.code !== 200) throw new Error(response?.message || '获取教师课程失败')
-    const records = response.data?.records || []
-    const grouped = new Map()
-    records.forEach((record) => {
-      const key = String(record.courseId || `${record.courseCode}-${record.courseName}`)
-      const entry = grouped.get(key) || { id: key, courseId: record.courseId, courseCode: record.courseCode, courseName: record.courseName, classNames: new Set(), attendanceCount: 0, latestDate: '' }
-      entry.attendanceCount += 1
-      if (record.className) entry.classNames.add(record.className)
-      if (record.date && (!entry.latestDate || String(record.date) > String(entry.latestDate))) entry.latestDate = record.date
-      grouped.set(key, entry)
-    })
-    const allCourses = [...grouped.values()].map((course) => ({ ...course, classCount: course.classNames.size })).sort((a, b) => String(b.latestDate).localeCompare(String(a.latestDate)))
-    total.value = allCourses.length
-    const start = (page.value - 1) * size.value
-    courseList.value = allCourses.slice(start, start + size.value)
+    const response = await getMyTeachingCourses({ page: page.value, size: size.value, ...filters })
+    if (response?.code !== 200) throw new Error(response?.message || '获取授课课程失败')
+    courseList.value = response.data?.records || []
+    total.value = Number(response.data?.total || 0)
   } catch (error) {
     courseList.value = []
     total.value = 0
-    errorMessage.value = error?.message || '获取教师课程失败'
+    errorMessage.value = error?.message || '获取授课课程失败'
     showApiError(error, errorMessage.value)
   } finally {
     loading.value = false
@@ -70,9 +70,17 @@ const loadCourses = async () => {
 }
 
 const search = () => { page.value = 1; loadCourses() }
-const reset = () => { filters.courseName = ''; search() }
-const openAttendance = (course) => router.push({ path: '/teacher/attendance', query: { course: course.courseName } })
-onMounted(loadCourses)
+const reset = () => { filters.code = ''; filters.name = ''; filters.semester = ''; search() }
+const scheduleSummary = schedules => {
+  if (!schedules?.length) return '暂未安排'
+  return schedules.map(item => `周${['', '一', '二', '三', '四', '五', '六', '日'][item.dayOfWeek]} 第${item.startPeriod}-${item.endPeriod}节`).join('；')
+}
+const openAttendance = course => router.push({ path: '/teacher/attendance', query: { course: course.name, courseId: course.id } })
+
+onMounted(() => {
+  if (route.query.courseName) filters.name = String(route.query.courseName)
+  loadCourses()
+})
 </script>
 
 <style scoped lang="scss">

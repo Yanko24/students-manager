@@ -7,9 +7,10 @@
     </section>
 
     <el-row :gutter="16" class="summary-row">
-      <el-col :xs="12" :sm="8"><el-card shadow="never" class="summary-card"><div class="summary-label">已选课程</div><div class="summary-value">{{ courseTotal }}<small> 门</small></div><el-link type="primary" :underline="false" @click="router.push('/student/courses')">查看课程 →</el-link></el-card></el-col>
-      <el-col :xs="12" :sm="8"><el-card shadow="never" class="summary-card"><div class="summary-label">成绩平均分</div><div class="summary-value">{{ decimal(scoreStats.averageScore) }}<small> 分</small></div><el-link type="primary" :underline="false" @click="router.push('/student/scores')">查看成绩 →</el-link></el-card></el-col>
-      <el-col :xs="24" :sm="8"><el-card shadow="never" class="summary-card"><div class="summary-label">考勤出勤率</div><div class="summary-value">{{ decimal(attendanceStats.attendanceRate) }}<small>%</small></div><el-link type="primary" :underline="false" @click="router.push('/student/attendance')">查看考勤 →</el-link></el-card></el-col>
+      <el-col :xs="12" :sm="6"><el-card shadow="never" class="summary-card"><div class="summary-label">已选课程</div><div class="summary-value">{{ courseTotal }}<small> 门</small></div><el-link type="primary" :underline="false" @click="router.push('/student/courses')">查看课程 →</el-link></el-card></el-col>
+      <el-col :xs="12" :sm="6"><el-card shadow="never" class="summary-card"><div class="summary-label">成绩平均分</div><div class="summary-value">{{ decimal(scoreStats.averageScore) }}<small> 分</small></div><el-link type="primary" :underline="false" @click="router.push('/student/scores')">查看成绩 →</el-link></el-card></el-col>
+      <el-col :xs="12" :sm="6"><el-card shadow="never" class="summary-card"><div class="summary-label">考勤出勤率</div><div class="summary-value">{{ decimal(attendanceStats.attendanceRate) }}<small>%</small></div><el-link type="primary" :underline="false" @click="router.push('/student/attendance')">查看考勤 →</el-link></el-card></el-col>
+      <el-col :xs="12" :sm="6"><el-card shadow="never" class="summary-card"><div class="summary-label">培养方案完成度</div><div class="summary-value">{{ curriculum.planConfigured ? decimal(curriculum.completionRate) : '—' }}<small>{{ curriculum.planConfigured ? '%' : '' }}</small></div><el-link type="primary" :underline="false" @click="router.push('/student/curriculum-progress')">查看培养进度 →</el-link></el-card></el-col>
     </el-row>
 
     <el-row :gutter="16" class="content-row">
@@ -35,6 +36,15 @@
       </div>
       <el-empty v-if="!attendance.length" description="暂无考勤记录" :image-size="72" />
     </el-card>
+    <el-card shadow="never" class="notification-card">
+      <template #header><div class="card-heading"><div><strong>近期通知</strong><span>选课审核、成绩发布和教务消息</span></div><el-button link type="primary" @click="router.push('/student/notifications')">全部通知</el-button></div></template>
+      <button v-for="item in notifications" :key="item.id" class="notification-row" type="button" @click="openNotification(item)">
+        <span class="notification-dot" :class="{ unread: !item.readAt }"></span>
+        <span class="row-main"><strong>{{ item.title }}</strong><span>{{ item.message }}</span></span>
+        <time>{{ formatDateTime(item.createTime) }}</time>
+      </button>
+      <el-empty v-if="!notifications.length" description="暂无通知" :image-size="60" />
+    </el-card>
   </div>
 </template>
 
@@ -45,6 +55,9 @@ import { useRouter } from 'vue-router'
 import { getCurrentUser } from '@/api/auth'
 import { getMyScoreStatistics, getMyScores, getStudentCourses } from '@/api/student'
 import { getStudentAttendance, getStudentAttendanceStatistics } from '@/api/attendance'
+import { getStudentCurriculumProgress } from '@/api/curriculum'
+import { getNotifications, markNotificationRead } from '@/api/notification'
+import { getNotificationRoute } from '@/utils/notificationLinks'
 import { formatDate, formatDateTime } from '@/utils/dateUtils'
 import { isAuthSessionExpiredError } from '@/utils/errorHandler'
 
@@ -57,6 +70,8 @@ const scores = ref([])
 const attendance = ref([])
 const scoreStats = ref({ averageScore: 0 })
 const attendanceStats = ref({ attendanceRate: 0 })
+const curriculum = ref({ planConfigured: false, completionRate: 0 })
+const notifications = ref([])
 const todayLabel = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'full' }).format(new Date())
 const decimal = value => Number(value || 0).toFixed(1).replace(/\.0$/, '')
 const attendanceType = status => ({ 正常: 'success', 迟到: 'warning', 早退: 'warning', 请假: 'info', 缺勤: 'danger' }[status] || 'info')
@@ -69,20 +84,37 @@ async function loadDashboard() {
     getMyScores({ page: 1, size: 5 }),
     getMyScoreStatistics(),
     getStudentAttendance({ page: 1, size: 5 }),
-    getStudentAttendanceStatistics()
+    getStudentAttendanceStatistics(),
+    getStudentCurriculumProgress(),
+    getNotifications({ page: 1, size: 5 })
   ])
-  const [user, courseResult, scoreResult, scoreStatsResult, attendanceResult, attendanceStatsResult] = results
+  const [user, courseResult, scoreResult, scoreStatsResult, attendanceResult, attendanceStatsResult, curriculumResult, notificationResult] = results
   if (user.status === 'fulfilled') profile.value = user.value?.data || {}
   if (courseResult.status === 'fulfilled') { courses.value = courseResult.value?.data?.records || []; courseTotal.value = courseResult.value?.data?.total || 0 }
   if (scoreResult.status === 'fulfilled') scores.value = scoreResult.value?.data?.records || []
   if (scoreStatsResult.status === 'fulfilled') scoreStats.value = scoreStatsResult.value?.data || { averageScore: 0 }
   if (attendanceResult.status === 'fulfilled') attendance.value = attendanceResult.value?.data?.records || []
   if (attendanceStatsResult.status === 'fulfilled') attendanceStats.value = attendanceStatsResult.value?.data || { attendanceRate: 0 }
+  if (curriculumResult.status === 'fulfilled') curriculum.value = curriculumResult.value?.data || { planConfigured: false, completionRate: 0 }
+  if (notificationResult.status === 'fulfilled') notifications.value = notificationResult.value?.data?.records || []
   const sessionExpired = results.some(item => item.status === 'rejected' && isAuthSessionExpiredError(item.reason))
   if (!sessionExpired && results.some(item => item.status === 'rejected')) {
     ElMessage.warning('部分首页数据暂时无法加载，可进入相应页面重试')
   }
   loading.value = false
+}
+
+async function openNotification(item) {
+  try {
+    if (!item.readAt) {
+      await markNotificationRead(item.id)
+      item.readAt = new Date().toISOString()
+      window.dispatchEvent(new Event('notifications:updated'))
+    }
+  } catch {
+    // The full notification page can still be opened if marking it read fails.
+  }
+  router.push(getNotificationRoute(item.notificationType, 'student') || '/student/notifications')
 }
 onMounted(loadDashboard)
 </script>
@@ -95,5 +127,6 @@ onMounted(loadDashboard)
 .summary-row,.content-row { row-gap: 16px; }.summary-card { height: 100%; }.summary-label { color: var(--el-text-color-secondary); }.summary-value { margin: 10px 0; font-size: 30px; font-weight: 700; color: var(--el-text-color-primary); }.summary-value small { font-size: 14px; font-weight: 400; color: var(--el-text-color-secondary); }
 .card-heading { display: flex; justify-content: space-between; align-items: center; }.card-heading div { display: grid; gap: 5px; }.card-heading span { color: var(--el-text-color-secondary); font-size: 12px; }
 .list-card { height: 100%; }.list-row { display: flex; justify-content: space-between; align-items: center; min-height: 62px; gap: 16px; border-bottom: 1px solid var(--el-border-color-lighter); }.list-row:last-child { border-bottom: 0; }.row-main { display: grid; gap: 6px; min-width: 0; }.row-main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.row-main span { color: var(--el-text-color-secondary); font-size: 13px; }.list-card .list-row { cursor: pointer; }.list-card .list-row:hover .row-main strong { color: var(--el-color-primary); }.score { font-size: 20px; }.pass { color: var(--el-color-success); }.fail { color: var(--el-color-danger); }
+.notification-row { display: flex; align-items: center; width: 100%; gap: 12px; padding: 13px 0; border: 0; border-bottom: 1px solid var(--el-border-color-lighter); background: transparent; text-align: left; cursor: pointer; }.notification-row:last-of-type { border-bottom: 0; }.notification-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: transparent; }.notification-dot.unread { background: var(--el-color-primary); }.notification-row .row-main { flex: 1; }.notification-row .row-main span { white-space: normal; overflow-wrap: anywhere; }.notification-row time { flex: 0 0 auto; color: var(--el-text-color-secondary); font-size: 12px; white-space: nowrap; }
 @media (max-width: 640px) { .welcome-card { flex-wrap: wrap; gap: 16px; padding: 22px; }.course-selection-button { order: 3; width: 100%; } }
 </style>

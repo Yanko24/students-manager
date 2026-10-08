@@ -13,6 +13,7 @@ import com.example.studentsmanager.model.vo.course.CourseSelectionStudentVO;
 
 public interface CourseService extends IService<Course> {
     Page<CourseVO> getCoursePage(CourseQueryDTO queryDTO);
+    Page<CourseVO> getTeacherCoursePage(String username, CourseQueryDTO queryDTO);
     CourseVO getCourse(Long id);
     Page<CourseSelectionStudentVO> getSelectedStudents(Long courseId, long page, long size);
     Page<CourseSelectionStudentVO> getCourseSelections(Long courseId, long page, long size, String status);

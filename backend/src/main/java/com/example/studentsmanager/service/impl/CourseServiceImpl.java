@@ -17,6 +17,7 @@ import com.example.studentsmanager.model.entity.User;
 import com.example.studentsmanager.model.vo.course.CourseVO;
 import com.example.studentsmanager.model.vo.course.CourseSelectionStudentVO;
 import com.example.studentsmanager.model.vo.course.CourseSelectionReviewRecord;
+import com.example.studentsmanager.model.vo.course.CourseScheduleVO;
 import com.example.studentsmanager.service.CourseService;
 import com.example.studentsmanager.service.TeacherService;
 import com.example.studentsmanager.service.StudentService;
@@ -28,6 +29,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -80,6 +82,23 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         }
         Page<Course> page = page(new Page<>(query.getPage(), query.getSize()), wrapper);
         return toVOPage(page);
+    }
+
+    @Override
+    public Page<CourseVO> getTeacherCoursePage(String username, CourseQueryDTO query) {
+        User user = userService.findByUsername(username);
+        if (user == null) throw new BusinessException("当前账号不存在");
+        Teacher teacher = teacherService.getOne(new LambdaQueryWrapper<Teacher>().eq(Teacher::getUserId, user.getId()));
+        if (teacher == null) throw new BusinessException("教师信息不存在");
+        int current = query.getPage() == null || query.getPage() < 1 ? 1 : query.getPage();
+        int size = query.getSize() == null || query.getSize() < 1 ? 10 : Math.min(100, query.getSize());
+        LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<Course>()
+                .eq(Course::getTeacherId, teacher.getId())
+                .like(query.getCode() != null && !query.getCode().isBlank(), Course::getCourseCode, query.getCode().trim())
+                .like(query.getName() != null && !query.getName().isBlank(), Course::getCourseName, query.getName().trim())
+                .like(query.getSemester() != null && !query.getSemester().isBlank(), Course::getSemester, query.getSemester().trim())
+                .orderByDesc(Course::getSemester).orderByAsc(Course::getCourseCode).orderByAsc(Course::getSectionCode);
+        return toVOPage(page(new Page<>(current, size), wrapper));
     }
 
     @Override
@@ -185,6 +204,9 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         course.setIsDeleted(0);
         save(course);
         courseScheduleService.replace(course, dto.getSchedules(), null);
+        CourseVO created = getCourse(course.getId());
+        notifyTeacher(created.getTeacherId(), "COURSE_ASSIGNED", "新增授课任务",
+                "你已被安排教授“" + created.getName() + "”（" + created.getSemester() + "）课程。");
         return getCourse(course.getId());
     }
 
@@ -193,6 +215,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     public CourseVO updateCourse(Long id, CourseUpdateDTO dto) {
         Course course = getBaseMapper().selectForUpdate(id);
         if (course == null) throw new BusinessException("课程不存在");
+        CourseVO previous = getCourse(id);
         String sectionCode = normalizeSectionCode(dto.getSectionCode());
         if (count(new LambdaQueryWrapper<Course>().eq(Course::getCourseCode, dto.getCode())
                 .eq(Course::getSemester, dto.getSemester()).eq(Course::getSectionCode, sectionCode)
@@ -208,7 +231,17 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         updateById(course);
         courseScheduleService.replace(course, dto.getSchedules(), id);
         courseSelectionQueueService.promoteAvailable(course, "system");
-        return getCourse(id);
+        CourseVO updated = getCourse(id);
+        if (!Objects.equals(previous.getTeacherId(), updated.getTeacherId())) {
+            notifyTeacher(previous.getTeacherId(), "COURSE_ASSIGNMENT_CHANGED", "授课安排已调整",
+                    "课程“" + previous.getName() + "”的授课安排已调整，后续请查看我的课程。");
+            notifyTeacher(updated.getTeacherId(), "COURSE_ASSIGNED", "新增授课任务",
+                    "你已被安排教授“" + updated.getName() + "”（" + updated.getSemester() + "）课程。");
+        } else if (hasTeachingDetailsChanged(previous, updated)) {
+            notifyTeacher(updated.getTeacherId(), "COURSE_UPDATED", "授课课程信息已调整",
+                    "课程“" + updated.getName() + "”（" + updated.getSemester() + "）的授课信息或时间安排已调整，请查看我的课程。");
+        }
+        return updated;
     }
 
     @Override
@@ -275,6 +308,33 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
             throw new BusinessException("教学班编号仅支持1到10位字母、数字、下划线或短横线");
         }
         return sectionCode;
+    }
+
+    private void notifyTeacher(Long teacherId, String type, String title, String message) {
+        if (teacherId == null) return;
+        Teacher teacher = teacherService.getById(teacherId);
+        if (teacher != null && teacher.getUserId() != null) {
+            notificationService.notifyUser(teacher.getUserId(), type, title, message);
+        }
+    }
+
+    private boolean hasTeachingDetailsChanged(CourseVO before, CourseVO after) {
+        return !Objects.equals(before.getName(), after.getName())
+                || !Objects.equals(before.getSemester(), after.getSemester())
+                || !Objects.equals(before.getSectionCode(), after.getSectionCode())
+                || !Objects.equals(before.getHours(), after.getHours())
+                || !Objects.equals(before.getType(), after.getType())
+                || !scheduleSignature(before.getSchedules()).equals(scheduleSignature(after.getSchedules()));
+    }
+
+    private List<String> scheduleSignature(List<CourseScheduleVO> schedules) {
+        if (schedules == null) return Collections.emptyList();
+        return schedules.stream().map(item -> String.join("|",
+                        Objects.toString(item.getDayOfWeek(), ""), Objects.toString(item.getStartPeriod(), ""),
+                        Objects.toString(item.getEndPeriod(), ""), Objects.toString(item.getWeekStart(), ""),
+                        Objects.toString(item.getWeekEnd(), ""), Objects.toString(item.getWeekParity(), ""),
+                        Objects.toString(item.getClassroom(), "")))
+                .sorted().toList();
     }
 
     private void synchronizeCatalog(Course course) {

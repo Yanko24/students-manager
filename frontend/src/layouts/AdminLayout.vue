@@ -49,7 +49,7 @@
                     </el-menu-item>
                     <el-menu-item index="/admin/notifications">
                         <el-icon><Document /></el-icon>
-                        <span>站内通知</span>
+                        <el-badge :value="unreadNotificationCount" :hidden="!unreadNotificationCount" :max="99"><span>站内通知</span></el-badge>
                     </el-menu-item>
                     <el-menu-item index="/admin/operation-audits">
                         <el-icon><Document /></el-icon>
@@ -153,11 +153,13 @@
         CaretBottom
     } from '@element-plus/icons-vue'
     import defaultAvatar from '@/assets/images/default-avatar.png'
+    import { useUnreadNotificationCount } from '@/composables/useUnreadNotificationCount'
 
     const router = useRouter()
     const route = useRoute()
     const userStore = useUserStore()
     const isFullscreen = ref(false)
+    const { count: unreadNotificationCount } = useUnreadNotificationCount()
 
     const activeMenu = computed(() => route.path)
 
