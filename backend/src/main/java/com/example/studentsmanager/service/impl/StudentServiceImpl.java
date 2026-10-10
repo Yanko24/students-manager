@@ -40,14 +40,14 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
     @Override
     public Page<StudentVO> getStudentPage(StudentQueryDTO queryDTO) {
-        log.debug("开始分页查询学生信息，查询条件：{}", queryDTO);
+        log.debug("开始分页查询学生信息");
         try {
             Page<Student> page = new Page<>(queryDTO.getPage(), queryDTO.getSize());
             Page<StudentVO> result = studentMapper.selectStudentPage(page, queryDTO);
             log.debug("分页查询学生信息完成，总记录数：{}", result.getTotal());
             return result;
         } catch (Exception e) {
-            log.error("分页查询学生信息系统异常，查询条件：{}", queryDTO, e);
+            log.error("分页查询学生信息系统异常", e);
             throw new BusinessException(ResultMessage.STUDENT_QUERY_FAILED);
         }
     }
@@ -87,7 +87,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public StudentVO updateStudent(Long id, StudentUpdateDTO updateDTO) {
-        log.info("开始更新学生信息，学生ID：{}，更新内容：{}", id, updateDTO);
+        log.info("开始更新学生信息，学生ID：{}", id);
         try {
             // 获取现有学生信息
             Student existingStudent = this.getById(id);
@@ -139,7 +139,7 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public StudentVO addStudent(StudentUpdateDTO updateDTO) {
-        log.info("开始添加学生信息，学号：{}", updateDTO.getStudentNo());
+        log.info("开始添加学生信息");
         try {
             // 1. 创建用户
             User user = new User();

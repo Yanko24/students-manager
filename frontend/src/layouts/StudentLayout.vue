@@ -12,7 +12,7 @@
                         <el-icon>
                             <Monitor />
                         </el-icon>
-                        <template #title>控制台</template>
+                        <template #title>数据总览</template>
                     </el-menu-item>
                     <el-menu-item index="/student/course-selection">
                         <el-icon>

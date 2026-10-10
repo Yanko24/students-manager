@@ -148,9 +148,9 @@ docker compose down
 | 场景 | 初始化文件 | 数据内容 |
 | --- | --- | --- |
 | 本地开发演示 | [`backend/db/seed-dev.sql`](backend/db/seed-dev.sql) | 仅含演示业务数据；先由 Flyway 创建表和管理员，再导入演示记录 |
-| 新建空库 | [`db/migration/`](backend/src/main/resources/db/migration/) | Flyway 使用 V1 创建基础结构和管理员，V2 一次补齐当前全部预发布功能结构；不含演示学生、教师、课程等业务数据 |
+| 新建空库 | [`db/migration/`](backend/src/main/resources/db/migration/) | Flyway 使用单个 V1 创建完整结构、关键约束和初始管理员；不含演示学生、教师、课程等业务数据 |
 
-Docker MySQL 通过 `MYSQL_DATABASE` 创建空数据库，通过 `MYSQL_USER` 和 `MYSQL_PASSWORD` 创建应用账号；后端启动时 Flyway 执行 JAR 中 `classpath:db/migration/` 的 V1、V2，创建当前表结构和初始管理员。因此无需 Docker 专用的数据库初始化 SQL。已有数据卷不会自动清空；迁移说明见 [后端数据库迁移说明](backend/README.md#数据库初始化与样例)。
+Docker MySQL 通过 `MYSQL_DATABASE` 创建空数据库，通过 `MYSQL_USER` 和 `MYSQL_PASSWORD` 创建应用账号；后端启动时 Flyway 执行 JAR 中 `classpath:db/migration/` 的单个 V1，创建当前表结构和初始管理员。因此无需 Docker 专用的数据库初始化 SQL。已有数据卷不会自动清空；迁移说明见 [后端数据库迁移说明](backend/README.md#数据库初始化与样例)。
 
 学籍异动与成绩发布：学生提交休学、复学、转专业或退学申请，管理员审核；教师只能为本人授课课程的已确认选课学生录入成绩，支持跨页选择后批量提交（单批最多 200 人），整批校验通过后进入待发布状态，管理员发布后学生可见。教师可以更正待发布成绩并查看历史，已发布成绩由管理员按更正流程处理。关键操作有审计记录，审核、成绩提交与成绩发布结果通过站内通知送达。
 

@@ -64,11 +64,11 @@ public Result<List<User>> getAllUsers() {
     @PostMapping
     @Operation(summary = "创建用户", description = "创建新的用户信息")
     public Result<User> createUser(@Valid @RequestBody User user) {
-        log.info("收到创建用户请求，用户名: {}", user.getUsername());
+        log.info("收到创建用户请求");
         try {
             boolean success = userService.createUser(user);
             if (!success) {
-                log.warn("用户创建失败，用户名: {}", user.getUsername());
+                log.warn("用户创建失败");
                 throw new BusinessException(ResultCode.ERROR, "用户创建失败");
             }
             log.info("用户创建成功，ID: {}", user.getId());
@@ -76,7 +76,7 @@ public Result<List<User>> getAllUsers() {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("用户创建失败，用户名: {}，错误信息：{}", user.getUsername(), e.getMessage(), e);
+            log.error("用户创建失败，错误信息：{}", e.getMessage(), e);
             throw e; // 让GlobalExceptionHandler处理异常
         }
     }

@@ -32,16 +32,16 @@ public class StudentController {
     @Operation(summary = "分页查询学生信息", description = "根据查询条件分页获取学生信息列表")
     @GetMapping("")
     public Result<Page<StudentVO>> getStudentPage(StudentQueryDTO queryDTO) {
-        log.info("收到分页查询学生信息请求，查询条件：{}", queryDTO);
+        log.info("收到分页查询学生信息请求");
         try {
             Page<StudentVO> result = studentService.getStudentPage(queryDTO);
             log.info("分页查询学生信息成功，总记录数：{}", result.getTotal());
             return Result.success(result);
         } catch (BusinessException e) {
-            log.warn("分页查询学生信息失败，查询条件：{}，错误信息：{}", queryDTO, e.getMessage());
+            log.warn("分页查询学生信息失败，错误信息：{}", e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("分页查询学生信息系统异常，查询条件：{}", queryDTO, e);
+            log.error("分页查询学生信息系统异常", e);
             throw new BusinessException(ResultCode.INTERNAL_SERVER_ERROR, "系统异常");
         }
     }
@@ -87,7 +87,7 @@ public class StudentController {
     @Operation(summary = "更新学生信息", description = "根据学生ID更新学生的详细信息")
     @PutMapping("/{id}")
     public Result<StudentVO> updateStudent(@PathVariable Long id, @Valid @RequestBody StudentUpdateDTO updateDTO) {
-        log.info("收到更新学生信息请求，ID：{}，更新内容：{}", id, updateDTO);
+        log.info("收到更新学生信息请求，ID：{}", id);
         try {
             StudentVO result = studentService.updateStudent(id, updateDTO);
             if (result == null) {
@@ -108,7 +108,7 @@ public class StudentController {
     @Operation(summary = "添加学生", description = "添加新的学生信息")
     @PostMapping
     public Result<StudentVO> addStudent(@Valid @RequestBody StudentUpdateDTO updateDTO) {
-        log.info("收到添加学生请求，学生信息：{}", updateDTO);
+        log.info("收到添加学生请求");
         try {
             StudentVO result = studentService.addStudent(updateDTO);
             if (result == null) {

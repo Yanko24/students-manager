@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -15,13 +17,20 @@ public class StudentStatusChangeScheduler {
 
     @Scheduled(cron = "0 * * * * *")
     public void applyDueApprovedChanges() {
-        Long runId = taskRunService.begin(TASK_NAME);
+        LocalDateTime startedAt = LocalDateTime.now();
         try {
             int processed = studentStatusChangeService.applyDueApprovedChanges();
-            taskRunService.finish(runId, processed);
+            if (processed > 0) {
+                taskRunService.recordSuccess(TASK_NAME, processed, startedAt);
+            }
         } catch (Exception error) {
-            taskRunService.fail(runId, error.getMessage());
+            taskRunService.recordFailure(TASK_NAME, error.getMessage(), startedAt);
             log.error("定时任务 {} 执行失败", TASK_NAME, error);
         }
+    }
+
+    @Scheduled(cron = "0 0 3 * * *")
+    public void cleanupExpiredRuns() {
+        taskRunService.deleteExpiredRuns();
     }
 }

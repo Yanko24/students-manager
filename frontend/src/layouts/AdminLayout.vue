@@ -9,7 +9,7 @@
                 <el-menu :default-active="activeMenu" class="sidebar-menu" @select="handleMenuSelect">
                     <el-menu-item index="/admin/dashboard">
                         <el-icon><Monitor /></el-icon>
-                        <span>控制台</span>
+                        <span>数据总览</span>
                     </el-menu-item>
                     <el-menu-item index="/admin/colleges">
                         <el-icon><OfficeBuilding /></el-icon>
@@ -45,7 +45,7 @@
                     </el-menu-item>
                     <el-menu-item index="/admin/task-runs">
                         <el-icon><Document /></el-icon>
-                        <span>定时任务运行</span>
+                        <span>定时任务</span>
                     </el-menu-item>
                     <el-menu-item index="/admin/scores">
                         <el-icon><Document /></el-icon>
@@ -57,7 +57,7 @@
                     </el-menu-item>
                     <el-menu-item index="/admin/student-status-changes">
                         <el-icon><Document /></el-icon>
-                        <span>学籍异动审核</span>
+                        <span>学籍审核</span>
                     </el-menu-item>
                     <el-menu-item index="/admin/notifications">
                         <el-icon><Document /></el-icon>

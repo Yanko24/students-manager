@@ -29,7 +29,7 @@ public class TeacherController {
     @GetMapping
     @Operation(summary = "获取所有教师", description = "返回系统中所有教师的信息列表")
     public Result<Page<TeacherListVO>> getAllTeachers(TeacherQueryDTO queryDTO) {
-        log.info("分页查询教师列表，查询条件：{}", queryDTO);
+        log.info("分页查询教师列表");
         try {
             Page<TeacherListVO> teachers = teacherService.getTeacherPage(queryDTO);
             log.info("成功获取教师列表，共{}条记录", teachers.getTotal());

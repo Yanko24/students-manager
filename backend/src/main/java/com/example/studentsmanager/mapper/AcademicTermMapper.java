@@ -18,10 +18,10 @@ public interface AcademicTermMapper extends BaseMapper<AcademicTerm> {
     @Update("UPDATE academic_terms SET is_current = 1, is_active = 1, update_by = #{actor} WHERE id = #{id}")
     int setCurrent(@Param("id") Long id, @Param("actor") String actor);
 
-    @Select("SELECT COUNT(*) FROM courses WHERE semester = #{termCode} AND is_deleted = 0")
+    @Select("SELECT COUNT(*) FROM courses WHERE semester = #{termCode}")
     int countCourseReferences(@Param("termCode") String termCode);
 
-    @Select("SELECT COUNT(*) FROM scores WHERE semester = #{termCode} AND is_deleted = 0")
+    @Select("SELECT COUNT(*) FROM scores WHERE semester = #{termCode}")
     int countScoreReferences(@Param("termCode") String termCode);
 
     @Select("SELECT COUNT(*) FROM academic_terms WHERE term_code = #{termCode} AND is_active = 1")

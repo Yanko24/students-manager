@@ -24,13 +24,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User findByUsername(String username) {
-        log.debug("开始查询用户信息，用户名：{}", username);
+        log.debug("开始查询用户信息");
         try {
             User user = baseMapper.findByUsername(username);
-            log.debug("查询用户信息完成，用户名：{}", username);
+            log.debug("查询用户信息完成");
             return user;
         } catch (Exception e) {
-            log.error("查询用户信息异常，用户名：{}，错误信息：{}", username, e.getMessage(), e);
+            log.error("查询用户信息异常", e);
             throw new BusinessException(ResultMessage.USER_QUERY_FAILED);
         }
     }
@@ -38,11 +38,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean createUser(User user) {
-        log.info("开始创建用户信息，用户名：{}", user.getUsername());
+        log.info("开始创建用户信息");
         try {
             // 检查用户名是否已存在
             if (findByUsername(user.getUsername()) != null) {
-                log.warn("创建用户信息失败，用户名：{}，原因：用户名已存在", user.getUsername());
+                log.warn("创建用户信息失败，原因：用户名已存在");
                 throw new BusinessException(ResultMessage.USER_ALREADY_EXISTS);
             }
 
@@ -58,7 +58,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             if (result) {
                 log.info("创建用户信息成功，用户ID：{}", user.getId());
             } else {
-                log.warn("创建用户信息失败，用户名：{}", user.getUsername());
+                log.warn("创建用户信息失败");
             }
             return result;
         } catch (BusinessException e) {
@@ -72,7 +72,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateUser(User user) {
-        log.info("开始更新用户信息，用户ID：{}，更新内容：{}", user.getId(), user);
+        log.info("开始更新用户信息，用户ID：{}", user.getId());
         try {
             // 检查用户是否存在
             User existingUser = getById(user.getId());

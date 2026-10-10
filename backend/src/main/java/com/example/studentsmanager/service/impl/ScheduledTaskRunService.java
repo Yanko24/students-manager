@@ -13,35 +13,31 @@ import java.time.LocalDateTime;
 @Service
 public class ScheduledTaskRunService extends ServiceImpl<ScheduledTaskRunMapper, ScheduledTaskRun> {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public Long begin(String taskName) {
-        baseMapper.deleteExpiredRuns();
+    public void recordSuccess(String taskName, int processedCount, LocalDateTime startedAt) {
         ScheduledTaskRun run = new ScheduledTaskRun();
         run.setTaskName(taskName);
-        run.setStatus("RUNNING");
-        run.setStartedAt(LocalDateTime.now());
-        run.setProcessedCount(0);
-        save(run);
-        return run.getId();
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void finish(Long id, int processedCount) {
-        ScheduledTaskRun run = getById(id);
-        if (run == null) return;
         run.setStatus("SUCCESS");
-        run.setProcessedCount(Math.max(0, processedCount));
+        run.setStartedAt(startedAt);
         run.setFinishedAt(LocalDateTime.now());
-        updateById(run);
+        run.setProcessedCount(Math.max(0, processedCount));
+        save(run);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void fail(Long id, String errorMessage) {
-        ScheduledTaskRun run = getById(id);
-        if (run == null) return;
+    public void recordFailure(String taskName, String errorMessage, LocalDateTime startedAt) {
+        ScheduledTaskRun run = new ScheduledTaskRun();
+        run.setTaskName(taskName);
         run.setStatus("FAILED");
+        run.setStartedAt(startedAt);
         run.setFinishedAt(LocalDateTime.now());
+        run.setProcessedCount(0);
         run.setErrorMessage(errorMessage == null ? "任务执行失败" : errorMessage.substring(0, Math.min(1000, errorMessage.length())));
-        updateById(run);
+        save(run);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int deleteExpiredRuns() {
+        return baseMapper.deleteExpiredRuns();
     }
 
     public Page<ScheduledTaskRun> getLatest(long page, long size) {

@@ -28,13 +28,13 @@ public class AuthController {
     @Operation(summary = "用户登录", description = "用户登录认证接口，验证用户身份并返回认证信息")
 @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        log.info("收到登录请求，用户名：{}", request.getUsername());
+        log.info("收到登录请求");
         try {
             LoginResponse response = authService.login(request);
-            log.info("用户登录成功，用户名：{}", request.getUsername());
+            log.info("用户登录成功");
             return Result.success(response);
         } catch (Exception e) {
-            log.error("用户登录失败，用户名：{}，错误信息：{}", request.getUsername(), e.getMessage(), e);
+            log.warn("用户登录失败，异常类型：{}", e.getClass().getSimpleName());
             throw e; // 让GlobalExceptionHandler处理异常
         }
     }

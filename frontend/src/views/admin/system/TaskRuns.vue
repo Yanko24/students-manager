@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-heading"><div><h2>定时任务运行</h2><p>查看后台定时任务最近的运行时间、处理数量和失败原因。</p></div><el-button @click="fetchRows">刷新</el-button></div>
+    <div class="page-heading"><div><h2>定时任务</h2><p>仅展示有处理结果或执行失败的记录，定时检查的空跑不会占用列表。</p></div><el-button @click="fetchRows">刷新</el-button></div>
     <el-card shadow="never">
       <el-table :data="rows" v-loading="loading" border>
         <el-table-column prop="taskName" label="任务" min-width="190" />

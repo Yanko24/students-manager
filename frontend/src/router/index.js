@@ -40,7 +40,7 @@ const router = createRouter({
 					path: "dashboard",
 					name: "AdminDashboard",
 					component: () => import("@/views/admin/Dashboard.vue"),
-					meta: { title: "控制台", requiresAuth: true, role: "admin" },
+					meta: { title: "数据总览", requiresAuth: true, role: "admin" },
 				},
 				{
 					path: "notifications",
@@ -64,7 +64,7 @@ const router = createRouter({
 					path: "student-status-changes",
 					name: "StudentStatusChangeList",
 					component: () => import("@/views/admin/students/StudentStatusChangeList.vue"),
-					meta: { title: "学籍异动审核", requiresAuth: true, role: "admin" },
+					meta: { title: "学籍审核", requiresAuth: true, role: "admin" },
 				},
 				{
 					path: "students/add",
@@ -184,7 +184,7 @@ const router = createRouter({
 					path: "task-runs",
 					name: "TaskRuns",
 					component: () => import("@/views/admin/system/TaskRuns.vue"),
-					meta: { title: "定时任务运行", requiresAuth: true, role: "admin" },
+					meta: { title: "定时任务", requiresAuth: true, role: "admin" },
 				},
 				{
 					path: "attendance",
@@ -297,7 +297,7 @@ const router = createRouter({
 					path: "dashboard",
 					name: "TeacherDashboard",
 					component: TeacherDashboard,
-					meta: { title: "控制台", requiresAuth: true, roles: ["teacher"] },
+					meta: { title: "数据总览", requiresAuth: true, roles: ["teacher"] },
 				},
 				{
 					path: "notifications",
@@ -355,7 +355,7 @@ const router = createRouter({
 					path: "dashboard",
 					name: "StudentDashboard",
 					component: () => import("@/views/student/Dashboard.vue"),
-					meta: { title: "控制台", requiresAuth: true, roles: ["student"] },
+					meta: { title: "数据总览", requiresAuth: true, roles: ["student"] },
 				},
 				{
 					path: "scores",

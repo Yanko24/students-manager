@@ -30,7 +30,7 @@
 | 文件 | 用途 |
 | --- | --- |
 | `application.yml` | 公共配置、默认 Profile、端口、JWT 有效期和文件上传限制 |
-| `application-dev.yml` | 本地开发数据库连接、MyBatis SQL 日志、开发用 SM4 默认密钥；关闭 Flyway 自动 baseline，由版本化迁移创建新库结构 |
+| `application-dev.yml` | 本地开发数据库连接、开发用 SM4 默认密钥；MyBatis SQL 参数日志默认关闭以避免联系方式等信息进入日志；关闭 Flyway 自动 baseline，由版本化迁移创建新库结构 |
 | `application-prod.yml` | 生产日志配置及公共 MyBatis 设置；数据库连接、Flyway baseline 和 SM4 密钥按生产流程显式设置 |
 
 `application.yml` 当前默认激活 `dev` Profile。Docker Compose 会显式设置 `SPRING_PROFILES_ACTIVE=prod`。本机可在 IDEA 的运行配置中设置 Profile，也可在终端指定：
@@ -79,7 +79,7 @@ mvn spring-boot:run
 
 默认地址为 `http://localhost:8080`。如果前端通过 Vite 运行，还需要在另一个终端启动 `frontend/` 的 Vite 服务；详见 [前端说明](../frontend/README.md)。
 
-开发 Profile 使用 MyBatis `StdOutImpl` 输出 SQL、参数和结果；生产 Profile 使用 `NoLoggingImpl` 关闭 MyBatis SQL 控制台输出。请勿将开发 SQL 日志误认为生产日志级别。
+开发 Profile 将 MyBatis 日志路由到 Logback，默认不输出 SQL 绑定参数；生产 Profile 使用 `NoLoggingImpl` 关闭 MyBatis SQL 输出。需要临时调试 SQL 时，可在本地将 `org.apache.ibatis` 日志级别调为 `DEBUG`，排查完成后恢复 `INFO`，并避免记录个人信息。
 
 ## 构建和运行
 
@@ -116,7 +116,7 @@ mvn -DskipTests compile
 
 ## 数据库初始化与样例
 
-项目尚未正式发布，目前保留两个迁移：V1 创建基础表结构和初始管理员；V2 将此前分散在多个版本中的预发布功能结构合并，包括选课规则、必修课程清单、学期管理和定时任务记录。这样，已经 baseline 到 V1 的开发库可以通过 V2 补齐结构并保留数据；全新数据库则依次运行 V1、V2。开发演示数据仍单独放在 `db/seed-dev.sql`。正式发布后，V1、V2 都应冻结，后续结构变更从 V3 开始。
+项目尚未正式发布，当前仅保留一个 Flyway 迁移 V1，包含完整表结构、关键唯一约束、学期外键及初始管理员。开发演示数据单独放在 `db/seed-dev.sql`。正式发布后冻结 V1，后续结构变更从 V2 开始。
 
 Flyway 13 需要 Java 17，MySQL 支持通过单独的 `flyway-mysql` 模块提供。数据库迁移应先在独立的 MySQL 8.4 测试库验证，再用于生产；不要把 Maven 打包成功当成数据库兼容性验证。
 
@@ -124,7 +124,7 @@ Flyway 13 需要 Java 17，MySQL 支持通过单独的 `flyway-mysql` 模块提�
 
 [`db/seed-dev.sql`](db/seed-dev.sql) 只包含本地开发演示数据，不创建数据库或表，也不重复插入管理员。表结构和初始管理员由 Flyway 创建。演示数据涵盖学院、专业、师生、课程排课、选课、培养方案及部分逐门必修清单、正常/补考/重修成绩、成绩变更历史、待审/已审学籍异动、操作审计和站内通知。该脚本仅执行一次。
 
-如需演示数据，先创建空数据库并从 `backend/` 启动后端，让 Flyway 执行全部迁移；首次启动完成后按 Ctrl+C，导入演示数据，再次启动。后端启动时会加密演示用户的手机号和邮箱。
+如需演示数据，先创建空数据库并从 `backend/` 启动后端，让 Flyway 执行 V1；首次启动完成后按 Ctrl+C，导入演示数据，再次启动。后端启动时会加密演示用户的手机号和邮箱。
 
 ```bash
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS students_manager CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS 'students_manager_app'@'%' IDENTIFIED BY 'xiaoer'; ALTER USER 'students_manager_app'@'%' IDENTIFIED BY 'xiaoer'; GRANT ALL PRIVILEGES ON students_manager.* TO 'students_manager_app'@'%'"
@@ -138,13 +138,13 @@ mvn spring-boot:run
 
 ### Docker/生产初始化
 
-Docker Compose 通过 `MYSQL_DATABASE` 创建空库，并由 MySQL 镜像创建应用数据库账号；后端启动后 Flyway 执行 `classpath:db/migration/V1__create_initial_schema.sql`，创建完整结构及初始管理员。迁移随后端 JAR 打包，不插入演示学生、教师、学院或课程，也不需要 Docker 专用的数据库初始化 SQL 挂载。
+Docker Compose 通过 `MYSQL_DATABASE` 创建空库，并由 MySQL 镜像创建应用数据库账号；后端启动后 Flyway 执行唯一迁移 `classpath:db/migration/V1__create_initial_schema.sql`，创建完整结构及初始管理员。迁移随后端 JAR 打包，不插入演示学生、教师、学院或课程，也不需要 Docker 专用的数据库初始化 SQL 挂载。
 
 全新数据库不会预置教学学期。管理员登录后应先进入“学期管理”创建并启用学期，再将其中一个设为当前学期；课程和成绩共用该列表，创建教学班前需确保对应学期已启用。
 
 #### 接入已有生产数据库
 
-本次整理将原 V2–V5 合并为新的 V2，不修改 V1。只有 baseline 到 V1 的开发库会直接运行 V2，补齐缺失结构并保留已有业务数据。若数据库已经执行过旧 V2–V5，确认四个版本的结构都已完整应用后，先执行 Flyway `repair` 对齐迁移历史，再启动；`repair` 只修复迁移记录，不执行 SQL。若旧数据库未完整应用这些版本，不要直接 `repair`，应先核对结构后再决定补齐方案。不要对结构不一致或需要保留的数据直接执行 `repair`。
+为便于正式发布前维护，当前 V1 汇总完整结构，空数据库只运行这一个迁移。已有开发库若已执行过旧 V2/V3，必须先确认其表、列、约束均已存在，再使用 Flyway `repair` 对齐迁移历史；`repair` 只调整 `flyway_schema_history`，不会执行建表或删除业务数据。结构未完整应用时不要直接 repair，应先核对并补齐结构。正式发布后冻结 V1，后续迁移从 V2 开始。
 
 成绩管理支持正常考试、补考和重修，按学生、课程、学期和考试次数分别保存记录。教师可在“我的课程 → 学生与成绩”中查看已确认选课学生，支持跨页选择最多 200 名学生并批量提交成绩；后端在单个事务中校验课程归属、选课状态、成绩范围和重复考试次数，整批通过后才写入。教师提交的成绩默认为待发布，管理员可批量发布；学生端只展示已发布成绩。教师只能更正待发布成绩，已发布成绩由管理员处理。更正与删除要求填写原因，成绩详情保留操作人、时间、原因以及成绩和发布状态的变更历史。本地初始化的演示成绩为已发布状态。
 

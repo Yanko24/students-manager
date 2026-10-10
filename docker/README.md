@@ -131,7 +131,7 @@ Compose 使用 `app-network` 网络，容器间通过 `mysql`、`backend`、`fro
 
 ## 数据库初始化与持久化
 
-MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_manager` 空数据库；空数据卷首次初始化时，MySQL 镜像创建 `students_manager_app` 并授予该库权限。后端以应用账号连接并运行 Flyway，执行 [`V1__create_initial_schema.sql`](../backend/src/main/resources/db/migration/V1__create_initial_schema.sql)，一次创建全部 16 张业务表和初始管理员 `admin`。不包含演示学生、教师、学院、专业或课程。SQL 随 Spring Boot JAR 打包，运行位置为 `classpath:db/migration/`，因此不需要 MySQL 初始化 SQL 挂载。
+MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_manager` 空数据库；空数据卷首次初始化时，MySQL 镜像创建 `students_manager_app` 并授予该库权限。后端以应用账号连接并运行 Flyway，执行 [`V1__create_initial_schema.sql`](../backend/src/main/resources/db/migration/V1__create_initial_schema.sql)，一次创建当前 21 张表和初始管理员 `admin`。不包含演示学生、教师、学院、专业或课程。SQL 随 Spring Boot JAR 打包，运行位置为 `classpath:db/migration/`，因此不需要 MySQL 初始化 SQL 挂载。
 
 数据库保存在 Compose 命名卷 `students-manager-mysql-data`。Docker Compose 通常会在实际卷名中添加项目名前缀，可通过 `docker volume ls` 确认。以下行为不会清空数据卷：
 
@@ -139,7 +139,7 @@ MySQL 镜像为 `mysql:8.4`。Compose 通过 `MYSQL_DATABASE` 创建 `students_m
 - `docker compose down` 后再次 `docker compose up`
 - `docker compose up -d --build` 重建容器或镜像
 
-Flyway 在每次后端启动时检查 `flyway_schema_history`。尚未正式发布的 V1–V8 已合并为唯一 V1，旧库的 V1 校验和及后续版本历史与新基线不兼容，普通容器重启不会重置这些记录。需要保留数据时先备份并规划导入新库；需要全新初始化时由维护者在备份后重建数据库或数据卷。不要只清空 Flyway 历史表或用 `repair` 掩盖结构差异，也不要在未备份时删除数据卷。
+Flyway 在每次后端启动时检查 `flyway_schema_history`。项目尚未正式发布，当前源码仅保留一个包含完整结构的 V1。此前使用过旧版本迁移的数据库，其迁移记录和 V1 校验和可能与当前文件不兼容，普通容器重启不会重置这些记录。需要保留数据时先备份，并制定核对后迁入新库的方案；仅可丢弃的开发库可在备份后重建。不要只清空 Flyway 历史表或用 `repair` 掩盖结构差异，也不要在未备份时删除数据卷。
 
 #### 给已有数据卷创建应用账号
 
@@ -168,17 +168,19 @@ docker compose up -d --build
 
 ### 备份和恢复
 
-备份当前数据库到主机当前目录：
+备份 InnoDB 数据库到主机当前目录：
 
 ```bash
-docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqldump -uroot students_manager' > students_manager.sql
+docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqldump --single-transaction --routines --events --triggers --no-tablespaces -uroot students_manager' > students_manager.sql
 ```
 
-导入 SQL 备份：
+请将备份恢复到新建的空数据库或隔离的 MySQL 实例，不要直接覆盖仍在使用的库。导入 SQL 备份：
 
 ```bash
 docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot students_manager' < students_manager.sql
 ```
+
+恢复后核对 Flyway 版本、管理员账号及关键业务表的记录数。已使用 MySQL 8.4 临时实例完成一次备份恢复演练，抽查用户、学生、教师、课程、成绩和迁移历史的行数与源库一致。备份文件应按机构策略加密、限制访问并设置保留周期；不要将其提交到 Git。
 
 数据库备份不包含 SM4 密钥。恢复加密的联系方式前，必须同时持有与数据匹配的 `SM4_KEY_BASE64`。
 
