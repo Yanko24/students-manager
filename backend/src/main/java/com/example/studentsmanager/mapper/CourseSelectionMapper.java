@@ -108,6 +108,15 @@ public interface CourseSelectionMapper {
     @Select("SELECT id FROM course_selections WHERE student_id = #{studentId} AND course_id = #{courseId} AND status IN ('pending', 'approved', 'waitlisted') AND is_deleted = 0 FOR UPDATE")
     List<Long> selectActiveForStudentAndCourseForUpdate(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
 
+    @Select("SELECT status FROM course_selections WHERE student_id = #{studentId} AND course_id = #{courseId} " +
+            "AND status IN ('pending', 'approved', 'waitlisted') AND is_deleted = 0 FOR UPDATE")
+    List<String> selectActiveStatusesForStudentAndCourseForUpdate(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
+
+    @Select("SELECT COALESCE(SUM(c.credits), 0) FROM course_selections cs JOIN courses c ON c.id = cs.course_id " +
+            "WHERE cs.student_id = #{studentId} AND c.semester = #{semester} " +
+            "AND cs.status IN ('pending', 'approved', 'waitlisted') AND cs.is_deleted = 0 AND c.is_deleted = 0")
+    java.math.BigDecimal sumActiveCreditsBySemester(@Param("studentId") Long studentId, @Param("semester") String semester);
+
     @Insert("INSERT INTO course_selections (student_id, course_id, selection_date, status, create_by, update_by) VALUES (#{studentId}, #{courseId}, CURRENT_TIMESTAMP, 'pending', #{actor}, #{actor})")
     int insertPending(@Param("studentId") Long studentId, @Param("courseId") Long courseId, @Param("actor") String actor);
 

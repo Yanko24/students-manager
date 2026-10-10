@@ -17,6 +17,10 @@ export function getCourseById(id) {
 	});
 }
 
+export function getCourseCatalogOptions() {
+	return request({ url: "/courses/catalog-options", method: "get" });
+}
+
 // 获取课程已选学生名单
 export function getCourseSelectedStudents(id, params) {
 	return request({

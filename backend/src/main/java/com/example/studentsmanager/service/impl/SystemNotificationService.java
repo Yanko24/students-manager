@@ -23,10 +23,11 @@ public class SystemNotificationService extends ServiceImpl<SystemNotificationMap
         if (user == null) throw new BusinessException("当前账号不存在");
         long current = Math.max(1, page);
         long pageSize = Math.min(100, Math.max(1, size));
+        String normalizedType = type == null || type.isBlank() ? null : type.trim();
         LambdaQueryWrapper<SystemNotification> query = new LambdaQueryWrapper<SystemNotification>()
                 .eq(SystemNotification::getUserId, user.getId())
                 .isNull(unreadOnly, SystemNotification::getReadAt)
-                .eq(type != null && !type.isBlank(), SystemNotification::getNotificationType, type.trim())
+                .eq(normalizedType != null, SystemNotification::getNotificationType, normalizedType)
                 .orderByDesc(SystemNotification::getCreateTime);
         return page(new Page<>(current, pageSize), query);
     }

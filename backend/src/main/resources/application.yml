@@ -32,3 +32,7 @@ file:
     path: uploads/
     max-size: 10MB
     allowed-types: image/jpeg,image/png,image/gif
+
+students-manager:
+  course-selection:
+    max-semester-credits: ${COURSE_SELECTION_MAX_SEMESTER_CREDITS:30}

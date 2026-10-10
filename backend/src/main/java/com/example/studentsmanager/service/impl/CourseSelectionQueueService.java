@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -15,7 +16,8 @@ public class CourseSelectionQueueService {
 
     public int promoteAvailable(Course course, String actor) {
         if (course == null || !Integer.valueOf(1).equals(course.getSelectionOpen())
-                || Integer.valueOf(2).equals(course.getStatus())) {
+                || Integer.valueOf(2).equals(course.getStatus())
+                || (course.getSelectionEndAt() != null && LocalDateTime.now().isAfter(course.getSelectionEndAt()))) {
             return 0;
         }
 

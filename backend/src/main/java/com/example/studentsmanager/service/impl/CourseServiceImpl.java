@@ -7,6 +7,8 @@ import com.example.studentsmanager.exception.BusinessException;
 import com.example.studentsmanager.mapper.CourseMapper;
 import com.example.studentsmanager.mapper.CourseCatalogMapper;
 import com.example.studentsmanager.mapper.CourseSelectionMapper;
+import com.example.studentsmanager.mapper.CoursePrerequisiteMapper;
+import com.example.studentsmanager.mapper.AcademicTermMapper;
 import com.example.studentsmanager.model.dto.course.CourseQueryDTO;
 import com.example.studentsmanager.model.dto.course.CourseUpdateDTO;
 import com.example.studentsmanager.model.entity.Course;
@@ -24,7 +26,9 @@ import com.example.studentsmanager.service.StudentService;
 import com.example.studentsmanager.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -40,14 +44,20 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     private final UserService userService;
     private final CourseSelectionMapper courseSelectionMapper;
     private final CourseCatalogMapper courseCatalogMapper;
+    private final CoursePrerequisiteMapper coursePrerequisiteMapper;
+    private final AcademicTermMapper academicTermMapper;
     private final CourseSelectionQueueService courseSelectionQueueService;
     private final CourseScheduleService courseScheduleService;
     private final StudentService studentService;
     private final OperationAuditService operationAuditService;
     private final SystemNotificationService notificationService;
+    @Value("${students-manager.course-selection.max-semester-credits:30}")
+    private BigDecimal maxSemesterCredits;
 
     public CourseServiceImpl(TeacherService teacherService, UserService userService, CourseSelectionMapper courseSelectionMapper,
                              CourseCatalogMapper courseCatalogMapper,
+                             CoursePrerequisiteMapper coursePrerequisiteMapper,
+                             AcademicTermMapper academicTermMapper,
                              CourseSelectionQueueService courseSelectionQueueService, CourseScheduleService courseScheduleService,
                              StudentService studentService, OperationAuditService operationAuditService,
                              SystemNotificationService notificationService) {
@@ -55,6 +65,8 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         this.userService = userService;
         this.courseSelectionMapper = courseSelectionMapper;
         this.courseCatalogMapper = courseCatalogMapper;
+        this.coursePrerequisiteMapper = coursePrerequisiteMapper;
+        this.academicTermMapper = academicTermMapper;
         this.courseSelectionQueueService = courseSelectionQueueService;
         this.courseScheduleService = courseScheduleService;
         this.studentService = studentService;
@@ -89,11 +101,14 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         Teacher teacher = findTeacher(username);
         int current = query.getPage() == null || query.getPage() < 1 ? 1 : query.getPage();
         int size = query.getSize() == null || query.getSize() < 1 ? 10 : Math.min(100, query.getSize());
+        String code = query.getCode() == null || query.getCode().isBlank() ? null : query.getCode().trim();
+        String name = query.getName() == null || query.getName().isBlank() ? null : query.getName().trim();
+        String semester = query.getSemester() == null || query.getSemester().isBlank() ? null : query.getSemester().trim();
         LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<Course>()
                 .eq(Course::getTeacherId, teacher.getId())
-                .like(query.getCode() != null && !query.getCode().isBlank(), Course::getCourseCode, query.getCode().trim())
-                .like(query.getName() != null && !query.getName().isBlank(), Course::getCourseName, query.getName().trim())
-                .like(query.getSemester() != null && !query.getSemester().isBlank(), Course::getSemester, query.getSemester().trim())
+                .like(code != null, Course::getCourseCode, code)
+                .like(name != null, Course::getCourseName, name)
+                .like(semester != null, Course::getSemester, semester)
                 .orderByDesc(Course::getSemester).orderByAsc(Course::getCourseCode).orderByAsc(Course::getSectionCode);
         return toVOPage(page(new Page<>(current, size), wrapper));
     }
@@ -134,6 +149,11 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         Course course = getById(id);
         if (course == null) throw new BusinessException("课程不存在");
         return toVOPage(new Page<Course>(1, 1, 1).setRecords(Collections.singletonList(course))).getRecords().get(0);
+    }
+
+    @Override
+    public List<CourseCatalog> getCourseCatalogOptions() {
+        return courseCatalogMapper.selectOptions();
     }
 
     @Override
@@ -193,6 +213,15 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
                 if (getBaseMapper().countStudentEligibility(courseId, record.getStudentId()) == 0) {
                     throw new BusinessException("部分申请学生已不符合课程的专业或年级范围，无法批量通过");
                 }
+                List<String> missingPrerequisites = course.getCatalogId() == null ? List.of()
+                        : coursePrerequisiteMapper.selectMissingCodes(course.getCatalogId(), record.getStudentId());
+                if (!missingPrerequisites.isEmpty()) {
+                    throw new BusinessException("学生尚未通过先修课程：" + String.join("、", missingPrerequisites));
+                }
+                BigDecimal credits = courseSelectionMapper.sumActiveCreditsBySemester(record.getStudentId(), course.getSemester());
+                if (credits.compareTo(maxSemesterCredits) > 0) {
+                    throw new BusinessException("学生本学期选课学分已超过上限，无法通过");
+                }
                 if (courseScheduleService.hasStudentConflict(course, record.getStudentId())) {
                     throw new BusinessException("部分学生的课程时间与已选课程冲突，无法批量通过");
                 }
@@ -221,6 +250,9 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     @Override
     @Transactional(rollbackFor = Exception.class)
     public CourseVO createCourse(CourseUpdateDTO dto) {
+        if (academicTermMapper.countActiveTerm(dto.getSemester()) == 0) {
+            throw new BusinessException("请先在学期管理中启用对应学期");
+        }
         String sectionCode = normalizeSectionCode(dto.getSectionCode());
         if (count(new LambdaQueryWrapper<Course>().eq(Course::getCourseCode, dto.getCode())
                 .eq(Course::getSemester, dto.getSemester()).eq(Course::getSectionCode, sectionCode)) > 0) {
@@ -231,6 +263,9 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         synchronizeCatalog(course);
         course.setIsDeleted(0);
         save(course);
+        if (dto.getPrerequisiteCourseCodes() != null) {
+            synchronizePrerequisites(course, dto.getPrerequisiteCourseCodes());
+        }
         courseScheduleService.replace(course, dto.getSchedules(), null);
         CourseVO created = getCourse(course.getId());
         notifyTeacher(created.getTeacherId(), "COURSE_ASSIGNED", "新增授课任务",
@@ -243,6 +278,10 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     public CourseVO updateCourse(Long id, CourseUpdateDTO dto) {
         Course course = getBaseMapper().selectForUpdate(id);
         if (course == null) throw new BusinessException("课程不存在");
+        if (!Objects.equals(course.getSemester(), dto.getSemester())
+                && academicTermMapper.countActiveTerm(dto.getSemester()) == 0) {
+            throw new BusinessException("新开课学期必须已在学期管理中启用");
+        }
         CourseVO previous = getCourse(id);
         String sectionCode = normalizeSectionCode(dto.getSectionCode());
         if (count(new LambdaQueryWrapper<Course>().eq(Course::getCourseCode, dto.getCode())
@@ -257,6 +296,9 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         }
         synchronizeCatalog(course);
         updateById(course);
+        if (dto.getPrerequisiteCourseCodes() != null) {
+            synchronizePrerequisites(course, dto.getPrerequisiteCourseCodes());
+        }
         courseScheduleService.replace(course, dto.getSchedules(), id);
         courseSelectionQueueService.promoteAvailable(course, "system");
         CourseVO updated = getCourse(id);
@@ -289,6 +331,16 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         }
         if (selectionOpen != 0 && selectionOpen != 1) {
             throw new BusinessException("选课状态无效");
+        }
+        if ((dto.getSelectionStartAt() == null) != (dto.getSelectionEndAt() == null)) {
+            throw new BusinessException("选课开始和截止时间需要同时填写");
+        }
+        if (dto.getSelectionStartAt() != null && !dto.getSelectionEndAt().isAfter(dto.getSelectionStartAt())) {
+            throw new BusinessException("选课截止时间必须晚于开始时间");
+        }
+        if (dto.getDropDeadlineAt() != null && dto.getSelectionStartAt() != null
+                && dto.getDropDeadlineAt().isBefore(dto.getSelectionStartAt())) {
+            throw new BusinessException("退选截止时间不能早于选课开始时间");
         }
         if (!List.of("ALL", "COLLEGE", "MAJOR").contains(selectionScope)) {
             throw new BusinessException("选课范围无效");
@@ -326,6 +378,9 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         course.setSelectionCollegeId("COLLEGE".equals(selectionScope) || "MAJOR".equals(selectionScope) ? dto.getSelectionCollegeId() : null);
         course.setSelectionMajorCode("MAJOR".equals(selectionScope) ? dto.getSelectionMajorCode().trim() : null);
         course.setSelectionGrade(selectionGrade);
+        course.setSelectionStartAt(dto.getSelectionStartAt());
+        course.setSelectionEndAt(dto.getSelectionEndAt());
+        course.setDropDeadlineAt(dto.getDropDeadlineAt());
         course.setDescription(dto.getDescription());
         course.setObjectives(dto.getObjectives());
     }
@@ -384,6 +439,29 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         course.setCatalogId(catalog.getId());
     }
 
+    private void synchronizePrerequisites(Course course, List<String> courseCodes) {
+        List<String> codes = courseCodes == null ? Collections.emptyList() : courseCodes.stream()
+                .filter(Objects::nonNull).map(String::trim).filter(code -> !code.isEmpty()).distinct().toList();
+        if (codes.contains(course.getCourseCode())) {
+            throw new BusinessException("课程不能将自身设置为先修课程");
+        }
+        Map<String, CourseCatalog> catalogs = courseCatalogMapper.selectOptions().stream()
+                .collect(Collectors.toMap(CourseCatalog::getCourseCode, Function.identity()));
+        List<CourseCatalog> prerequisites = codes.stream().map(catalogs::get).toList();
+        if (prerequisites.stream().anyMatch(Objects::isNull)) {
+            throw new BusinessException("先修课程中包含不存在的课程目录");
+        }
+        for (CourseCatalog prerequisite : prerequisites) {
+            if (coursePrerequisiteMapper.countPath(prerequisite.getId(), course.getCatalogId()) > 0) {
+                throw new BusinessException("先修课程关系不能形成循环依赖");
+            }
+        }
+        coursePrerequisiteMapper.deleteForCatalog(course.getCatalogId());
+        for (CourseCatalog prerequisite : prerequisites) {
+            coursePrerequisiteMapper.insert(course.getCatalogId(), prerequisite.getId());
+        }
+    }
+
     private void copyCourseDetailsToCatalog(Course course, CourseCatalog catalog) {
         catalog.setCourseName(course.getCourseName()); catalog.setCredits(course.getCredits());
         catalog.setCourseType(course.getCourseType()); catalog.setHours(course.getHours());
@@ -413,6 +491,10 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
             vo.setSelectionOpen(course.getSelectionOpen()); vo.setMaxStudents(course.getMaxStudents());
             vo.setSelectionScope(course.getSelectionScope()); vo.setSelectionCollegeId(course.getSelectionCollegeId());
             vo.setSelectionMajorCode(course.getSelectionMajorCode()); vo.setSelectionGrade(course.getSelectionGrade());
+            vo.setSelectionStartAt(course.getSelectionStartAt()); vo.setSelectionEndAt(course.getSelectionEndAt());
+            vo.setDropDeadlineAt(course.getDropDeadlineAt());
+            vo.setPrerequisiteCourseCodes(course.getCatalogId() == null ? Collections.emptyList()
+                    : coursePrerequisiteMapper.selectCodes(course.getCatalogId()));
             if (course.getSelectionCollegeId() != null) vo.setSelectionCollegeName(getBaseMapper().findCollegeName(course.getSelectionCollegeId()));
             if (course.getSelectionMajorCode() != null) vo.setSelectionMajorName(getBaseMapper().findMajorName(course.getSelectionMajorCode()));
             vo.setSelectedCount(courseSelectionMapper.countActiveForCourse(course.getId()));

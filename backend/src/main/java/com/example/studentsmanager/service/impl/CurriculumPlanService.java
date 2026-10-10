@@ -8,6 +8,7 @@ import com.example.studentsmanager.mapper.CurriculumPlanMapper;
 import com.example.studentsmanager.model.dto.curriculum.CurriculumPlanDTO;
 import com.example.studentsmanager.model.entity.CurriculumPlan;
 import com.example.studentsmanager.model.vo.curriculum.CurriculumMajorOptionVO;
+import com.example.studentsmanager.model.vo.curriculum.CurriculumPlanVO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,18 +21,21 @@ public class CurriculumPlanService extends ServiceImpl<CurriculumPlanMapper, Cur
         return baseMapper.selectMajorOptions();
     }
 
-    public Page<CurriculumPlan> getPage(long page, long size, String majorCode, String grade) {
+    public Page<CurriculumPlanVO> getPage(long page, long size, String majorCode, String grade) {
         String normalizedMajorCode = majorCode == null || majorCode.isBlank() ? null : majorCode.trim();
         String normalizedGrade = grade == null || grade.isBlank() ? null : grade.trim();
-        return page(new Page<>(Math.max(1, page), Math.min(100, Math.max(1, size))),
+        Page<CurriculumPlan> plans = page(new Page<>(Math.max(1, page), Math.min(100, Math.max(1, size))),
                 new LambdaQueryWrapper<CurriculumPlan>()
                         .like(normalizedMajorCode != null, CurriculumPlan::getMajorCode, normalizedMajorCode)
                         .eq(normalizedGrade != null, CurriculumPlan::getGrade, normalizedGrade)
                         .orderByAsc(CurriculumPlan::getMajorCode, CurriculumPlan::getGrade));
+        Page<CurriculumPlanVO> result = new Page<>(plans.getCurrent(), plans.getSize(), plans.getTotal());
+        result.setRecords(plans.getRecords().stream().map(this::toVO).toList());
+        return result;
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public CurriculumPlan create(CurriculumPlanDTO dto, String actor) {
+    public CurriculumPlanVO create(CurriculumPlanDTO dto, String actor) {
         validate(dto);
         if (getBaseMapper().countActiveMajorGrade(dto.getMajorCode().trim(), dto.getGrade().trim()) == 0) {
             throw new BusinessException("请选择有效的专业和年级");
@@ -44,11 +48,12 @@ public class CurriculumPlanService extends ServiceImpl<CurriculumPlanMapper, Cur
         apply(plan, dto);
         plan.setCreateBy(actor); plan.setUpdateBy(actor); plan.setIsDeleted(0);
         save(plan);
-        return plan;
+        synchronizeRequiredCourses(plan, dto.getRequiredCourseCatalogIds());
+        return toVO(plan);
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public CurriculumPlan update(Long id, CurriculumPlanDTO dto, String actor) {
+    public CurriculumPlanVO update(Long id, CurriculumPlanDTO dto, String actor) {
         CurriculumPlan plan = getById(id);
         if (plan == null) throw new BusinessException("培养方案不存在");
         validate(dto);
@@ -60,7 +65,10 @@ public class CurriculumPlanService extends ServiceImpl<CurriculumPlanMapper, Cur
             throw new BusinessException("该专业和年级已经配置培养方案");
         }
         apply(plan, dto); plan.setUpdateBy(actor); updateById(plan);
-        return plan;
+        if (dto.getRequiredCourseCatalogIds() != null) {
+            synchronizeRequiredCourses(plan, dto.getRequiredCourseCatalogIds());
+        }
+        return toVO(plan);
     }
 
     public void delete(Long id) {
@@ -91,5 +99,25 @@ public class CurriculumPlanService extends ServiceImpl<CurriculumPlanMapper, Cur
         plan.setPlanName(dto.getPlanName().trim()); plan.setMajorCode(dto.getMajorCode().trim());
         plan.setGrade(dto.getGrade().trim()); plan.setTotalCredits(value(dto.getTotalCredits()));
         plan.setRequiredCredits(value(dto.getRequiredCredits())); plan.setElectiveCredits(value(dto.getElectiveCredits()));
+    }
+
+    private void synchronizeRequiredCourses(CurriculumPlan plan, List<Long> ids) {
+        List<Long> uniqueIds = ids == null ? List.of() : ids.stream().filter(id -> id != null).distinct().toList();
+        if (ids != null && uniqueIds.size() != ids.size()) throw new BusinessException("必修课程列表包含重复或无效编号");
+        if (!uniqueIds.isEmpty() && baseMapper.countCatalogIds(uniqueIds) != uniqueIds.size()) {
+            throw new BusinessException("必修课程列表包含不存在的课程");
+        }
+        if (!uniqueIds.isEmpty() && baseMapper.countRequiredCatalogIds(uniqueIds) != uniqueIds.size()) {
+            throw new BusinessException("逐门必修清单只能包含课程类型为必修课的课程");
+        }
+        baseMapper.deletePlanCourses(plan.getId());
+        for (Long catalogId : uniqueIds) baseMapper.insertPlanCourse(plan.getId(), catalogId);
+    }
+
+    private CurriculumPlanVO toVO(CurriculumPlan plan) {
+        CurriculumPlanVO vo = new CurriculumPlanVO();
+        org.springframework.beans.BeanUtils.copyProperties(plan, vo);
+        vo.setRequiredCourseCatalogIds(baseMapper.selectRequiredCourseCatalogIds(plan.getId()));
+        return vo;
     }
 }

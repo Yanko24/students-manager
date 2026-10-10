@@ -3,6 +3,8 @@ package com.example.studentsmanager.model.vo.curriculum;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 public class CurriculumProgressVO {
@@ -20,4 +22,8 @@ public class CurriculumProgressVO {
     private BigDecimal remainingRequiredCredits = BigDecimal.ZERO;
     private BigDecimal remainingElectiveCredits = BigDecimal.ZERO;
     private BigDecimal completionRate = BigDecimal.ZERO;
+    private boolean courseRequirementsConfigured;
+    private String graduationAuditStatus = "NOT_CONFIGURED";
+    private List<String> graduationAuditBlockers = new ArrayList<>();
+    private List<CurriculumRequiredCourseVO> requiredCourses = new ArrayList<>();
 }

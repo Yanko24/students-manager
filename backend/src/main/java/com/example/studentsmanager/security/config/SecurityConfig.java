@@ -39,8 +39,8 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/webjars/**").permitAll()
                 // 基于角色的访问控制
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/students/**").hasAnyRole("ADMIN", "TEACHER", "STUDENT")
-                .requestMatchers("/api/teachers/**").hasAnyRole("ADMIN", "TEACHER")
+                .requestMatchers("/api/students/**", "/api/teachers/**", "/api/users/**",
+                    "/api/courses/**", "/api/colleges/**").hasRole("ADMIN")
                 .requestMatchers("/api/student-portal/**").hasRole("STUDENT")
                 .requestMatchers("/api/attendance/teacher/**").hasRole("TEACHER")
                 .requestMatchers("/api/attendance/student/**").hasRole("STUDENT")

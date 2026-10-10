@@ -39,6 +39,12 @@ public class Course {
     private String selectionMajorCode;
     @TableField("selection_grade")
     private String selectionGrade;
+    @TableField("selection_start_at")
+    private LocalDateTime selectionStartAt;
+    @TableField("selection_end_at")
+    private LocalDateTime selectionEndAt;
+    @TableField("drop_deadline_at")
+    private LocalDateTime dropDeadlineAt;
     private String description;
     private String objectives;
     @TableField(fill = FieldFill.INSERT)

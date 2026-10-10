@@ -10,6 +10,7 @@ import com.example.studentsmanager.model.dto.course.CourseUpdateDTO;
 import com.example.studentsmanager.model.dto.course.CourseSelectionReviewDTO;
 import com.example.studentsmanager.model.vo.course.CourseVO;
 import com.example.studentsmanager.model.vo.course.CourseSelectionStudentVO;
+import com.example.studentsmanager.model.entity.CourseCatalog;
 import com.example.studentsmanager.service.CourseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +32,13 @@ public class CourseController {
     @GetMapping("/{id}")
     @Operation(summary = "查询课程详情", description = "根据课程编号获取课程信息")
     public Result<CourseVO> getCourse(@PathVariable Long id) { return Result.success(courseService.getCourse(id)); }
+
+    @GetMapping("/catalog-options")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "查询先修课程选项")
+    public Result<java.util.List<CourseCatalog>> getCourseCatalogOptions() {
+        return Result.success(courseService.getCourseCatalogOptions());
+    }
 
     @GetMapping("/{id}/students")
     @PreAuthorize("hasRole('ADMIN')")

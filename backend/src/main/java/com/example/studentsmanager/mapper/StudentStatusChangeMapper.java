@@ -10,6 +10,12 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface StudentStatusChangeMapper extends BaseMapper<StudentStatusChangeRequest> {
 
+    @Select("SELECT GET_LOCK('students-manager:status-change-apply', 0)")
+    Integer tryAcquireApplyLock();
+
+    @Select("SELECT RELEASE_LOCK('students-manager:status-change-apply')")
+    Integer releaseApplyLock();
+
     @Select("SELECT r.*, s.student_no AS student_no, u.real_name AS student_name " +
             "FROM student_status_change_requests r " +
             "LEFT JOIN students s ON s.id = r.student_id AND s.is_deleted = 0 " +

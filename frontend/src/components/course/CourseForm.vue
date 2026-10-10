@@ -70,7 +70,10 @@
                 </el-col>
                 <el-col :span="12">
                     <el-form-item label="开课学期" prop="semester">
-                        <el-input v-model="formData.semester" placeholder="例如：2026-2027-1" />
+                        <el-select v-model="formData.semester" filterable placeholder="请选择学期" style="width: 100%">
+                            <el-option v-for="term in academicTerms" :key="term.id" :label="term.termCode + (term.isCurrent ? '（当前）' : '')"
+                                :value="term.termCode" :disabled="!term.isActive && term.termCode !== formData.semester" />
+                        </el-select>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -122,6 +125,38 @@
                 </el-col>
             </el-row>
 
+            <el-divider content-position="left">选课规则</el-divider>
+            <el-row :gutter="20">
+                <el-col :span="12">
+                    <el-form-item label="选课时间窗">
+                        <el-date-picker v-model="formData.selectionStartAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss"
+                            format="YYYY-MM-DD HH:mm:ss" placeholder="选课开始时间" style="width: 100%" />
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="选课截止">
+                        <el-date-picker v-model="formData.selectionEndAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss"
+                            format="YYYY-MM-DD HH:mm:ss" placeholder="选课截止时间" style="width: 100%" />
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="退选截止">
+                        <el-date-picker v-model="formData.dropDeadlineAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss"
+                            format="YYYY-MM-DD HH:mm:ss" placeholder="留空表示不单独限制退选时间" style="width: 100%" />
+                    </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item label="先修课程">
+                        <el-select v-model="formData.prerequisiteCourseCodes" multiple filterable clearable
+                            placeholder="选择必须已通过的课程" style="width: 100%">
+                            <el-option v-for="item in catalogOptions" :key="item.courseCode" :label="`${item.courseName}（${item.courseCode}）`"
+                                :value="item.courseCode" :disabled="item.courseCode === formData.code" />
+                        </el-select>
+                    </el-form-item>
+                </el-col>
+            </el-row>
+            <p class="schedule-hint rule-hint">时间窗留空表示沿用课程开放状态；学期选课学分上限默认为 30 学分，可通过 COURSE_SELECTION_MAX_SEMESTER_CREDITS 配置。</p>
+
             <el-divider content-position="left">上课安排</el-divider>
             <div v-for="(schedule, index) in formData.schedules" :key="index" class="schedule-row">
                 <el-select v-model="schedule.dayOfWeek" placeholder="星期" class="schedule-day">
@@ -167,9 +202,10 @@ import { showApiError } from "@/utils/errorHandler";
     import { ref, onMounted, reactive } from 'vue'
     import { ElMessage } from 'element-plus'
     import { getTeacherList } from '@/api/teacher'
-    import { getCourseById } from '@/api/course'
+    import { getCourseById, getCourseCatalogOptions } from '@/api/course'
     import { getCollegeList } from '@/api/college'
     import { getAllMajorsList } from '@/api/major'
+import { getAcademicTerms, getCurrentAcademicTerm } from '@/api/academicTerm'
     import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
     const props = defineProps({
@@ -189,6 +225,8 @@ import { showApiError } from "@/utils/errorHandler";
     const teachers = ref([])
     const colleges = ref([])
     const majors = ref([])
+    const catalogOptions = ref([])
+    const academicTerms = ref([])
 
     // 表单数据
     const formData = reactive({
@@ -207,6 +245,10 @@ import { showApiError } from "@/utils/errorHandler";
         selectionCollegeId: null,
         selectionMajorCode: '',
         selectionGrade: '',
+        selectionStartAt: null,
+        selectionEndAt: null,
+        dropDeadlineAt: null,
+        prerequisiteCourseCodes: [],
         description: '',
         objectives: '',
         schedules: []
@@ -313,10 +355,13 @@ import { showApiError } from "@/utils/errorHandler";
 
     onMounted(async () => {
         try {
-            const [teacherResponse, collegeResponse, majorResponse] = await Promise.all([
+            const [teacherResponse, collegeResponse, majorResponse, catalogResponse, termResponse, currentTermResponse] = await Promise.all([
                 getTeacherList({ page: 1, size: 100 }),
                 getCollegeList({ page: 1, size: 100 }),
-                getAllMajorsList()
+                getAllMajorsList(),
+                getCourseCatalogOptions(),
+                getAcademicTerms(),
+                getCurrentAcademicTerm()
             ])
             if (teacherResponse?.code === 200) teachers.value = teacherResponse.data?.records || []
             if (collegeResponse?.code === 200) colleges.value = collegeResponse.data?.records || []
@@ -325,7 +370,10 @@ import { showApiError } from "@/utils/errorHandler";
                 for (const major of majorResponse.data?.records || []) uniqueMajors.set(major.code, major)
                 majors.value = [...uniqueMajors.values()]
             }
+            if (catalogResponse?.code === 200) catalogOptions.value = catalogResponse.data || []
+            if (termResponse?.code === 200) academicTerms.value = termResponse.data || []
             if (props.isEdit) await loadCourseData(props.id)
+            else if (currentTermResponse?.data?.termCode) formData.semester = currentTermResponse.data.termCode
             setInitialSnapshot()
         } catch (error) {
             showApiError(error, error.message || '加载课程信息失败')

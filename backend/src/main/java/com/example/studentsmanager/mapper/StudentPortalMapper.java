@@ -16,6 +16,7 @@ public interface StudentPortalMapper {
             "u.real_name AS teacher, t.department AS college, c.credits AS credit, c.hours,",
             "c.course_type AS type, c.semester, c.status, c.selection_open AS selectionOpen, c.max_students AS maxStudents,",
             "c.selection_scope AS selectionScope, c.selection_college_id AS selectionCollegeId, c.selection_major_code AS selectionMajorCode, c.selection_grade AS selectionGrade,",
+            "c.selection_start_at AS selectionStartAt, c.selection_end_at AS selectionEndAt, c.drop_deadline_at AS dropDeadlineAt,",
             "scope_college.name AS selectionCollegeName, (SELECT sm.name FROM majors sm WHERE sm.code = c.selection_major_code AND sm.is_deleted = 0 ORDER BY sm.grade DESC, sm.class_no ASC LIMIT 1) AS selectionMajorName,",
             "(SELECT COUNT(*) FROM course_selections active WHERE active.course_id = c.id AND active.status IN ('pending', 'approved') AND active.is_deleted = 0) AS selectedCount,",
             "CASE c.status WHEN 0 THEN '未开课' WHEN 1 THEN '已开课' WHEN 2 THEN '已结课' ELSE '未知' END AS statusText,",

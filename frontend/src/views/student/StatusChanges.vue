@@ -1,7 +1,7 @@
 <template>
     <div class="page-container">
-        <div class="page-header"><h2>学籍异动</h2><el-button type="primary" @click="dialogVisible = true">提交申请</el-button></div>
-        <el-alert title="休学、复学、转专业和退学申请须由管理员审核，通过后才会更新学籍档案。" type="info" :closable="false" show-icon />
+        <div class="page-header"><h2>学籍异动</h2><el-button type="primary" :disabled="loading || Boolean(blockingRequest)" @click="dialogVisible = true">{{ blockingRequest ? '已有申请处理中' : '提交申请' }}</el-button></div>
+        <el-alert :title="blockingNotice" :type="blockingRequest ? 'warning' : 'info'" :closable="false" show-icon />
         <el-card class="table-card">
             <el-table :data="rows" v-loading="loading" border stripe>
                 <el-table-column label="申请类型" min-width="120"><template #default="{ row }">{{ typeLabel(row.changeType) }}</template></el-table-column>
@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { applyStatusChange, getMyStatusChanges } from '@/api/studentStatusChange'
 import { getAllMajors } from '@/api/major'
@@ -36,6 +36,13 @@ import { formatDate, formatDateTime } from '@/utils/dateUtils'
 
 const rows = ref([]), loading = ref(false), submitting = ref(false), dialogVisible = ref(false), formRef = ref(), majors = ref([]), majorLoading = ref(false)
 const form = reactive({ changeType: '', targetMajorKey: '', effectiveDate: '', reason: '' })
+const blockingRequest = computed(() => rows.value.find(row => row.status === 'PENDING' || (row.status === 'APPROVED' && !row.appliedAt)))
+const blockingNotice = computed(() => {
+    const request = blockingRequest.value
+    if (!request) return '休学、复学、转专业和退学申请须由管理员审核，通过后才会更新学籍档案。'
+    if (request.status === 'PENDING') return `你已有一条${typeLabel(request.changeType)}申请待审核，审核完成前不能重复提交。`
+    return `你的${typeLabel(request.changeType)}申请已通过，预计 ${formatDate(request.effectiveDate)} 生效；生效前不能重复提交。`
+})
 const rules = { changeType: [{ required: true, message: '请选择异动类型', trigger: 'change' }], effectiveDate: [{ required: true, message: '请选择生效日期', trigger: 'change' }], reason: [{ required: true, message: '请填写申请原因', trigger: 'blur' }], targetMajorKey: [{ required: true, message: '请选择转入专业班级', trigger: 'change' }] }
 const typeLabel = type => ({ SUSPENSION: '休学', RETURN: '复学', MAJOR_TRANSFER: '转专业', WITHDRAWAL: '退学' }[type] || type)
 const statusLabel = status => ({ PENDING: '待审核', APPROVED: '已通过', REJECTED: '已拒绝', CANCELLED: '已取消' }[status] || status)

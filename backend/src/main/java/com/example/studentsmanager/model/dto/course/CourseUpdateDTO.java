@@ -3,6 +3,7 @@ package com.example.studentsmanager.model.dto.course;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -22,6 +23,10 @@ public class CourseUpdateDTO {
     private Long selectionCollegeId;
     private String selectionMajorCode;
     private String selectionGrade;
+    private LocalDateTime selectionStartAt;
+    private LocalDateTime selectionEndAt;
+    private LocalDateTime dropDeadlineAt;
+    private List<String> prerequisiteCourseCodes;
     private String description;
     private String objectives;
     private List<CourseScheduleDTO> schedules;

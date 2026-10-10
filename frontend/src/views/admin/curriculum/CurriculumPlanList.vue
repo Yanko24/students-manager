@@ -43,7 +43,13 @@
         <el-form-item label="毕业总学分" prop="totalCredits"><el-input-number v-model="form.totalCredits" :min="1" :max="300" :precision="1" :step="1" /></el-form-item>
         <el-form-item label="必修学分" prop="requiredCredits"><el-input-number v-model="form.requiredCredits" :min="0" :max="300" :precision="1" :step="1" /></el-form-item>
         <el-form-item label="选修学分" prop="electiveCredits"><el-input-number v-model="form.electiveCredits" :min="0" :max="300" :precision="1" :step="1" /></el-form-item>
-        <el-alert title="学生进度按已通过成绩统计；同一课程目录按一门课计学分，非必修课程计入选修学分。" type="info" :closable="false" />
+        <el-form-item label="必修课程清单">
+          <el-select v-model="form.requiredCourseCatalogIds" multiple filterable clearable collapse-tags collapse-tags-tooltip
+            placeholder="可选：选择毕业审核必须通过的课程" style="width: 100%">
+            <el-option v-for="course in courseCatalogs" :key="course.id" :label="`${course.courseName}（${course.courseCode}）`" :value="course.id" />
+          </el-select>
+        </el-form-item>
+        <el-alert title="学分按已通过成绩统计；同一课程目录按一门课计学分，非必修课程计入选修学分。配置必修课程清单后，学生毕业审核还会逐门检查是否通过。" type="info" :closable="false" />
       </el-form>
       <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" :loading="saving" @click="save">保存方案</el-button></template>
     </el-dialog>
@@ -55,9 +61,11 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { showApiError } from '@/utils/errorHandler'
 import { createCurriculumPlan, deleteCurriculumPlan, getCurriculumMajorOptions, getCurriculumPlans, updateCurriculumPlan } from '@/api/curriculum'
+import { getCourseCatalogOptions } from '@/api/course'
 
 const rows = ref([])
 const majors = ref([])
+const courseCatalogs = ref([])
 const loading = ref(false)
 const saving = ref(false)
 const dialogVisible = ref(false)
@@ -67,7 +75,7 @@ const page = ref(1)
 const size = ref(20)
 const total = ref(0)
 const filters = reactive({ majorCode: '', grade: '' })
-const form = reactive({ planName: '', majorKey: '', totalCredits: 160, requiredCredits: 100, electiveCredits: 20 })
+const form = reactive({ planName: '', majorKey: '', totalCredits: 160, requiredCredits: 100, electiveCredits: 20, requiredCourseCatalogIds: [] })
 const majorOptions = computed(() => {
   const unique = new Map()
   for (const item of majors.value) {
@@ -104,14 +112,14 @@ async function fetchRows() {
 function search() { page.value = 1; fetchRows() }
 function reset() { filters.majorCode = ''; filters.grade = ''; search() }
 function resetForm() {
-  Object.assign(form, { planName: '', majorKey: '', totalCredits: 160, requiredCredits: 100, electiveCredits: 20 })
+  Object.assign(form, { planName: '', majorKey: '', totalCredits: 160, requiredCredits: 100, electiveCredits: 20, requiredCourseCatalogIds: [] })
   editingId.value = null
 }
 function openCreate() { resetForm(); dialogVisible.value = true }
 function openEdit(row) {
   resetForm()
   editingId.value = row.id
-  Object.assign(form, { planName: row.planName, majorKey: `${row.majorCode}|${row.grade}`, totalCredits: row.totalCredits, requiredCredits: row.requiredCredits, electiveCredits: row.electiveCredits })
+  Object.assign(form, { planName: row.planName, majorKey: `${row.majorCode}|${row.grade}`, totalCredits: row.totalCredits, requiredCredits: row.requiredCredits, electiveCredits: row.electiveCredits, requiredCourseCatalogIds: row.requiredCourseCatalogIds || [] })
   dialogVisible.value = true
 }
 async function save() {
@@ -123,7 +131,7 @@ async function save() {
   }
   saving.value = true
   try {
-    const payload = { planName: form.planName, majorCode, grade, totalCredits: form.totalCredits, requiredCredits: form.requiredCredits, electiveCredits: form.electiveCredits }
+    const payload = { planName: form.planName, majorCode, grade, totalCredits: form.totalCredits, requiredCredits: form.requiredCredits, electiveCredits: form.electiveCredits, requiredCourseCatalogIds: form.requiredCourseCatalogIds }
     if (editingId.value) await updateCurriculumPlan(editingId.value, payload)
     else await createCurriculumPlan(payload)
     ElMessage.success('培养方案已保存')
@@ -140,7 +148,11 @@ async function remove(row) {
     await fetchRows()
   } catch (error) { if (error !== 'cancel' && error !== 'close') showApiError(error, '删除培养方案失败') }
 }
-onMounted(async () => { try { await loadMajors() } catch (error) { showApiError(error, '加载专业信息失败') } await fetchRows() })
+onMounted(async () => {
+  try { await Promise.all([loadMajors(), getCourseCatalogOptions().then(response => { courseCatalogs.value = response?.data || [] })]) }
+  catch (error) { showApiError(error, '加载专业或课程目录失败') }
+  await fetchRows()
+})
 </script>
 
 <style scoped>

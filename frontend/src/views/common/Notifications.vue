@@ -23,7 +23,14 @@
 
       <el-empty v-if="!loading && !items.length" :description="filter === 'unread' ? '没有未读通知' : '暂无通知'" />
       <div v-else class="notification-list">
-        <article v-for="item in items" :key="item.id" class="notification-item" :class="{ 'is-unread': !item.readAt }">
+        <article v-for="item in items" :key="item.id" class="notification-item"
+          :class="{ 'is-unread': !item.readAt, 'is-navigable': targetFor(item) }"
+          :role="targetFor(item) ? 'link' : undefined"
+          :tabindex="targetFor(item) ? 0 : undefined"
+          :aria-label="targetFor(item) ? `打开通知：${item.title}` : undefined"
+          @click="openRelated(item)"
+          @keydown.enter.self.prevent="openRelated(item)"
+          @keydown.space.self.prevent="openRelated(item)">
           <span class="unread-dot" :class="{ visible: !item.readAt }" aria-label="未读" />
           <div class="notification-content">
             <div class="notification-heading">
@@ -35,8 +42,8 @@
             </div>
             <p>{{ item.message }}</p>
             <div class="item-actions">
-              <el-button v-if="targetFor(item)" link type="primary" @click="openRelated(item)">查看相关内容</el-button>
-              <el-button v-if="!item.readAt" link @click="markRead(item)">标为已读</el-button>
+              <el-button v-if="targetFor(item)" link type="primary" @click.stop="openRelated(item)">查看事项</el-button>
+              <el-button v-if="!item.readAt" link @click.stop="markRead(item)">标为已读</el-button>
             </div>
           </div>
         </article>
@@ -115,13 +122,14 @@ const announcementRules = {
 
 const labelsByType = {
   COURSE_ASSIGNED: '授课安排', COURSE_UPDATED: '课程调整', COURSE_ASSIGNMENT_CHANGED: '授课安排',
-  COURSE_SELECTION_REVIEW: '选课审核', SCORE_PUBLISHED: '成绩发布', STUDENT_STATUS_REVIEW: '学籍办理',
+  COURSE_SELECTION_REVIEW: '选课审核', SCORE_SUBMITTED: '成绩待发布', SCORE_PUBLISHED: '成绩发布',
+  STUDENT_STATUS_REVIEW: '学籍办理', STUDENT_STATUS_PENDING: '学籍待审核', STATUS_CHANGE_REVIEWED: '学籍审核结果',
   ANNOUNCEMENT: '教务通知', ANNOUNCEMENT_HOME: '教务通知', ANNOUNCEMENT_COURSES: '教务通知',
   ANNOUNCEMENT_SCORES: '教务通知', ANNOUNCEMENT_ATTENDANCE: '教务通知', ANNOUNCEMENT_STATUS: '教务通知',
 }
 const targetFor = item => getNotificationRoute(item.notificationType, role.value)
 const typeLabel = type => labelsByType[type] || '系统消息'
-const typeTone = type => ({ SCORE_PUBLISHED: 'success', COURSE_SELECTION_REVIEW: 'warning', ANNOUNCEMENT: 'primary', ANNOUNCEMENT_HOME: 'primary', ANNOUNCEMENT_COURSES: 'primary', ANNOUNCEMENT_SCORES: 'primary', ANNOUNCEMENT_ATTENDANCE: 'primary', ANNOUNCEMENT_STATUS: 'primary' }[type] || 'info')
+const typeTone = type => ({ SCORE_SUBMITTED: 'warning', SCORE_PUBLISHED: 'success', COURSE_SELECTION_REVIEW: 'warning', STUDENT_STATUS_PENDING: 'warning', STATUS_CHANGE_REVIEWED: 'success', ANNOUNCEMENT: 'primary', ANNOUNCEMENT_HOME: 'primary', ANNOUNCEMENT_COURSES: 'primary', ANNOUNCEMENT_SCORES: 'primary', ANNOUNCEMENT_ATTENDANCE: 'primary', ANNOUNCEMENT_STATUS: 'primary' }[type] || 'info')
 
 async function refreshUnreadCount() {
   try { unreadCount.value = Number((await getUnreadNotificationCount())?.data?.count || 0) } catch { /* badge refresh is best effort */ }
@@ -165,9 +173,19 @@ async function markAllRead() {
 }
 
 async function openRelated(item) {
-  if (!item.readAt) await markRead(item)
   const target = targetFor(item)
-  if (target) router.push({ path: target, query: { fromNotification: item.id } })
+  if (!target) return
+  if (!item.readAt) {
+    try {
+      await markNotificationRead(item.id)
+      item.readAt = new Date().toISOString()
+      refreshUnreadCount()
+      window.dispatchEvent(new Event('notifications:updated'))
+    } catch {
+      // Opening the related page should still work if updating read state fails.
+    }
+  }
+  router.push({ path: target, query: { fromNotification: item.id } })
 }
 
 async function submitAnnouncement() {
@@ -200,6 +218,9 @@ onMounted(() => {
 .result-count { color: var(--el-text-color-secondary); font-size: 13px; }
 .notification-list { display: grid; }
 .notification-item { display: flex; gap: 14px; padding: 18px 8px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.notification-item.is-navigable { cursor: pointer; }
+.notification-item.is-navigable:hover { background: var(--el-fill-color-light); }
+.notification-item.is-navigable:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
 .notification-item:last-child { border-bottom: 0; }
 .notification-item.is-unread { background: var(--el-color-primary-light-9); }
 .unread-dot { width: 8px; height: 8px; margin: 7px 2px 0; flex: 0 0 auto; border-radius: 50%; background: transparent; }

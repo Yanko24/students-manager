@@ -14,6 +14,7 @@ import com.example.studentsmanager.service.MajorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
@@ -65,6 +66,7 @@ public class MajorController {
     }
 
     @Operation(summary = "创建专业", description = "创建新的专业信息")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public Result<MajorVO> createMajor(@Valid @RequestBody MajorUpdateDTO updateDTO) {
         log.info("收到创建专业请求，专业信息：{}", updateDTO);
@@ -86,7 +88,8 @@ public class MajorController {
     }
 
     @Operation(summary = "更新专业", description = "更新指定专业的信息")
-@PutMapping("/{code}/{grade}/{classNo}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{code}/{grade}/{classNo}")
     public Result<MajorVO> updateMajor(@PathVariable String code,
                                       @PathVariable String grade,
                                       @PathVariable String classNo,
@@ -111,7 +114,8 @@ public class MajorController {
     }
 
     @Operation(summary = "删除专业", description = "删除指定的专业信息")
-@DeleteMapping("/{code}/{grade}/{classNo}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{code}/{grade}/{classNo}")
     public Result<Void> deleteMajor(@PathVariable String code,
                                   @PathVariable String grade,
                                   @PathVariable String classNo) {

@@ -92,9 +92,10 @@ public class ScoreServiceImpl extends ServiceImpl<ScoreMapper, Score> implements
         requireTeacherCourse(username, courseId);
         int current = query.getPage() == null || query.getPage() < 1 ? 1 : query.getPage();
         int size = query.getSize() == null || query.getSize() < 1 ? 10 : Math.min(100, query.getSize());
+        String semester = query.getSemester() == null || query.getSemester().isBlank() ? null : query.getSemester().trim();
         LambdaQueryWrapper<Score> wrapper = new LambdaQueryWrapper<Score>()
                 .eq(Score::getCourseId, courseId)
-                .like(query.getSemester() != null && !query.getSemester().isBlank(), Score::getSemester, query.getSemester().trim())
+                .like(semester != null, Score::getSemester, semester)
                 .orderByAsc(Score::getStudentId).orderByAsc(Score::getAttemptNo);
         if (query.getStudentNo() != null && !query.getStudentNo().isBlank()) {
             List<Long> studentIds = studentService.list(new LambdaQueryWrapper<Student>()

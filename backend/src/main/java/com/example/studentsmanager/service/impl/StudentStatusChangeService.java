@@ -15,10 +15,11 @@ import com.example.studentsmanager.service.StudentService;
 import com.example.studentsmanager.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Map;
-import org.springframework.scheduling.annotation.Scheduled;
 
 @Service
 public class StudentStatusChangeService extends ServiceImpl<StudentStatusChangeMapper, StudentStatusChangeRequest> {
@@ -101,8 +102,6 @@ public class StudentStatusChangeService extends ServiceImpl<StudentStatusChangeM
             if ("MAJOR_TRANSFER".equals(request.getChangeType())) {
                 Major target = findTargetMajor(request.getTargetMajorCode(), request.getTargetClassNo(), student.getGrade());
                 if (target == null) throw new BusinessException("转入专业已不可用，不能批准");
-                student.setMajorCode(target.getCode());
-                student.setClassNo(target.getClassNo());
             }
             if (!request.getEffectiveDate().isAfter(java.time.LocalDate.now())) {
                 applyApprovedChange(request, student, reviewer);
@@ -115,17 +114,28 @@ public class StudentStatusChangeService extends ServiceImpl<StudentStatusChangeM
         var studentUser = userService.getById(student.getUserId());
         if (studentUser != null) notificationService.notifyUser(studentUser.getId(), "STUDENT_STATUS_REVIEW",
                 dto.isApproved() ? "学籍异动申请已通过" : "学籍异动申请未通过",
-                "你的" + request.getChangeType() + "申请已" + (dto.isApproved() ? "通过" : "拒绝") + "。审核意见：" + request.getReviewComment());
+                reviewNotificationMessage(request));
         return request;
     }
 
-    @Scheduled(cron = "0 10 0 * * *")
     @Transactional(rollbackFor = Exception.class)
-    public void applyDueApprovedChanges() {
+    public int applyDueApprovedChanges() {
+        if (!Integer.valueOf(1).equals(baseMapper.tryAcquireApplyLock())) return 0;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                baseMapper.releaseApplyLock();
+            }
+        });
+        return applyLockedDueChanges();
+    }
+
+    private int applyLockedDueChanges() {
         List<StudentStatusChangeRequest> due = list(new LambdaQueryWrapper<StudentStatusChangeRequest>()
                 .eq(StudentStatusChangeRequest::getStatus, "APPROVED")
                 .isNull(StudentStatusChangeRequest::getAppliedAt)
                 .le(StudentStatusChangeRequest::getEffectiveDate, java.time.LocalDate.now()));
+        int appliedCount = 0;
         for (StudentStatusChangeRequest request : due) {
             Student student = studentService.getById(request.getStudentId());
             if (student == null || !request.getCurrentStatus().equals(student.getStatus())) continue;
@@ -133,10 +143,17 @@ public class StudentStatusChangeService extends ServiceImpl<StudentStatusChangeM
                 applyApprovedChange(request, student, request.getReviewedBy());
                 request.setAppliedAt(java.time.LocalDateTime.now());
                 updateById(request);
+                appliedCount++;
+                var studentUser = userService.getById(student.getUserId());
+                if (studentUser != null) {
+                    notificationService.notifyUser(studentUser.getId(), "STUDENT_STATUS_REVIEW", "学籍异动已生效",
+                            "你的" + changeTypeLabel(request.getChangeType()) + "申请已于 " + request.getEffectiveDate() + " 生效。");
+                }
             } catch (BusinessException ignored) {
                 // Keep the approved request unapplied so an administrator can resolve the changed major or student record.
             }
         }
+        return appliedCount;
     }
 
     private void applyApprovedChange(StudentStatusChangeRequest request, Student student, String actor) {
@@ -147,6 +164,28 @@ public class StudentStatusChangeService extends ServiceImpl<StudentStatusChangeM
         }
         student.setStatus(request.getTargetStatus()); student.setUpdateBy(actor);
         studentService.updateById(student);
+    }
+
+    private String reviewNotificationMessage(StudentStatusChangeRequest request) {
+        String changeType = changeTypeLabel(request.getChangeType());
+        if (!"APPROVED".equals(request.getStatus())) {
+            return "你的" + changeType + "申请未通过。审核意见：" + request.getReviewComment();
+        }
+        String result = "你的" + changeType + "申请已通过";
+        if (request.getAppliedAt() != null) {
+            return result + "，学籍已更新。审核意见：" + request.getReviewComment();
+        }
+        return result + "，预计于 " + request.getEffectiveDate() + " 生效。审核意见：" + request.getReviewComment();
+    }
+
+    private String changeTypeLabel(String changeType) {
+        return switch (changeType) {
+            case "SUSPENSION" -> "休学";
+            case "RETURN" -> "复学";
+            case "MAJOR_TRANSFER" -> "转专业";
+            case "WITHDRAWAL" -> "退学";
+            default -> "学籍异动";
+        };
     }
 
     private Major findTargetMajor(String majorCode, String classNo, String grade) {

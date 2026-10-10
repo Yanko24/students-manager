@@ -3,7 +3,7 @@
     <div class="page-heading">
       <div>
         <h2>选课中心</h2>
-        <p>浏览本学期开放课程，查看剩余名额并办理选课或退选。</p>
+        <p>浏览开放课程并办理选课或退选；待审核、已选和候补申请都会计入学期学分上限。</p>
       </div>
       <el-tag type="info" effect="plain">提交申请后由管理员审核</el-tag>
     </div>
@@ -51,6 +51,22 @@
             <span v-if="row.selectionGrade" class="muted">限 {{ row.selectionGrade }} 级</span>
           </template>
         </el-table-column>
+        <el-table-column label="选课条件" min-width="220">
+          <template #default="{ row }">
+            <div v-if="row.prerequisiteCourseCodes?.length">先修：{{ row.prerequisiteCourseCodes.join('、') }}</div>
+            <div v-if="row.missingPrerequisiteCourseCodes?.length" class="rule-warning">
+              未通过：{{ row.missingPrerequisiteCourseCodes.join('、') }}
+            </div>
+            <div>本学期已申请 {{ formatCredits(row.semesterSelectedCredits) }} / {{ formatCredits(row.semesterCreditLimit) }} 学分</div>
+            <span v-if="!['approved', 'pending', 'waitlisted'].includes(row.selectionStatus) && selectionBlockReason(row)"
+              class="rule-warning">{{ selectionBlockReason(row) }}</span>
+            <span v-if="row.selectionStartAt || row.selectionEndAt" class="muted">
+              {{ formatDateTime(row.selectionStartAt) || '立即' }} 至 {{ formatDateTime(row.selectionEndAt) || '不限' }}
+            </span>
+            <span v-if="row.dropDeadlineAt" class="muted">退选截止：{{ formatDateTime(row.dropDeadlineAt) }}</span>
+            <span v-if="!row.prerequisiteCourseCodes?.length && !row.selectionStartAt && !row.selectionEndAt" class="muted">无额外限制</span>
+          </template>
+        </el-table-column>
         <el-table-column label="选课名额" min-width="150">
           <template #default="{ row }">
             <div class="capacity-cell">
@@ -75,10 +91,11 @@
         <el-table-column label="操作" width="125" fixed="right">
           <template #default="{ row }">
             <el-button v-if="['approved', 'pending', 'waitlisted'].includes(row.selectionStatus)"
-              link type="danger" :loading="row.actionLoading" @click="drop(row)">
+              link type="danger" :loading="row.actionLoading" :disabled="!canDrop(row)" @click="drop(row)">
               {{ row.selectionStatus === 'waitlisted' ? '退出候补' : '退选' }}
             </el-button>
             <el-button v-else link type="primary" :loading="row.actionLoading"
+              :disabled="!canSelect(row)"
               @click="select(row)">{{ isFull(row) ? '加入候补' : row.selectionStatus === 'rejected' ? '重新选课' : '选择课程' }}</el-button>
           </template>
         </el-table-column>
@@ -113,6 +130,27 @@ const scheduleText = (schedule) => {
 }
 
 const isFull = (course) => Number(course.selectedCount || 0) >= Number(course.maxStudents || 0)
+const canSelect = (course) => {
+  const current = Number(course.semesterSelectedCredits || 0)
+  const credit = Number(course.credit || 0)
+  const limit = Number(course.semesterCreditLimit || 30)
+  const missing = course.missingPrerequisiteCourseCodes || []
+  const now = Date.now()
+  const beforeStart = course.selectionStartAt && now < new Date(course.selectionStartAt).getTime()
+  const afterEnd = course.selectionEndAt && now > new Date(course.selectionEndAt).getTime()
+  return Number(course.selectionOpen) === 1 && Number(course.status) !== 2
+    && missing.length === 0 && current + credit <= limit && !beforeStart && !afterEnd
+}
+const selectionBlockReason = (course) => {
+  if (Number(course.selectionOpen) !== 1 || Number(course.status) === 2) return '课程当前未开放选课'
+  if (course.missingPrerequisiteCourseCodes?.length) return '未满足先修课程要求'
+  if (Number(course.semesterSelectedCredits || 0) + Number(course.credit || 0) > Number(course.semesterCreditLimit || 30)) return '超过学期学分上限'
+  if (course.selectionStartAt && Date.now() < new Date(course.selectionStartAt).getTime()) return '尚未到选课开始时间'
+  if (course.selectionEndAt && Date.now() > new Date(course.selectionEndAt).getTime()) return '选课时间已截止'
+  return ''
+}
+const canDrop = (course) => course.selectionStatus === 'waitlisted' || !course.dropDeadlineAt
+  || Date.now() <= new Date(course.dropDeadlineAt).getTime()
 const capacityPercent = (course) => course.maxStudents > 0
   ? Math.min(100, Math.round((Number(course.selectedCount || 0) / course.maxStudents) * 100))
   : 0
@@ -121,6 +159,15 @@ function scopeName(course) {
   if (course.selectionScope === 'COLLEGE') return course.selectionCollegeName || '指定学院'
   if (course.selectionScope === 'MAJOR') return course.selectionMajorName || course.selectionMajorCode || '指定专业'
   return '全校开放'
+}
+
+function formatCredits(value) {
+  const number = Number(value || 0)
+  return Number.isInteger(number) ? String(number) : number.toFixed(1)
+}
+
+function formatDateTime(value) {
+  return value ? String(value).replace('T', ' ').slice(0, 16) : ''
 }
 
 async function fetchCourses() {
@@ -207,6 +254,7 @@ onMounted(fetchCourses)
 .waitlist-status { display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
 .waitlist-status span { color: var(--el-text-color-secondary); font-size: 12px; }
 .muted { color: var(--el-text-color-secondary); }
+.rule-warning { color: var(--el-color-danger); }
 .pagination { display: flex; justify-content: flex-end; margin-top: 18px; overflow-x: auto; }
 @media (max-width: 640px) {
   .page-heading { align-items: flex-start; flex-direction: column; }

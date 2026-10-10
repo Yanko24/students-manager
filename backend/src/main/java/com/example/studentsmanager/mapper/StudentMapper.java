@@ -13,6 +13,9 @@ import java.util.List;
 
 @Mapper
 public interface StudentMapper extends BaseMapper<Student> {
+    @Select("SELECT * FROM students WHERE id = #{id} AND is_deleted = 0 FOR UPDATE")
+    Student selectForUpdate(@Param("id") Long id);
+
     @Select("SELECT * FROM students WHERE student_no = #{studentNumber}")
     Student findByStudentNumber(String studentNumber);
 
@@ -71,4 +74,4 @@ public interface StudentMapper extends BaseMapper<Student> {
     Integer countClassEnrolledStudents(@Param("majorCode") String majorCode, 
                                      @Param("grade") String grade, 
                                      @Param("classNo") String classNo);
-} 
+}

@@ -10,13 +10,16 @@
             </el-form-item>
             <el-form-item label="课程" prop="courseId">
                 <el-select v-model="formData.courseId" placeholder="按课程代码或名称搜索" filterable remote
-                    :remote-method="searchCourses" :loading="courseLoading" style="width: 100%">
+                    :remote-method="searchCourses" :loading="courseLoading" style="width: 100%" @change="handleCourseChange">
                     <el-option v-for="course in courses" :key="course.id"
                         :label="`${course.name}（${course.code}）`" :value="course.id" />
                 </el-select>
             </el-form-item>
             <el-form-item label="学期" prop="semester">
-                <el-input v-model="formData.semester" placeholder="例如：2026-2027-1" />
+                <el-select v-model="formData.semester" filterable placeholder="选择课程学期" style="width: 100%">
+                    <el-option v-for="term in academicTerms" :key="term.id" :label="term.termCode + (term.isCurrent ? '（当前）' : '')"
+                        :value="term.termCode" :disabled="!term.isActive && term.termCode !== formData.semester" />
+                </el-select>
             </el-form-item>
             <el-form-item label="考试类型" prop="attemptType">
                 <el-select v-model="formData.attemptType" style="width: 100%">
@@ -55,6 +58,7 @@ import { showApiError } from "@/utils/errorHandler";
     import { getStudentList } from '@/api/student'
     import { getCourseList } from '@/api/course'
     import { getScoreById } from '@/api/score'
+    import { getAcademicTerms, getCurrentAcademicTerm } from '@/api/academicTerm'
     import { useUnsavedChanges } from '@/composables/useUnsavedChanges'
 
     const props = defineProps({ id: { type: String, default: '' }, isEdit: { type: Boolean, default: false } })
@@ -64,6 +68,7 @@ import { showApiError } from "@/utils/errorHandler";
     const courses = ref([])
     const studentLoading = ref(false)
     const courseLoading = ref(false)
+    const academicTerms = ref([])
     const formData = reactive({ studentId: null, courseId: null, score: 0, grade: '', semester: '', attemptType: 'REGULAR', attemptNo: 1, changeReason: '', examTime: '', comment: '' })
     const initialSnapshot = ref('')
     const initialized = ref(false)
@@ -107,6 +112,11 @@ import { showApiError } from "@/utils/errorHandler";
         }
     }
 
+    const handleCourseChange = (courseId) => {
+        const selectedCourse = courses.value.find(course => course.id === courseId)
+        if (selectedCourse?.semester) formData.semester = selectedCourse.semester
+    }
+
     const handleSubmit = async () => {
         try {
             await formRef.value.validate()
@@ -121,6 +131,8 @@ import { showApiError } from "@/utils/errorHandler";
 
     onMounted(async () => {
         try {
+            const [termsResponse, currentTermResponse] = await Promise.all([getAcademicTerms(), getCurrentAcademicTerm()])
+            if (termsResponse?.code === 200) academicTerms.value = termsResponse.data || []
             if (props.isEdit) {
                 const response = await getScoreById(props.id)
                 if (response?.code !== 200 || !response.data) throw new Error(response?.message || '获取成绩信息失败')
@@ -128,7 +140,11 @@ import { showApiError } from "@/utils/errorHandler";
                 formData.changeReason = ''
                 formData.examTime = response.data.examTime ? new Date(response.data.examTime) : ''
                 await Promise.all([searchStudents(response.data.studentNo), searchCourses(response.data.courseCode)])
+                if (!academicTerms.value.some(term => term.termCode === formData.semester)) {
+                    academicTerms.value.push({ id: formData.semester, termCode: formData.semester, isActive: 0, isCurrent: 0 })
+                }
             } else {
+                if (currentTermResponse?.data?.termCode) formData.semester = currentTermResponse.data.termCode
                 await Promise.all([searchStudents(''), searchCourses('')])
             }
             setInitialSnapshot()

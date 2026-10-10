@@ -48,7 +48,7 @@
                     </el-menu-item>
                     <el-menu-item index="/student/notifications">
                         <el-icon><Document /></el-icon>
-                        <template #title><el-badge :value="unreadNotificationCount" :hidden="!unreadNotificationCount" :max="99">站内通知</el-badge></template>
+                        <span>站内通知<span v-if="unreadNotificationCount">（{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}）</span></span>
                     </el-menu-item>
                     <el-menu-item index="/student/profile">
                         <el-icon>

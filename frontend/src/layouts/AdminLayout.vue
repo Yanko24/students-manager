@@ -35,6 +35,18 @@
                         <el-icon><Reading /></el-icon>
                         <span>培养方案</span>
                     </el-menu-item>
+                    <el-menu-item index="/admin/academic-terms">
+                        <el-icon><Calendar /></el-icon>
+                        <span>学期管理</span>
+                    </el-menu-item>
+                    <el-menu-item index="/admin/academic-risks">
+                        <el-icon><Aim /></el-icon>
+                        <span>学业预警</span>
+                    </el-menu-item>
+                    <el-menu-item index="/admin/task-runs">
+                        <el-icon><Document /></el-icon>
+                        <span>定时任务运行</span>
+                    </el-menu-item>
                     <el-menu-item index="/admin/scores">
                         <el-icon><Document /></el-icon>
                         <span>成绩管理</span>
@@ -49,7 +61,7 @@
                     </el-menu-item>
                     <el-menu-item index="/admin/notifications">
                         <el-icon><Document /></el-icon>
-                        <el-badge :value="unreadNotificationCount" :hidden="!unreadNotificationCount" :max="99"><span>站内通知</span></el-badge>
+                        <span>站内通知<span v-if="unreadNotificationCount">（{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}）</span></span>
                     </el-menu-item>
                     <el-menu-item index="/admin/operation-audits">
                         <el-icon><Document /></el-icon>

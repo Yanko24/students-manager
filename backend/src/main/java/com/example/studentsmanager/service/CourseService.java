@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.spring.service.IService;
 import com.example.studentsmanager.model.dto.course.CourseQueryDTO;
 import com.example.studentsmanager.model.dto.course.CourseUpdateDTO;
 import com.example.studentsmanager.model.entity.Course;
+import com.example.studentsmanager.model.entity.CourseCatalog;
 import com.example.studentsmanager.model.vo.course.CourseVO;
 import com.example.studentsmanager.model.vo.course.CourseSelectionStudentVO;
 
@@ -16,6 +17,7 @@ public interface CourseService extends IService<Course> {
     CourseVO getTeacherCourse(String username, Long courseId);
     Page<CourseSelectionStudentVO> getTeacherSelectedStudents(String username, Long courseId, long page, long size, String keyword);
     CourseVO getCourse(Long id);
+    List<CourseCatalog> getCourseCatalogOptions();
     Page<CourseSelectionStudentVO> getSelectedStudents(Long courseId, long page, long size);
     Page<CourseSelectionStudentVO> getCourseSelections(Long courseId, long page, long size, String status);
     int reviewCourseSelections(Long courseId, List<Long> selectionIds, String action, String actor);

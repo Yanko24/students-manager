@@ -169,6 +169,24 @@ const router = createRouter({
 					meta: { title: "培养方案", requiresAuth: true, role: "admin" },
 				},
 				{
+					path: "academic-terms",
+					name: "AcademicTermList",
+					component: () => import("@/views/admin/academic-terms/AcademicTermList.vue"),
+					meta: { title: "学期管理", requiresAuth: true, role: "admin" },
+				},
+				{
+					path: "academic-risks",
+					name: "AcademicRiskList",
+					component: () => import("@/views/admin/academic-risks/AcademicRiskList.vue"),
+					meta: { title: "学业预警", requiresAuth: true, role: "admin" },
+				},
+				{
+					path: "task-runs",
+					name: "TaskRuns",
+					component: () => import("@/views/admin/system/TaskRuns.vue"),
+					meta: { title: "定时任务运行", requiresAuth: true, role: "admin" },
+				},
+				{
 					path: "attendance",
 					name: "AttendanceList",
 					component: () => import("@/views/admin/attendance/AttendanceList.vue"),

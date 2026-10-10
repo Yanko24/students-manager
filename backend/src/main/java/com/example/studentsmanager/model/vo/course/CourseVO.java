@@ -30,6 +30,13 @@ public class CourseVO {
     private String selectionMajorCode;
     private String selectionMajorName;
     private String selectionGrade;
+    private LocalDateTime selectionStartAt;
+    private LocalDateTime selectionEndAt;
+    private LocalDateTime dropDeadlineAt;
+    private List<String> prerequisiteCourseCodes;
+    private List<String> missingPrerequisiteCourseCodes;
+    private BigDecimal semesterSelectedCredits;
+    private BigDecimal semesterCreditLimit;
     private String statusText;
     private String description;
     private String objectives;

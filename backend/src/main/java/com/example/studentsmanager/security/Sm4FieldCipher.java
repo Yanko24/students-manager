@@ -3,6 +3,7 @@ package com.example.studentsmanager.security;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.SM4Engine;
 import org.bouncycastle.crypto.modes.GCMBlockCipher;
+import org.bouncycastle.crypto.modes.GCMModeCipher;
 import org.bouncycastle.crypto.params.AEADParameters;
 import org.bouncycastle.crypto.params.KeyParameter;
 
@@ -36,7 +37,7 @@ public final class Sm4FieldCipher {
         SECURE_RANDOM.nextBytes(nonce);
         byte[] input = plaintext.getBytes(StandardCharsets.UTF_8);
         try {
-            GCMBlockCipher cipher = new GCMBlockCipher(new SM4Engine());
+            GCMModeCipher cipher = GCMBlockCipher.newInstance(new SM4Engine());
             cipher.init(true, new AEADParameters(new KeyParameter(key), TAG_BITS, nonce));
             byte[] output = new byte[cipher.getOutputSize(input.length)];
             int length = cipher.processBytes(input, 0, input.length, output, 0);
@@ -66,7 +67,7 @@ public final class Sm4FieldCipher {
         byte[] nonce = Arrays.copyOfRange(payload, 0, NONCE_BYTES);
         byte[] input = Arrays.copyOfRange(payload, NONCE_BYTES, payload.length);
         try {
-            GCMBlockCipher cipher = new GCMBlockCipher(new SM4Engine());
+            GCMModeCipher cipher = GCMBlockCipher.newInstance(new SM4Engine());
             cipher.init(false, new AEADParameters(new KeyParameter(key), TAG_BITS, nonce));
             byte[] output = new byte[cipher.getOutputSize(input.length)];
             int length = cipher.processBytes(input, 0, input.length, output, 0);

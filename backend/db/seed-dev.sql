@@ -1,5 +1,5 @@
 -- Local development demo records only.
--- Run once after Flyway V1 has created the schema and bootstrap administrator.
+-- Run once after Flyway has created the schema and bootstrap administrator.
 -- This script does not create databases or tables.
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -249,6 +249,28 @@ FROM courses WHERE is_deleted = 0 GROUP BY course_code;
 UPDATE courses c JOIN course_catalog catalog ON catalog.course_code = c.course_code
 SET c.catalog_id = catalog.id WHERE c.catalog_id IS NULL;
 
+-- 新学期集中维护；演示课程与成绩共用统一学期记录。
+INSERT IGNORE INTO academic_terms (term_code, academic_year, term_no, is_active, is_current)
+SELECT DISTINCT c.semester, SUBSTRING_INDEX(c.semester, '-', 2),
+       CAST(SUBSTRING_INDEX(c.semester, '-', -1) AS UNSIGNED), 1, 0
+FROM courses c WHERE c.semester REGEXP '^[0-9]{4}-[0-9]{4}-[12]$';
+UPDATE academic_terms SET is_current = 0;
+UPDATE academic_terms SET is_current = 1, is_active = 1 WHERE term_code = '2026-2027-1';
+
+-- 选课规则演示：数据结构要求已通过 Java 程序设计；机器学习要求已通过数据结构和人工智能导论。
+INSERT INTO course_prerequisites (course_catalog_id, prerequisite_catalog_id)
+SELECT target.id, required.id
+FROM course_catalog target
+JOIN course_catalog required ON (target.course_code = 'CS102' AND required.course_code = 'CS101')
+    OR (target.course_code = 'AI102' AND required.course_code IN ('CS102', 'AI101'));
+
+-- 演示选课/退选时间窗；从脚本执行时刻起开放 30 天，退选多开放 5 天。
+UPDATE courses
+SET selection_start_at = DATE_SUB(NOW(), INTERVAL 1 DAY),
+    selection_end_at = DATE_ADD(NOW(), INTERVAL 30 DAY),
+    drop_deadline_at = DATE_ADD(NOW(), INTERVAL 35 DAY)
+WHERE course_code IN ('CS206', 'CS207');
+
 -- 课程排课演示时段：同一学期内不冲突，便于本地查看课表并验证冲突校验。
 INSERT INTO course_schedules (course_id, day_of_week, start_period, end_period, week_start, week_end, week_parity, classroom)
 SELECT c.id, seed.day_of_week, seed.start_period, seed.end_period, 1, 16, 'ALL', seed.classroom
@@ -350,6 +372,13 @@ JOIN students s ON s.major_code = m.code AND s.grade = m.grade AND s.class_no = 
 WHERE m.status = 0 AND m.is_deleted = 0 AND s.is_deleted = 0
 GROUP BY m.code, m.grade;
 
+-- 为计算机类培养方案配置逐门必修课程，便于演示毕业资格预检查。
+INSERT INTO curriculum_plan_courses (plan_id, course_catalog_id)
+SELECT plans.id, catalog.id
+FROM curriculum_plans plans
+JOIN course_catalog catalog ON catalog.course_code IN ('CS101', 'CS102', 'CS103')
+WHERE plans.major_code = 'CS';
+
 -- 给已有正常考试成绩增加补考与待发布重修记录
 INSERT INTO scores
     (student_id, course_id, score, grade, grade_point, semester, attempt_type, attempt_no,
@@ -415,6 +444,21 @@ SELECT id, 'MAJOR_TRANSFER', 0, 0, 'SE', '01', '2027-09-01', '演示：申请转
        DATE_SUB(NOW(), INTERVAL 3 DAY), NOW()
 FROM students WHERE student_no = 'CS20230112';
 
+-- 临界值演示：已批准、今天生效但尚未应用。后端每分钟扫描一次，到期后应将学生状态更新为休学。
+INSERT INTO student_status_change_requests
+    (student_id, change_type, current_status, target_status, effective_date, reason, status,
+     review_comment, reviewed_by, reviewed_at, applied_at, create_time, update_time)
+SELECT s.id, 'SUSPENSION', 0, 1, CURRENT_DATE, '演示：已批准、今日生效的休学申请（生效边界测试）', 'APPROVED',
+       '演示：验证生效日期等于今天时自动更新学籍', 'admin', NOW(), NULL, DATE_SUB(NOW(), INTERVAL 1 DAY), NOW()
+FROM students s
+WHERE s.student_no = 'CS20230104'
+  AND s.status = 0
+  AND NOT EXISTS (
+      SELECT 1 FROM student_status_change_requests existing
+      WHERE existing.student_id = s.id
+        AND existing.reason = '演示：已批准、今日生效的休学申请（生效边界测试）'
+  );
+
 INSERT INTO student_status_change_requests
     (student_id, change_type, current_status, target_status, effective_date, reason, status,
      review_comment, reviewed_by, reviewed_at, create_time, update_time)
@@ -450,6 +494,9 @@ FROM users u JOIN students s ON s.user_id = u.id WHERE s.student_no = 'CS2023011
 UNION ALL
 SELECT u.id, 'STATUS_CHANGE_REVIEWED', '学籍异动申请未通过', '你的复学申请未通过，请查看审核意见并补充材料。', DATE_SUB(NOW(), INTERVAL 1 HOUR), DATE_SUB(NOW(), INTERVAL 2 DAY)
 FROM users u JOIN students s ON s.user_id = u.id WHERE s.student_no = 'CS20230105'
+UNION ALL
+SELECT u.id, 'STATUS_CHANGE_REVIEWED', '休学申请已通过，今日生效', '演示：该申请的生效日期为今天，后端定时任务应用后学籍应变更为休学。', NULL, NOW()
+FROM users u JOIN students s ON s.user_id = u.id WHERE s.student_no = 'CS20230104'
 UNION ALL
 SELECT u.id, 'SCORE_PUBLISHED', '课程成绩已发布', '《数据库原理》成绩已发布，可在成绩查询中查看。', NULL, DATE_SUB(NOW(), INTERVAL 2 DAY)
 FROM users u JOIN students s ON s.user_id = u.id WHERE s.student_no = 'VM20230201';
